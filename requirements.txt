@@ -1,0 +1,2 @@
+# vuln-analyzer - No external Python dependencies.
+# The pipeline uses the `opencode` CLI tool for LLM interactions.

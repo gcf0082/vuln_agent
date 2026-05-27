@@ -1,0 +1,24 @@
+# analysis-config.yaml
+# Controls which analysis stages are executed.
+# Set false to skip a stage and use existing products.
+
+# Whether to decompile jar/war/class files
+decompile: false
+
+# Whether to analyze bytecode directly (javap/ASM)
+bytecode_analysis: false
+
+# Whether to collect and analyze attack surfaces
+attack_surface_collection: true
+
+# Whether to perform vulnerability analysis
+vulnerability_analysis: true
+
+# Whether to re-analyze confirmed VULNs for business-context validation
+vuln_re_analysis: false
+
+# Whether to allow access to sibling directories when tracing code
+allow_sibling_access: true
+
+# Max concurrent threads for parallel analysis stages
+max_workers: 3
