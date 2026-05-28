@@ -1,7 +1,9 @@
 """Example: multiple scenarios using opencode_wrapper."""
 
-import json, tempfile, shutil
+import json, sys, tempfile, shutil
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from opencode_wrapper import OpenCodeClient, SkillsRepo, AgentsRepo, ProfileConfig, load_env
 
 # ── Setup ──
