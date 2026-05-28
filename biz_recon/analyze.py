@@ -34,10 +34,7 @@ def run(work_dir: Path, max_workers: int = 3,
             return
 
         local_vars = {**vars,
-            "surface_type": item.surface_type,
-            "slug": item.slug,
-            "source": item.source,
-            "description": item.description,
+            "surface_file": str(work_dir / OUTPUT_PARENT / "surfaces" / item.filename),
         }
         prompt = read_prompt("analyze-surface.txt", local_vars)
         if extra_prompt:
