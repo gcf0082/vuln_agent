@@ -28,11 +28,14 @@ def run(work_dir: Path, max_workers: int = 3,
 
         client = OpenCodeClient()
         result = client.run(prompt)
-        status = "OK" if result.exit_code == 0 else f"FAIL({result.exit_code})"
-        log(f"    {status}: {vf_path.name}")
+        if result.exit_code != 0:
+            msg = f"Re-analysis failed for {vf_path.name} (exit={result.exit_code})"
+            log(f"    ERROR: {msg}")
+            raise RuntimeError(msg)
+        log(f"    OK: {vf_path.name}")
         return vf_path
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
-        pool.map(reanalyze_one, vuln_files)
+        list(pool.map(reanalyze_one, vuln_files))
 
     return sorted((work_dir / OUTPUT_PARENT / "vuln_review").glob("*"))

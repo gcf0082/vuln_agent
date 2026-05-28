@@ -33,11 +33,14 @@ def run(work_dir: Path, max_workers: int = 3,
 
         client = OpenCodeClient()
         result = client.run(prompt)
-        status = "OK" if result.exit_code == 0 else f"FAIL({result.exit_code})"
-        log(f"    {status}: {sf_path.name}")
+        if result.exit_code != 0:
+            msg = f"Vulnerability analysis failed for {sf_path.name} (exit={result.exit_code})"
+            log(f"    ERROR: {msg}")
+            raise RuntimeError(msg)
+        log(f"    OK: {sf_path.name}")
         return sf_path
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
-        pool.map(analyze_one, to_analyze)
+        list(pool.map(analyze_one, to_analyze))
 
     return find_vuln_files(work_dir)

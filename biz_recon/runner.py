@@ -43,10 +43,14 @@ def main():
     log(f"Max workers:    {max_workers}")
     log("=" * 50)
 
-    collect.run(work_dir)
-    analyze.run(work_dir, max_workers)
-    vuln.run(work_dir, max_workers)
-    reanalyze.run(work_dir, max_workers)
+    try:
+        collect.run(work_dir)
+        analyze.run(work_dir, max_workers)
+        vuln.run(work_dir, max_workers)
+        reanalyze.run(work_dir, max_workers)
+    except RuntimeError as e:
+        log(f"Pipeline aborted: {e}")
+        sys.exit(1)
 
     log()
     log("=" * 50)

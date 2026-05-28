@@ -24,9 +24,13 @@ def main():
     max_workers = config.get("max_workers", 3)
 
     setup_logging(work_dir)
-    vuln.run(work_dir,
-             max_workers=max_workers,
-             extra_prompt=args.extra_prompt)
+    try:
+        vuln.run(work_dir,
+                 max_workers=max_workers,
+                 extra_prompt=args.extra_prompt)
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

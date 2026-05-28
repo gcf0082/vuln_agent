@@ -20,7 +20,11 @@ def main():
 
     work_dir = Path(args.work_dir).resolve()
     setup_logging(work_dir)
-    collect.run(work_dir, extra_prompt=args.extra_prompt)
+    try:
+        collect.run(work_dir, extra_prompt=args.extra_prompt)
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -16,4 +16,6 @@ def run(work_dir: Path, extra_prompt: str = ""):
     client = OpenCodeClient()
     result = client.run(prompt)
     log(f"  exit={result.exit_code}")
+    if result.exit_code != 0:
+        raise RuntimeError(f"Surface collection failed (exit={result.exit_code})")
     return result

@@ -42,10 +42,13 @@ def run(work_dir: Path, max_workers: int = 3,
 
         client = OpenCodeClient()
         result = client.run(prompt)
-        status = "OK" if result.exit_code == 0 else f"FAIL({result.exit_code})"
-        log(f"    {status}: {item.filename}")
+        if result.exit_code != 0:
+            msg = f"Analysis failed for {item.filename} (exit={result.exit_code})"
+            log(f"    ERROR: {msg}")
+            raise RuntimeError(msg)
+        log(f"    OK: {item.filename}")
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
-        pool.map(analyze_one, items)
+        list(pool.map(analyze_one, items))
 
     return items
