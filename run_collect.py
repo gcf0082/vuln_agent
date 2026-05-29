@@ -19,7 +19,8 @@ def main():
     args = parser.parse_args()
 
     work_dir = Path(args.work_dir).resolve()
-    setup_logging(work_dir)
+    tool_dir = Path(__file__).parent.resolve()
+    setup_logging(tool_dir)
     prepare_templates(work_dir)
     try:
         collect.run(work_dir, extra_prompt=args.extra_prompt)

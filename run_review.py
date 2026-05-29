@@ -23,7 +23,8 @@ def main():
     config = load_config()
     max_workers = config.get("max_workers", 3)
 
-    setup_logging(work_dir)
+    tool_dir = Path(__file__).parent.resolve()
+    setup_logging(tool_dir)
     prepare_templates(work_dir)
     try:
         reanalyze.run(work_dir,
