@@ -60,6 +60,9 @@ def log_prompt(name: str, text: str):
     if _prompt_logger:
         _prompt_logger.info("╭─ PROMPT: %s (%d chars)", name, len(text))
         _prompt_logger.info(text)
+    if _logger:
+        _logger.debug("╭─ PROMPT: %s (%d chars)", name, len(text))
+        _logger.debug(text)
 
 
 def ensure_dirs(work_dir: Path):
