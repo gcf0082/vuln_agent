@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from . import collect, analyze, vuln, reanalyze
-from .workspace import setup_logging, log, find_surface_files, find_vuln_files, prepare_templates
+from .workspace import setup_logging, log, find_surface_files, find_vuln_files
 
 
 def load_config() -> dict:
@@ -39,7 +39,6 @@ def main():
     config = load_config()
     max_workers = config.get("max_workers", 3)
     setup_logging(Path.cwd())
-    prepare_templates(work_dir)
     log(f"Work directory: {work_dir}")
     log(f"Max workers:    {max_workers}")
     log("=" * 50)

@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from biz_recon import analyze
 from biz_recon.runner import load_config
-from biz_recon.workspace import setup_logging, prepare_templates
+from biz_recon.workspace import setup_logging
 
 
 def main():
@@ -25,9 +25,7 @@ def main():
     config = load_config()
     max_workers = config.get("max_workers", 3)
 
-    tool_dir = Path(__file__).parent.resolve()
-    setup_logging(tool_dir)
-    prepare_templates(work_dir)
+    setup_logging(Path(__file__).parent.resolve())
     try:
         analyze.run(work_dir,
                     max_workers=max_workers,

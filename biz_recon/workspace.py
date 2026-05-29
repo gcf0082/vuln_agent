@@ -2,15 +2,14 @@
 
 import logging
 import re
-import shutil
 from pathlib import Path
 from .models import SurfaceItem
 
 OUTPUT_PARENT = "_output"
+TOOL_DIR = Path(__file__).parent
 
 _logger: logging.Logger | None = None
 _prompt_logger: logging.Logger | None = None
-RUNTIME_DIR: Path | None = None
 
 
 def setup_logging(work_dir: Path):
@@ -69,48 +68,12 @@ def ensure_dirs(work_dir: Path):
         (work_dir / OUTPUT_PARENT / d).mkdir(parents=True, exist_ok=True)
 
 
-def prepare_templates(work_dir: Path):
-    """Copy prompts/ and references/ to _runtime/, substituting static dir variables.
-
-    This replaces ``{tool_dir}`` (``biz_recon/`` absolute path) and
-    ``{target_work_dir}`` (the target code directory) in all text files
-    at copy time, so that downstream ``read_prompt()`` reads already-resolved
-    templates from ``_runtime/``.
-    """
-    global RUNTIME_DIR
-    tool_dir = Path(__file__).parent
-    RUNTIME_DIR = tool_dir / "_runtime"
-
-    if RUNTIME_DIR.exists():
-        shutil.rmtree(RUNTIME_DIR)
-
-    static_vars = {
-        "tool_dir": str(tool_dir),
-        "target_work_dir": str(work_dir),
-    }
-
-    for subdir in ("prompts", "references"):
-        src = tool_dir / subdir
-        if src.exists():
-            _copy_with_subst(src, RUNTIME_DIR / subdir, static_vars)
-
-
-def _copy_with_subst(src: Path, dst: Path, vars: dict):
-    """Recursively copy a directory tree, substituting ``{var}`` in text files."""
-    for src_path in src.rglob("*"):
-        if src_path.is_dir():
-            continue
-        rel = src_path.relative_to(src)
-        dst_path = dst / rel
-        dst_path.parent.mkdir(parents=True, exist_ok=True)
-        text = src_path.read_text(encoding="utf-8")
-        text = _subst(text, vars)
-        dst_path.write_text(text, encoding="utf-8")
-
-
 def build_vars(target_dir: Path) -> dict[str, str]:
     """Build path variables for prompt substitution."""
-    return {"target_work_dir": str(target_dir)}
+    return {
+        "tool_dir": str(TOOL_DIR),
+        "target_work_dir": str(target_dir),
+    }
 
 
 def _subst(text: str, vars: dict[str, str]) -> str:
@@ -128,21 +91,16 @@ def read_prompt(name: str, vars: dict[str, str]) -> str:
     """Read a prompt template, resolve ``{include:file.md}`` markers,
     then substitute path variables.
 
-    Templates are read from ``RUNTIME_DIR/prompts/`` (prepared by
-    ``prepare_templates()``), and ``{include:...}`` markers resolve
-    against ``RUNTIME_DIR/references/``.  This means static variables
-    such as ``{tool_dir}`` and ``{target_work_dir}`` are already
-    substituted in the file contents.
+    Templates and references are read directly from ``biz_recon/prompts/``
+    and ``biz_recon/references/``.  Static variable substitution
+    (``{tool_dir}``, ``{target_work_dir}``) happens at read time.
 
     Include markers can be nested.  Example::
 
         {include:constraints.md}
     """
-    assert RUNTIME_DIR is not None, "prepare_templates() must be called first"
+    text = (TOOL_DIR / "prompts" / name).read_text()
 
-    text = (RUNTIME_DIR / "prompts" / name).read_text()
-
-    # Resolve {include:...} markers from _runtime/references/
     seen: set[str] = set()
     while True:
         m = re.search(r"\{include:([^}]+)\}", text)
@@ -153,7 +111,7 @@ def read_prompt(name: str, vars: dict[str, str]) -> str:
             text = text.replace(m.group(0), "", 1)
             continue
         seen.add(ref_name)
-        ref_path = RUNTIME_DIR / "references" / ref_name
+        ref_path = TOOL_DIR / "references" / ref_name
         if ref_path.exists():
             content = ref_path.read_text()
             text = text.replace(m.group(0), content, 1)

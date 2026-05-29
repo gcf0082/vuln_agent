@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from biz_recon import collect
-from biz_recon.workspace import setup_logging, prepare_templates
+from biz_recon.workspace import setup_logging
 
 
 def main():
@@ -19,9 +19,7 @@ def main():
     args = parser.parse_args()
 
     work_dir = Path(args.work_dir).resolve()
-    tool_dir = Path(__file__).parent.resolve()
-    setup_logging(tool_dir)
-    prepare_templates(work_dir)
+    setup_logging(Path(__file__).parent.resolve())
     try:
         collect.run(work_dir, extra_prompt=args.extra_prompt)
     except RuntimeError as e:
