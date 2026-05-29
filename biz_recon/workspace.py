@@ -1,6 +1,5 @@
 """Output directory and file helpers."""
 
-import atexit
 import logging
 import re
 import shutil
@@ -94,8 +93,6 @@ def prepare_templates(work_dir: Path):
         src = tool_dir / subdir
         if src.exists():
             _copy_with_subst(src, RUNTIME_DIR / subdir, static_vars)
-
-    atexit.register(lambda: shutil.rmtree(RUNTIME_DIR, ignore_errors=True))
 
 
 def _copy_with_subst(src: Path, dst: Path, vars: dict):
