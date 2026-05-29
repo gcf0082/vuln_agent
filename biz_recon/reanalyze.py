@@ -17,6 +17,7 @@ def run(work_dir: Path, max_workers: int = 3,
 
     log(f"  Re-analyzing {len(vuln_files)} VULN files in parallel (workers={max_workers})...")
     vars = build_vars(work_dir)
+    failures: list[str] = []
 
     def reanalyze_one(vf_path):
         local_vars = {**vars,
@@ -31,11 +32,18 @@ def run(work_dir: Path, max_workers: int = 3,
         if result.exit_code != 0:
             msg = f"Re-analysis failed for {vf_path.name} (exit={result.exit_code})"
             log(f"    ERROR: {msg}")
-            raise RuntimeError(msg)
+            return False
         log(f"    OK: {vf_path.name}")
-        return vf_path
+        return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
-        list(pool.map(reanalyze_one, vuln_files))
+        for vf_path, ok in zip(vuln_files, pool.map(reanalyze_one, vuln_files)):
+            if not ok:
+                failures.append(vf_path.name)
+
+    if failures:
+        msg = f"  FAILURES ({len(failures)}): {', '.join(failures)}"
+        log(msg)
+        print(msg, flush=True)
 
     return sorted((work_dir / OUTPUT_PARENT / "vuln_review").glob("*"))

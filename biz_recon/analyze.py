@@ -26,12 +26,13 @@ def run(work_dir: Path, max_workers: int = 3,
 
     log(f"  {len(items)} items, analyzing in parallel (workers={max_workers})...")
     vars = build_vars(work_dir)
+    failures: list[str] = []
 
     def analyze_one(item):
         output_path = work_dir / OUTPUT_PARENT / "analysis" / item.filename
         if output_path.exists():
             log(f"    SKIP (exists): {item.filename}")
-            return
+            return True
 
         local_vars = {**vars,
             "surface_file": str(work_dir / OUTPUT_PARENT / "surfaces" / item.filename),
@@ -45,10 +46,18 @@ def run(work_dir: Path, max_workers: int = 3,
         if result.exit_code != 0:
             msg = f"Analysis failed for {item.filename} (exit={result.exit_code})"
             log(f"    ERROR: {msg}")
-            raise RuntimeError(msg)
+            return False
         log(f"    OK: {item.filename}")
+        return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
-        list(pool.map(analyze_one, items))
+        for item, ok in zip(items, pool.map(analyze_one, items)):
+            if not ok:
+                failures.append(item.filename)
+
+    if failures:
+        msg = f"  FAILURES ({len(failures)}): {', '.join(failures)}"
+        log(msg)
+        print(msg, flush=True)
 
     return items

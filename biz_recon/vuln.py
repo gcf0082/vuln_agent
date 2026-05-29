@@ -21,6 +21,7 @@ def run(work_dir: Path, max_workers: int = 3,
 
     log(f"  Analyzing {len(to_analyze)} surfaces in parallel (workers={max_workers})...")
     vars = build_vars(work_dir)
+    failures: list[str] = []
 
     def analyze_one(sf_path):
         local_vars = {**vars,
@@ -36,11 +37,18 @@ def run(work_dir: Path, max_workers: int = 3,
         if result.exit_code != 0:
             msg = f"Vulnerability analysis failed for {sf_path.name} (exit={result.exit_code})"
             log(f"    ERROR: {msg}")
-            raise RuntimeError(msg)
+            return False
         log(f"    OK: {sf_path.name}")
-        return sf_path
+        return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
-        list(pool.map(analyze_one, to_analyze))
+        for sf_path, ok in zip(to_analyze, pool.map(analyze_one, to_analyze)):
+            if not ok:
+                failures.append(sf_path.name)
+
+    if failures:
+        msg = f"  FAILURES ({len(failures)}): {', '.join(failures)}"
+        log(msg)
+        print(msg, flush=True)
 
     return find_vuln_files(work_dir)
