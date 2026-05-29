@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from biz_recon import vuln
 from biz_recon.runner import load_config
-from biz_recon.workspace import setup_logging
+from biz_recon.workspace import setup_logging, prepare_templates
 
 
 def main():
@@ -24,6 +24,7 @@ def main():
     max_workers = config.get("max_workers", 3)
 
     setup_logging(work_dir)
+    prepare_templates(work_dir)
     try:
         vuln.run(work_dir,
                  max_workers=max_workers,
