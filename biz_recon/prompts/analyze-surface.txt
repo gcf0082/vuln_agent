@@ -1,6 +1,7 @@
 {include:constraints.md}
 
-分析 {surface_file}，产物写入 {target_work_dir}/_output/analysis/{surface_file}。**每个条目必出产物**。
+输入文件：{surface_file}
+输出文件：{target_work_dir}/_output/analysis/{surface_file}
 
 ## 分析方法
 
