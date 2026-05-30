@@ -1,6 +1,7 @@
 """Stage 6: Vulnerability re-analysis — one client per file, parallel."""
 
 import concurrent.futures
+import re
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
@@ -27,8 +28,13 @@ def run(work_dir: Path, max_workers: int = 3,
 
     def reanalyze_one(vf_path):
         log(f"  ▶ {vf_path.name}")
+        # Derive the corresponding analysis filename from the vuln filename
+        # e.g. VULN-iface-REST-api-users-list-1.md → iface-REST-api-users-list.md
+        analysis_name = re.sub(r'^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-', '', vf_path.stem)
+        analysis_name = re.sub(r'-\d+$', '', analysis_name) + '.md'
         local_vars = {**vars,
             "vuln_file": vf_path.name,
+            "analysis_file": analysis_name,
             "extra_prompt": f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else "",
         }
         prompt = read_prompt("review-vulnerability.txt", local_vars)
