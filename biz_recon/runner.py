@@ -34,20 +34,23 @@ def load_config() -> dict:
     return config
 
 
-def main():
-    work_dir = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
+def main(work_dir: str | None = None,
+         collect_prompt: str = "",
+         vuln_prompt: str = ""):
+    work_path = Path(work_dir).resolve() if work_dir else \
+                (Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd())
     config = load_config()
     max_workers = config.get("max_workers", 3)
     setup_logging(Path.cwd())
-    log(f"Work directory: {work_dir}")
+    log(f"Work directory: {work_path}")
     log(f"Max workers:    {max_workers}")
     log("=" * 50)
 
     try:
-        collect.run(work_dir)
-        analyze.run(work_dir, max_workers)
-        vuln.run(work_dir, max_workers)
-        reanalyze.run(work_dir, max_workers)
+        collect.run(work_path, extra_prompt=collect_prompt)
+        analyze.run(work_path, max_workers)
+        vuln.run(work_path, max_workers, extra_prompt=vuln_prompt)
+        reanalyze.run(work_path, max_workers, extra_prompt=vuln_prompt)
     except RuntimeError as e:
         log(f"Pipeline aborted: {e}")
         sys.exit(1)
@@ -55,8 +58,8 @@ def main():
     log()
     log("=" * 50)
     log("Pipeline complete.")
-    surfaces = find_surface_files(work_dir)
-    vulns = find_vuln_files(work_dir)
+    surfaces = find_surface_files(work_path)
+    vulns = find_vuln_files(work_path)
     log(f"  Surface products: {len(surfaces)}")
     log(f"  Vuln products:    {len(vulns)}")
 
