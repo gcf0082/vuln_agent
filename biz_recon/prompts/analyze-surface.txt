@@ -10,7 +10,7 @@
 （请读取上方文件获取该攻击面的类型、标识、来源、描述等信息）
 
 ## 输出文件
-{target_work_dir}/_output/analysis/（取 {surface_file} 的文件名，目录从 surfaces 改为 analysis）
+{target_work_dir}/_output/analysis/{surface_file}
 
 ## 分析方法
 
