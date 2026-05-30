@@ -67,21 +67,6 @@ def build_vars(target_dir: Path) -> dict[str, str]:
     }
 
 
-def read_prompt(name: str, vars: dict[str, str]) -> str:
-    """Read a prompt template and substitute ``{key}`` variables.
-
-    .. note::
-       This function does **not** resolve ``{include:...}`` markers.
-       Use :func:`prompt.read_prompt` when include resolution is needed.
-    """
-    from .prompt import _subst, log_prompt
-
-    text = (TOOL_DIR / "prompts" / name).read_text()
-    resolved = _subst(text, vars)
-    log_prompt(name, resolved)
-    return resolved
-
-
 def _parse_field(line: str, label: str) -> str | None:
     """Extract value from a markdown list item like ``- **类型**：iface``."""
     m = re.search(rf"^\s*-\s*\*+{re.escape(label)}\*+\s*[:：]\s*(.+)", line)

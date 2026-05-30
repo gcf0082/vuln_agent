@@ -1,4 +1,4 @@
-"""Stage 4: Vulnerability analysis — one client per surface, parallel."""
+"""Stage 3: Vulnerability analysis — one client per surface, parallel."""
 
 import concurrent.futures
 from pathlib import Path
@@ -10,7 +10,7 @@ from .workspace import build_vars, find_surface_files, find_vuln_files, needs_an
 def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = ""):
     from .workspace import ensure_dirs
-    log(f"\n=== Stage 4: Vulnerability Analysis ===")
+    log(f"\n=== Stage 3: Vulnerability Analysis ===")
     ensure_dirs(work_dir)
 
     surface_files = find_surface_files(work_dir)

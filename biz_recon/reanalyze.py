@@ -1,4 +1,4 @@
-"""Stage 6: Vulnerability re-analysis — one client per file, parallel."""
+"""Stage 4: Vulnerability re-analysis — one client per file, parallel."""
 
 import concurrent.futures
 import re
@@ -10,7 +10,7 @@ from .workspace import OUTPUT_PARENT, build_vars, log
 
 def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = ""):
-    log(f"\n=== Stage 6: Vulnerability Re-Analysis ===")
+    log(f"\n=== Stage 4: Vulnerability Re-Analysis ===")
 
     review_dir = work_dir / OUTPUT_PARENT / "vuln_review"
     if review_dir.exists() and any(review_dir.iterdir()):
