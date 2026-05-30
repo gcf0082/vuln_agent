@@ -3,7 +3,8 @@
 import concurrent.futures
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
-from .workspace import build_vars, read_prompt, find_surface_files, find_vuln_files, needs_analysis, log
+from .prompt import read_prompt
+from .workspace import build_vars, find_surface_files, find_vuln_files, needs_analysis, log
 
 
 def run(work_dir: Path, max_workers: int = 3,
@@ -24,6 +25,7 @@ def run(work_dir: Path, max_workers: int = 3,
     failures: list[str] = []
 
     def analyze_one(sf_path):
+        log(f"  ▶ {sf_path.name}")
         local_vars = {**vars,
             "surface_file": sf_path.name,
             "surface_stem": sf_path.stem,
@@ -35,10 +37,9 @@ def run(work_dir: Path, max_workers: int = 3,
         client = OpenCodeClient()
         result = client.run(prompt)
         if result.exit_code != 0:
-            msg = f"Vulnerability analysis failed for {sf_path.name} (exit={result.exit_code})"
-            log(f"    ERROR: {msg}")
+            log(f"  ✗ {sf_path.name}")
             return False
-        log(f"    OK: {sf_path.name}")
+        log(f"  ✓ {sf_path.name}")
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:

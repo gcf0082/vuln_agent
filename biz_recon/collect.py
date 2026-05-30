@@ -2,7 +2,8 @@
 
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
-from .workspace import OUTPUT_PARENT, ensure_dirs, build_vars, read_prompt, log
+from .prompt import read_prompt
+from .workspace import OUTPUT_PARENT, ensure_dirs, build_vars, log
 
 
 DONE_MARKER = ".collect_done"
@@ -30,4 +31,11 @@ def run(work_dir: Path, extra_prompt: str = ""):
 
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.touch()
+
+    surfaces_dir = work_dir / OUTPUT_PARENT / "surfaces"
+    surface_files = sorted(surfaces_dir.glob("*.md"))
+    log(f"  Generated {len(surface_files)} surface entries:")
+    for sf in surface_files:
+        log(f"    - {sf.name}")
+
     return result

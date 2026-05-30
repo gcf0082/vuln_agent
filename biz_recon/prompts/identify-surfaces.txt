@@ -1,5 +1,3 @@
-{include:constraints.md}
-
 你是一个攻击面识别器。你的职责是识别 {target_work_dir} 下的所有攻击面，**仅做识别，不做任何深入分析**。每发现一个攻击面，在 {target_work_dir}/_output/surfaces/ 下生成一个独立文件记录其位置和基本信息。
 
 ## 识别范围
@@ -41,7 +39,6 @@
 - **优先级**：high / medium / low
 - **来源**：/src/main/java/com/acme/UserController.java:48 list()
 - **描述**：查询用户列表
-- **输出文件**：REST-api-users-list.md
 ```
 
 按分类的补充字段（根据实际类型选填对应的字段集）：
@@ -60,7 +57,7 @@
 
 补充字段如实填写，没有的信息不写，不要编造。
 
-`slug` 与 `输出文件` 中的文件名对应（去掉 `.md` 后缀即为 slug）。
+`slug` 为文件名去掉 `.md` 后缀，如 `REST-api-users-list.md` 的 slug 为 `REST-api-users-list`。
 
 ## 排除记录
 
@@ -75,3 +72,5 @@
 ## 构建 / CI 脚本
 - {路径}
 ```
+
+{include:constraints.md}

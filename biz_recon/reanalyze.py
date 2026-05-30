@@ -3,7 +3,8 @@
 import concurrent.futures
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
-from .workspace import OUTPUT_PARENT, build_vars, read_prompt, log
+from .prompt import read_prompt
+from .workspace import OUTPUT_PARENT, build_vars, log
 
 
 def run(work_dir: Path, max_workers: int = 3,
@@ -25,6 +26,7 @@ def run(work_dir: Path, max_workers: int = 3,
     failures: list[str] = []
 
     def reanalyze_one(vf_path):
+        log(f"  ▶ {vf_path.name}")
         local_vars = {**vars,
             "vuln_file": vf_path.name,
         }
@@ -35,10 +37,9 @@ def run(work_dir: Path, max_workers: int = 3,
         client = OpenCodeClient()
         result = client.run(prompt)
         if result.exit_code != 0:
-            msg = f"Re-analysis failed for {vf_path.name} (exit={result.exit_code})"
-            log(f"    ERROR: {msg}")
+            log(f"  ✗ {vf_path.name}")
             return False
-        log(f"    OK: {vf_path.name}")
+        log(f"  ✓ {vf_path.name}")
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:

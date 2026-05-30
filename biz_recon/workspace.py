@@ -54,15 +54,6 @@ def log(msg: str = ""):
         print()
 
 
-def log_prompt(name: str, text: str):
-    if _prompt_logger:
-        _prompt_logger.info("╭─ PROMPT: %s (%d chars)", name, len(text))
-        _prompt_logger.info(text)
-    if _logger:
-        _logger.debug("╭─ PROMPT: %s (%d chars)", name, len(text))
-        _logger.debug(text)
-
-
 def ensure_dirs(work_dir: Path):
     for d in ["surfaces", "analysis", "vulnerabilities", "vuln_review", "meta/error"]:
         (work_dir / OUTPUT_PARENT / d).mkdir(parents=True, exist_ok=True)
@@ -76,48 +67,16 @@ def build_vars(target_dir: Path) -> dict[str, str]:
     }
 
 
-def _subst(text: str, vars: dict[str, str]) -> str:
-    """Safe substitution: only replace known ``{key}`` placeholders.
-
-    Unlike ``str.format()``, this won't crash on unknown ``{placeholders}``
-    such as ``{METHOD}`` or ``{var}`` in example templates.
-    """
-    for k, v in vars.items():
-        text = text.replace(f"{{{k}}}", v)
-    return text
-
-
 def read_prompt(name: str, vars: dict[str, str]) -> str:
-    """Read a prompt template, resolve ``{include:file.md}`` markers,
-    then substitute path variables.
+    """Read a prompt template and substitute ``{key}`` variables.
 
-    Templates and references are read directly from ``biz_recon/prompts/``
-    and ``biz_recon/references/``.  Static variable substitution
-    (``{tool_dir}``, ``{target_work_dir}``) happens at read time.
-
-    Include markers can be nested.  Example::
-
-        {include:constraints.md}
+    .. note::
+       This function does **not** resolve ``{include:...}`` markers.
+       Use :func:`prompt.read_prompt` when include resolution is needed.
     """
+    from .prompt import _subst, log_prompt
+
     text = (TOOL_DIR / "prompts" / name).read_text()
-
-    seen: set[str] = set()
-    while True:
-        m = re.search(r"\{include:([^}]+)\}", text)
-        if not m:
-            break
-        ref_name = m.group(1)
-        if ref_name in seen:
-            text = text.replace(m.group(0), "", 1)
-            continue
-        seen.add(ref_name)
-        ref_path = TOOL_DIR / "references" / ref_name
-        if ref_path.exists():
-            content = ref_path.read_text()
-            text = text.replace(m.group(0), content, 1)
-        else:
-            text = text.replace(m.group(0), f"<!-- missing ref: {ref_name} -->", 1)
-
     resolved = _subst(text, vars)
     log_prompt(name, resolved)
     return resolved
