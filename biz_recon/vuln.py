@@ -29,10 +29,9 @@ def run(work_dir: Path, max_workers: int = 3,
         local_vars = {**vars,
             "surface_file": sf_path.name,
             "surface_stem": sf_path.stem,
+            "extra_prompt": f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else "",
         }
         prompt = read_prompt("analyze-vulnerability.txt", local_vars)
-        if extra_prompt:
-            prompt += "\n\n" + extra_prompt
 
         client = OpenCodeClient()
         result = client.run(prompt)

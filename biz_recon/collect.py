@@ -19,9 +19,8 @@ def run(work_dir: Path, extra_prompt: str = ""):
 
     ensure_dirs(work_dir)
     vars = build_vars(work_dir)
+    vars["extra_prompt"] = f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else ""
     prompt = read_prompt("identify-surfaces.txt", vars)
-    if extra_prompt:
-        prompt += "\n\n" + extra_prompt
 
     client = OpenCodeClient()
     result = client.run(prompt)

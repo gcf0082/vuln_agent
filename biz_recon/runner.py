@@ -44,6 +44,10 @@ def main(work_dir: str | None = None,
     setup_logging(Path.cwd())
     log(f"Work directory: {work_path}")
     log(f"Max workers:    {max_workers}")
+    if collect_prompt:
+        log(f"  Collect extra: {collect_prompt[:120]}")
+    if vuln_prompt:
+        log(f"  Vuln extra:    {vuln_prompt[:120]}")
     log("=" * 50)
 
     try:
