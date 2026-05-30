@@ -24,7 +24,10 @@ fi
 if [ -n "${OPENCODE_CONFIG:-}" ]; then
     # 调用方（如 opencode_wrapper.py）已设置好配置目录和隔离环境
     WORK_DIR="${OPENCODE_WORK_DIR:-$(pwd)}"
-    printf '%s' "$PROMPT" | opencode --pure run --dir "$WORK_DIR"
+    THINKING_FLAG=""
+    [ "${OPENCODE_THINKING:-}" = "true" ] && THINKING_FLAG="--thinking"
+    export OPENCODE_PERMISSION='{"read": "allow", "external_directory": {"/*":"allow"}}'
+    printf '%s' "$PROMPT" | opencode --pure run --dir "$WORK_DIR" $THINKING_FLAG
     exit $?
 fi
 
@@ -64,4 +67,8 @@ CONFIGJSON
 
 export OPENCODE_CONFIG
 
-printf '%s' "$PROMPT" | opencode --pure run --dir "$WORK_DIR"
+export OPENCODE_PERMISSION='{"read": "allow", "external_directory": {"/*":"allow"}}'
+
+THINKING_FLAG=""
+[ "${OPENCODE_THINKING:-}" = "true" ] && THINKING_FLAG="--thinking"
+printf '%s' "$PROMPT" | opencode --pure run --dir "$WORK_DIR" $THINKING_FLAG

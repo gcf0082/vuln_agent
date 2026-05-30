@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Pipeline runner — executes all stages in sequence."""
 
+import os
 import sys
 from pathlib import Path
 
@@ -36,7 +37,8 @@ def load_config() -> dict:
 
 def main(work_dir: str | None = None,
          collect_prompt: str = "",
-         vuln_prompt: str = ""):
+         vuln_prompt: str = "",
+         thinking: bool = False):
     work_path = Path(work_dir).resolve() if work_dir else \
                 (Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd())
     config = load_config()
@@ -48,6 +50,9 @@ def main(work_dir: str | None = None,
         log(f"  Collect extra: {collect_prompt[:120]}")
     if vuln_prompt:
         log(f"  Vuln extra:    {vuln_prompt[:120]}")
+    if thinking:
+        os.environ["OPENCODE_THINKING"] = "true"
+        log("  Thinking:      enabled")
     log("=" * 50)
 
     try:
