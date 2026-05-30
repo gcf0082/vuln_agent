@@ -20,7 +20,7 @@
 每发现一个攻击面，在 {target_work_dir}/_output/surfaces/ 下创建一个文件，命名规则：
 
 ```
-{target_work_dir}/_output/surfaces/{category}-{slug}.md
+{target_work_dir}/_output/surfaces/{type}-{category}-{slug}.md
 ```
 
 - `{type}` = `iface`（接口）或 `noniface`（非接口）
