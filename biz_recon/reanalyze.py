@@ -1,4 +1,4 @@
-"""Stage 6: Vulnerability re-analysis — one client per VULN, parallel."""
+"""Stage 6: Vulnerability re-analysis — one client per file, parallel."""
 
 import concurrent.futures
 from pathlib import Path
@@ -16,12 +16,12 @@ def run(work_dir: Path, max_workers: int = 3,
         log("  SKIP: vuln_review already has output")
         return sorted(review_dir.glob("*"))
 
-    vuln_files = sorted((work_dir / OUTPUT_PARENT / "vulnerabilities").glob("VULN-*.md"))
+    vuln_files = sorted((work_dir / OUTPUT_PARENT / "vulnerabilities").glob("*.md"))
     if not vuln_files:
-        log("  No VULN files found.")
+        log("  No vulnerability files found.")
         return []
 
-    log(f"  Re-analyzing {len(vuln_files)} VULN files in parallel (workers={max_workers})...")
+    log(f"  Re-analyzing {len(vuln_files)} files in parallel (workers={max_workers})...")
     vars = build_vars(work_dir)
     failures: list[str] = []
 
