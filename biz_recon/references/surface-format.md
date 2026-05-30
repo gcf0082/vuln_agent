@@ -40,7 +40,18 @@ SKILL.md「代码引用 / 路径 / URL / 命令一律原样保留」条款。
 
 #### POST /api/files/upload
 
-用户向系统提交一份业务文件（合同、表单、附件等）进行存档（com.acme.file.UploadController#upload，UploadController.java:48）。处理流程分为**前置校验 → 核心处理 → 异常终止**三组：先校验文件后缀与大小，通过后落地原始文件、触发扫描、归档结果、上报监控；任一校验失败直接返回 4xx。
+用户向系统提交一份业务文件（合同、表单、附件等）进行存档。处理流程分为**前置校验 → 核心处理 → 异常终止**三组：先校验文件后缀与大小，通过后落地原始文件、触发扫描、归档结果、上报监控；任一校验失败直接返回 4xx。
+
+关键控制点代码示例：
+```java
+// src/main/java/com/acme/UploadController.java:48
+public void upload(MultipartFile file) {
+    String filename = file.getOriginalFilename();       // 用户输入
+    // UploadController.java:71
+    ProcessBuilder pb = new ProcessBuilder("bash",
+        "scripts/scan.sh", "/data/uploads/" + filename); // 拼接用户输入
+}
+```
 
 ```mermaid
 flowchart TD
