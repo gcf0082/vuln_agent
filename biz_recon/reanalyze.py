@@ -14,8 +14,11 @@ def run(work_dir: Path, max_workers: int = 3,
 
     review_dir = work_dir / OUTPUT_PARENT / "vuln_review"
     if review_dir.exists() and any(review_dir.iterdir()):
-        log("  SKIP: vuln_review already has output")
-        return sorted(review_dir.glob("*"))
+        existing = sorted(review_dir.glob("*"))
+        log(f"  SKIP: vuln_review already has output ({len(existing)} files)")
+        for f in existing:
+            log(f"    - {f.name}")
+        return existing
 
     vuln_files = sorted((work_dir / OUTPUT_PARENT / "vulnerabilities").glob("*.md"))
     if not vuln_files:
