@@ -37,7 +37,7 @@ def run(work_dir: Path, max_workers: int = 3,
 
         log(f"  ▶ {item.filename}")
         local_vars = {**vars,
-            "surface_file": str(work_dir / OUTPUT_PARENT / "surfaces" / item.filename),
+            "surface_file": item.filename,
         }
         prompt = read_prompt("analyze-surface.txt", local_vars)
         if extra_prompt:
