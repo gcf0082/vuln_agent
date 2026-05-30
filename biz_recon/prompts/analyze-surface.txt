@@ -10,7 +10,7 @@
 （请读取上方文件获取该攻击面的类型、标识、来源、描述等信息）
 
 ## 输出文件
-读取条目文件后，分析产物写入 {target_work_dir}/_output/analysis/ 目录，文件名与条目文件同名（将 surfaces 替换为 analysis 目录）。
+{target_work_dir}/_output/analysis/（取 {surface_file} 的文件名，目录从 surfaces 改为 analysis）
 
 ## 分析方法
 
@@ -51,6 +51,3 @@
 **入参流向**：追每个请求参数是否流入路径 / 命令 / URL / 写文件 / SQL。**必须沿调用链逐层追踪**，不能停在当前层下结论。只追到外部 SDK / 三方库边界为止。
 
 分析产物输出时参考输出模板：{tool_dir}/references/surface-format.md
-
-## 输出路径约束
-仅写入 {target_work_dir}/_output/analysis/ 目录（文件名与攻击面文件名相同）
