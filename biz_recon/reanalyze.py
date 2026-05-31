@@ -9,15 +9,24 @@ from .workspace import OUTPUT_PARENT, build_vars, log
 
 
 def run(work_dir: Path, max_workers: int = 3,
-        extra_prompt: str = ""):
+        extra_prompt: str = "",
+        force_list: list[str] | None = None):
     log(f"\n=== Stage 4: Vulnerability Re-Analysis ===")
 
     review_dir = work_dir / OUTPUT_PARENT / "vuln_review"
-    if review_dir.exists() and any(review_dir.iterdir()):
+    if not force_list and review_dir.exists() and any(review_dir.iterdir()):
         log("  SKIP: vuln_review already has output")
         return sorted(review_dir.glob("*"))
 
     vuln_files = sorted((work_dir / OUTPUT_PARENT / "vulnerabilities").glob("*.md"))
+    if force_list:
+        # Match vuln files by surface stem (e.g. iface-REST-api-users-list)
+        stems = [n.replace(".md", "") for n in force_list]
+        vuln_files = [f for f in vuln_files if any(s in f.name for s in stems)]
+        if not vuln_files:
+            log("  No matching vulnerability files found for force-list.")
+            return []
+        log(f"  Force re-analyzing {len(vuln_files)} file(s): {[f.name for f in vuln_files]}")
     if not vuln_files:
         log("  No vulnerability files found.")
         return []

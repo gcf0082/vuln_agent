@@ -8,13 +8,21 @@ from .workspace import build_vars, find_surface_files, find_vuln_files, needs_an
 
 
 def run(work_dir: Path, max_workers: int = 3,
-        extra_prompt: str = ""):
+        extra_prompt: str = "",
+        force_list: list[str] | None = None):
     from .workspace import ensure_dirs
     log(f"\n=== Stage 3: Vulnerability Analysis ===")
     ensure_dirs(work_dir)
 
     surface_files = find_surface_files(work_dir)
-    to_analyze = [f for f in surface_files if needs_analysis(work_dir, f.name)]
+    if force_list:
+        to_analyze = [f for f in surface_files if f.name in force_list]
+        if not to_analyze:
+            log(f"  No matching surfaces for force-list: {force_list}")
+            return find_vuln_files(work_dir)
+        log(f"  Force re-analyzing {len(to_analyze)} surface(s): {[f.name for f in to_analyze]}")
+    else:
+        to_analyze = [f for f in surface_files if needs_analysis(work_dir, f.name)]
 
     if not to_analyze:
         log("  All surfaces already analyzed.")

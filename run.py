@@ -25,6 +25,8 @@ def _parse_args() -> argparse.Namespace:
                         help="Extra prompt appended to the vulnerability-analysis stage")
     parser.add_argument("--thinking", action="store_true",
                         help="Enable thinking mode in LLM")
+    parser.add_argument("--force-surface", default="",
+                        help="Force re-analysis of specific surface file(s), comma-separated (e.g. iface-a.md,noniface-b.md)")
 
     # Show help when no arguments given
     if len(sys.argv) == 1:
@@ -39,4 +41,5 @@ if __name__ == "__main__":
     main(work_dir=args.work_dir,
          collect_prompt=args.collect_prompt,
          vuln_prompt=args.vuln_prompt,
-         thinking=args.thinking)
+         thinking=args.thinking,
+         force_surface=args.force_surface)
