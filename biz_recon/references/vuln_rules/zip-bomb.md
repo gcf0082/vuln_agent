@@ -6,6 +6,6 @@
 
 以下函数获取的大小值不可靠，不应作为安全校验依据：
 
-- Java：`ZipEntry.getCompressedSize()` 仅返回压缩后大小，攻击者可控
-- Python：`os.path.getsize()` 仅返回压缩包本身大小，未反映解压后膨胀率
+- Java：`ZipEntry.getSize()` 仅返回头部声明的解压后大小，攻击者可伪造
+- Python：`ZipInfo.file_size` 仅返回头部声明的解压后大小，攻击者可伪造
 - Go：`zip.File.UncompressedSize64` 来自头部声明，攻击者可伪造
