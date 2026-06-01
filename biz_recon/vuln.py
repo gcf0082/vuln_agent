@@ -25,7 +25,8 @@ def run(work_dir: Path, max_workers: int = 3,
         return find_vuln_files(work_dir)
 
     if force_list:
-        task_files = [f for f in task_files if f.name in force_list]
+        stems = [n.replace(".md", "") for n in force_list]
+        task_files = [f for f in task_files if any(s in f.name for s in stems)]
         if not task_files:
             log(f"  No matching tasks for force-list: {force_list}")
             return find_vuln_files(work_dir)
