@@ -51,7 +51,7 @@ ProcessBuilder pb = new ProcessBuilder("bash", "scripts/scan.sh", filename);
 
 ### 入参追踪
 
-- **捕获请求维度**：path / query / 关键 header（鉴权、Content-Type）/ body 字段树。
+- **捕获请求维度**：path / query / 关键 header（鉴权、Content-Type）/ body 字段树。注意检查参数上的注解式校验（如 `@NotNull`、`@Size`、`@Pattern`、`@Valid`），方法体之外的校验同样需要记录。
 - **入参流向**：追每个请求参数是否流入路径 / 命令 / URL / 写文件 / SQL。**必须沿调用链逐层追踪**，不能停在当前层下结论。只追到外部 SDK / 三方库边界为止。
 
 ---
