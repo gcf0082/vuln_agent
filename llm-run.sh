@@ -20,6 +20,12 @@ else
     PROMPT=$(cat)
 fi
 
+# ── 保存本轮最终提示词到独立文件 ──
+PROMPT_LOG_DIR="${OPENCODE_WORK_DIR:-$SCRIPT_DIR}/logs/prompts"
+mkdir -p "$PROMPT_LOG_DIR"
+TS=$(date +%Y%m%d_%H%M%S)_$(date +%3N)
+echo "$PROMPT" > "$PROMPT_LOG_DIR/${TS}_prompt.txt"
+
 # ── 调用方已提供 profile？ ──
 if [ -n "${OPENCODE_CONFIG:-}" ]; then
     # 调用方（如 opencode_wrapper.py）已设置好配置目录和隔离环境
