@@ -55,7 +55,7 @@ def log(msg: str = ""):
 
 
 def ensure_dirs(work_dir: Path):
-    for d in ["surfaces", "analysis", "vulnerabilities", "vuln_review", "meta/error"]:
+    for d in ["surfaces", "analysis", "tasks", "vulnerabilities", "vuln_review", "meta/error"]:
         (work_dir / OUTPUT_PARENT / d).mkdir(parents=True, exist_ok=True)
 
 
