@@ -12,7 +12,7 @@ from .workspace import OUTPUT_PARENT, build_vars, find_surface_files, log
 GENERIC_TASK_TEMPLATE = """\
 # {name} — 通用漏洞扫描
 
-分析文件：{analysis_file}
+分析给定输入文件
 """
 
 
