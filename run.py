@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """Entry point for biz-flow-recon pipeline.
 
 Usage:
@@ -53,7 +54,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--vuln-prompt", default="",
                         help="Extra prompt appended to the vulnerability-analysis stage")
     parser.add_argument("--thinking", action="store_true",
-                        help="Enable thinking mode in LLM")
+                        help="Show LLM thinking process")
     parser.add_argument("--force-surface", default="",
                         help="Force re-analysis of specific surface file(s), comma-separated (e.g. iface-a.md,noniface-b.md)")
     parser.add_argument("--test", action="store_true",
@@ -64,7 +65,7 @@ def _parse_args() -> argparse.Namespace:
                         help="LLM agent binary (nga or opencode)")
 
     # Show help when no arguments given
-    if len(sys.argv) == 1:
+    if len(sys.argv) == 1 or sys.argv[1:] == ["--"]:
         parser.print_help()
         sys.exit(0)
 

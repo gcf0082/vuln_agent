@@ -4,13 +4,7 @@
 
 ## 前置条件
 
-依赖 [opencode](https://opencode.ai) CLI。
-
-首次运行前初始化环境，从系统配置生成 `.env` 文件：
-
-```bash
-python3 init_env.py
-```
+依赖 `nga` 或 `opencode` CLI。
 
 ## 快速开始
 
@@ -37,7 +31,7 @@ python3 run.py [work_dir] [选项]
 | `work_dir` | 目标代码目录（默认当前目录） |
 | `--collect-prompt TEXT` | 暴露面识别阶段追加提示词 |
 | `--vuln-prompt TEXT` | 漏洞分析及二次审查阶段追加提示词 |
-| `--thinking` | 启用 LLM 思考模式 |
+| `--thinking` | 显示 LLM 思考过程 |
 | `--model MODEL` | 指定模型名称（如 `gpt-4`、`claude-sonnet-4`） |
 | `--agent AGENT` | LLM 代理程序名称（`nga` 或 `opencode`），默认自动检测 |
 | `--force-surface FILE` | 强制重新分析指定攻击面（逗号分隔，支持 `*` 通配），会清除已有产物 |
@@ -49,6 +43,12 @@ python3 run.py [work_dir] [选项]
 # 指定模型运行完整管道
 python3 run.py /target --model gpt-4
 
+# 暴露面识别阶段追加提示
+python3 run.py /target --collect-prompt "重点关注登录后接口"
+
+# 漏洞分析阶段追加提示
+python3 run.py /target --vuln-prompt "优先分析命令注入和路径穿越"
+
 # 测试 LLM 连通性
 python3 run.py --test
 python3 run.py --test --model gpt-4 --agent nga
@@ -56,7 +56,7 @@ python3 run.py --test --model gpt-4 --agent nga
 # 指定代理程序
 python3 run.py /target --agent opencode
 
-# 启用 thinking 模式
+# 显示 LLM 思考过程
 python3 run.py /target --thinking
 
 # 强制重新分析特定攻击面
@@ -97,5 +97,4 @@ logs/prompts/20260601_120030_123_prompt.txt
 
 - `opencode_wrapper.py` — OpenCode CLI 的 Python 封装，提供隔离执行环境
 - `llm-run.sh` — LLM 调用脚本，处理环境变量、thinking 模式等
-- `init_env.py` — 首次初始化工具
 - `test_llm.py` — 连通性测试

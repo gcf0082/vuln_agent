@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Stage 1: Surface collection."""
 
 from pathlib import Path

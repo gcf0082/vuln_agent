@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Stage 4: Vulnerability re-analysis — one client per file, parallel."""
 
 import concurrent.futures

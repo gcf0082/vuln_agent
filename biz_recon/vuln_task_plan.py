@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Stage 2.5: Vulnerability task planning — generate vuln analysis tasks per file."""
 
 import concurrent.futures

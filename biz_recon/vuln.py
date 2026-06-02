@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Stage 3: Vulnerability analysis — one client per task, parallel."""
 
 import concurrent.futures

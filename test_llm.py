@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """Quick LLM connectivity test using opencode_wrapper.
 
 Usage:

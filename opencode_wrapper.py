@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Python wrapper for OpenCode CLI with isolated environment per invocation."""
 
 from __future__ import annotations

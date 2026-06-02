@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """Pipeline runner — executes all stages in sequence."""
 
 import fnmatch
@@ -57,7 +58,7 @@ def main(work_dir: str | None = None,
         log(f"  Vuln extra:    {vuln_prompt[:120]}")
     if thinking:
         os.environ["OPENCODE_THINKING"] = "true"
-        log("  Thinking:      enabled")
+        log("  Thinking:      show process")
     if agent:
         os.environ["LLM_AGENT"] = agent
         log(f"  Agent:         {agent}")

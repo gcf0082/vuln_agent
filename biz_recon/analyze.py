@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Stage 2: Surface analysis — one client per entry, parallel."""
 
 import concurrent.futures

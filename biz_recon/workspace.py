@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Output directory and file helpers."""
 
 import logging

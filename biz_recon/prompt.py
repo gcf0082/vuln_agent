@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Prompt template composition: include resolution, variable substitution, logging.
 
 This is the prompt-processing layer — it understands ``{include:xxx}``
