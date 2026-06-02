@@ -40,6 +40,7 @@ def load_config() -> dict:
 
 def main(work_dir: str | None = None,
          collect_prompt: str = "",
+         analyze_prompt: str = "",
          vuln_prompt: str = "",
          thinking: bool = False,
          force_surface: str = "",
@@ -54,6 +55,8 @@ def main(work_dir: str | None = None,
     log(f"Max workers:    {max_workers}")
     if collect_prompt:
         log(f"  Collect extra: {collect_prompt[:120]}")
+    if analyze_prompt:
+        log(f"  Analyze extra: {analyze_prompt[:120]}")
     if vuln_prompt:
         log(f"  Vuln extra:    {vuln_prompt[:120]}")
     if thinking:
@@ -97,7 +100,7 @@ def main(work_dir: str | None = None,
 
     try:
         collect.run(work_path, extra_prompt=collect_prompt)
-        analyze.run(work_path, max_workers)
+        analyze.run(work_path, max_workers, extra_prompt=analyze_prompt)
         vuln_task_plan.run(work_path, max_workers)
         vuln.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
         reanalyze.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)

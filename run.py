@@ -51,8 +51,10 @@ def _parse_args() -> argparse.Namespace:
                         help="Target code directory")
     parser.add_argument("--collect-prompt", default="",
                         help="Extra prompt appended to the surface-collection stage")
+    parser.add_argument("--analyze-prompt", default="",
+                        help="Extra prompt appended to the surface-analysis stage")
     parser.add_argument("--vuln-prompt", default="",
-                        help="Extra prompt appended to the vulnerability-analysis stage")
+                        help="Extra prompt appended to the vulnerability-analysis and review stage")
     parser.add_argument("--thinking", action="store_true",
                         help="Show LLM thinking process")
     parser.add_argument("--force-surface", default="",
@@ -79,6 +81,7 @@ if __name__ == "__main__":
     else:
         main(work_dir=args.work_dir,
              collect_prompt=args.collect_prompt,
+             analyze_prompt=args.analyze_prompt,
              vuln_prompt=args.vuln_prompt,
              thinking=args.thinking,
              force_surface=args.force_surface,

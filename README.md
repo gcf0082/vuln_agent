@@ -30,6 +30,7 @@ python3 run.py [work_dir] [选项]
 |------|------|
 | `work_dir` | 目标代码目录（默认当前目录） |
 | `--collect-prompt TEXT` | 暴露面识别阶段追加提示词 |
+| `--analyze-prompt TEXT` | 攻击面深度分析阶段追加提示词 |
 | `--vuln-prompt TEXT` | 漏洞分析及二次审查阶段追加提示词 |
 | `--thinking` | 显示 LLM 思考过程 |
 | `--model MODEL` | 指定模型名称（如 `gpt-4`、`claude-sonnet-4`） |
