@@ -48,7 +48,7 @@ def run(work_dir: Path, max_workers: int = 3,
         # Derive analysis file name from task filename:
         #   iface-REST-ping-0.md → iface-REST-ping.md
         #   iface-REST-ping-1.md → iface-REST-ping.md
-        source_file = re.sub(r'-\d+$', '.md', task_path.name)
+        source_file = re.sub(r'-\d+$', '', task_path.stem) + '.md'
 
         local_vars = {**vars,
             "task_file": task_path.name,
