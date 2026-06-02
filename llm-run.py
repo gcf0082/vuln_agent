@@ -29,7 +29,10 @@ def main():
     # ── Determine LLM agent ──
     agent = parsed.agent or os.environ.get("LLM_AGENT", "")
     if not agent:
-        agent = "nga" if shutil.which("nga") else "opencode"
+        if sys.platform == "win32":
+            agent = "nga" if (shutil.which("nga") or shutil.which("nga.py") or shutil.which("nga.cmd")) else "opencode"
+        else:
+            agent = "nga" if shutil.which("nga") else "opencode"
 
     # ── Read prompt (CLI args or stdin) ──
     if parsed.args:
@@ -43,7 +46,7 @@ def main():
     log_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:18]
     log_file = log_dir / f"{ts}_prompt.txt"
-    log_file.write_text(prompt, encoding="utf-8")
+    log_file.write_text(prompt, encoding="utf-8", errors="replace")
 
     # ── Build flags ──
     thinking_flag = "--thinking" if os.environ.get("OPENCODE_THINKING") == "true" else ""
@@ -107,12 +110,18 @@ def main():
 def _pipe(agent, cmd, prompt):
     """Pipe prompt to agent and exit with its return code."""
     try:
+        # On Windows, use shell=True to properly execute .cmd/.ps1 files
+        # and handle encoding issues
+        use_shell = sys.platform.startswith("win")
         proc = subprocess.Popen(
             cmd,
             stdin=subprocess.PIPE,
             stdout=sys.stdout,
             stderr=sys.stderr,
             text=True,
+            shell=use_shell,
+            encoding='utf-8',
+            errors='replace',
         )
         proc.communicate(input=prompt)
         sys.exit(proc.returncode)
@@ -123,3 +132,4 @@ def _pipe(agent, cmd, prompt):
 
 if __name__ == "__main__":
     main()
+
