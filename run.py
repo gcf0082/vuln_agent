@@ -16,8 +16,10 @@ from biz_recon.runner import main
 from opencode_wrapper import OpenCodeClient
 
 
-def _test_llm(model: str = ""):
+def _test_llm(model: str = "", agent: str = ""):
     """Verify LLM connectivity by asking what model it is."""
+    if agent:
+        os.environ["LLM_AGENT"] = agent
     if model:
         os.environ["LLM_MODEL"] = model
     client = OpenCodeClient()
@@ -58,6 +60,8 @@ def _parse_args() -> argparse.Namespace:
                         help="Test LLM connectivity (ask what model it is)")
     parser.add_argument("--model", default="",
                         help="Model name to use (e.g. gpt-4, claude-sonnet-4)")
+    parser.add_argument("--agent", default="",
+                        help="LLM agent binary (nga or opencode)")
 
     # Show help when no arguments given
     if len(sys.argv) == 1:
@@ -70,11 +74,12 @@ def _parse_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = _parse_args()
     if args.test:
-        _test_llm(model=args.model)
+        _test_llm(model=args.model, agent=args.agent)
     else:
         main(work_dir=args.work_dir,
              collect_prompt=args.collect_prompt,
              vuln_prompt=args.vuln_prompt,
              thinking=args.thinking,
              force_surface=args.force_surface,
-             model=args.model)
+             model=args.model,
+             agent=args.agent)
