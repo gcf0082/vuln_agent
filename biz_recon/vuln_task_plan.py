@@ -2,10 +2,35 @@
 """Stage 2.5: Vulnerability task planning — generate vuln analysis tasks per file."""
 
 import concurrent.futures
+import re
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
 from .workspace import OUTPUT_PARENT, build_vars, find_surface_files, log
+
+
+GENERIC_TASK_TEMPLATE = """\
+# {name} — 通用漏洞扫描
+
+分析文件：{analysis_file}
+"""
+
+
+def _ensure_generic_task(work_dir: Path, analysis_file: str):
+    """Auto-generate the generic task -0.md for a surface if not exists."""
+    tasks_dir = work_dir / OUTPUT_PARENT / "vuln_tasks"
+    tasks_dir.mkdir(parents=True, exist_ok=True)
+    stem = analysis_file.replace(".md", "")
+    generic_path = tasks_dir / f"{stem}-0.md"
+    if not generic_path.exists():
+        generic_path.write_text(
+            GENERIC_TASK_TEMPLATE.format(
+                name=stem,
+                analysis_file=analysis_file,
+            )
+        )
+        log(f"  + {generic_path.name}")
+    return generic_path
 
 
 def run(work_dir: Path, max_workers: int = 3):
@@ -17,10 +42,19 @@ def run(work_dir: Path, max_workers: int = 3):
         return []
 
     tasks_dir = work_dir / OUTPUT_PARENT / "vuln_tasks"
-    existing = sorted(tasks_dir.glob("*.md")) if tasks_dir.exists() else []
-    if existing:
-        log(f"  SKIP: tasks already exist ({len(existing)} files)")
-        return existing
+
+    # Always ensure generic task -0.md exists for each surface
+    for sf in analysis_files:
+        _ensure_generic_task(work_dir, sf.name)
+
+    # Check if specific tasks (excluding -0.md) already exist
+    existing_specific = sorted(
+        f for f in tasks_dir.glob("*.md")
+        if not f.name.startswith("_") and not f.stem.endswith("-0")
+    ) if tasks_dir.exists() else []
+    if existing_specific:
+        log(f"  SKIP: specific tasks already exist ({len(existing_specific)} files)")
+        return sorted(tasks_dir.glob("*.md"))
 
     tasks_dir.mkdir(parents=True, exist_ok=True)
     log(f"  Planning tasks from {len(analysis_files)} analysis files (workers={max_workers})...")

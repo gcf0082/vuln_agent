@@ -2,6 +2,7 @@
 """Stage 3: Vulnerability analysis — one client per task, parallel."""
 
 import concurrent.futures
+import re
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
@@ -44,13 +45,10 @@ def run(work_dir: Path, max_workers: int = 3,
         log(f"  ▶ {task_path.name}")
         task_text = task_path.read_text()
 
-        # Read the task file to find the source analysis file name
-        # Format: **来源分析文件**：{filename}
-        source_file = task_path.name  # fallback
-        for line in task_text.splitlines():
-            if "来源分析文件" in line and "：" in line:
-                source_file = line.split("：", 1)[-1].strip()
-                break
+        # Derive analysis file name from task filename:
+        #   iface-REST-ping-0.md → iface-REST-ping.md
+        #   iface-REST-ping-1.md → iface-REST-ping.md
+        source_file = re.sub(r'-\d+$', '.md', task_path.name)
 
         local_vars = {**vars,
             "task_file": task_path.name,
