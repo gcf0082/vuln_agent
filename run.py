@@ -15,8 +15,10 @@ from biz_recon.runner import main
 from opencode_wrapper import OpenCodeClient
 
 
-def _test_llm():
+def _test_llm(model: str = ""):
     """Verify LLM connectivity by asking what model it is."""
+    if model:
+        os.environ["LLM_MODEL"] = model
     client = OpenCodeClient()
     prompt = (
         "请用一句话回答：你是什么模型？"
@@ -67,7 +69,7 @@ def _parse_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = _parse_args()
     if args.test:
-        _test_llm()
+        _test_llm(model=args.model)
     else:
         main(work_dir=args.work_dir,
              collect_prompt=args.collect_prompt,
