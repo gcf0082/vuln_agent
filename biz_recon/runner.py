@@ -88,20 +88,29 @@ def main(work_dir: str | None = None,
         log(f"  Force surfaces ({len(force_list)}): {force_list}")
 
         # Delete existing products for these surfaces
-        vuln_dir = work_path / OUTPUT_PARENT / "vulnerabilities"
-        review_dir = work_path / OUTPUT_PARENT / "vuln_review"
-        for name in force_list:
-            stem = name.replace(".md", "")
-            for d in (vuln_dir, review_dir):
+        for dirname in ("vuln_tasks", "vulnerabilities", "vuln_review"):
+            d = work_path / OUTPUT_PARENT / dirname
+            for name in force_list:
+                stem = name.replace(".md", "")
                 for f in d.glob(f"*{stem}*"):
                     if f.is_file():
                         f.unlink()
-                        log(f"  Removed: {f.relative_to(work_path)}")
+                        log(f"  Removed: {d.name}/{f.name}")
+
+        # Also clean up batch intermediates
+        meta_batches = work_path / OUTPUT_PARENT / "meta" / "batches"
+        if meta_batches.exists():
+            for name in force_list:
+                stem = name.replace(".md", "")
+                batch_dir = meta_batches / stem
+                if batch_dir.exists():
+                    shutil.rmtree(batch_dir)
+                    log(f"  Removed: {batch_dir.relative_to(work_path)}")
 
     try:
         collect.run(work_path, extra_prompt=collect_prompt)
-        analyze.run(work_path, max_workers, extra_prompt=analyze_prompt)
-        vuln_task_plan.run(work_path, max_workers)
+        analyze.run(work_path, max_workers, extra_prompt=analyze_prompt, only_surfaces=force_list or None)
+        vuln_task_plan.run(work_path, max_workers, force_list=force_list or None)
         vuln.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
         reanalyze.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
     except RuntimeError as e:

@@ -21,23 +21,28 @@ def _ensure_generic_task(work_dir: Path, analysis_file: str):
     stem = analysis_file.replace(".md", "")
     generic_path = tasks_dir / f"{stem}-0.md"
     if not generic_path.exists():
-        generic_path.write_text(
-            GENERIC_TASK_TEMPLATE.format(
-                name=stem,
-                analysis_file=analysis_file,
-            )
-        )
+        generic_path.write_text(GENERIC_TASK_TEMPLATE.strip())
         log(f"  + {generic_path.name}")
     return generic_path
 
 
-def run(work_dir: Path, max_workers: int = 3):
+def run(work_dir: Path, max_workers: int = 3,
+        force_list: list[str] | None = None):
     log(f"\n=== Stage 2.5: Vulnerability Task Planning ===")
 
     analysis_files = find_surface_files(work_dir)
     if not analysis_files:
         log("  No analysis files found.")
         return []
+
+    # Filter to forced surfaces if specified
+    if force_list:
+        stems = [n.replace(".md", "") for n in force_list]
+        analysis_files = [sf for sf in analysis_files if sf.stem in stems]
+        if not analysis_files:
+            log("  No analysis files matched force_list.")
+            return []
+        log(f"  Force surfaces: {[sf.name for sf in analysis_files]}")
 
     tasks_dir = work_dir / OUTPUT_PARENT / "vuln_tasks"
 
