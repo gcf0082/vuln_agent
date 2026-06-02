@@ -52,6 +52,7 @@ def run(work_dir: Path, max_workers: int = 3,
 
         local_vars = {**vars,
             "task_file": task_path.name,
+            "task_stem": task_path.stem,
             "task_content": task_text,
             "surface_file": source_file,
             "surface_stem": source_file.replace(".md", ""),
