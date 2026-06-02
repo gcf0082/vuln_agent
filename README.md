@@ -14,7 +14,7 @@
 python3 run.py /path/to/target
 ```
 
-仅当前目录：
+无参数时显示帮助信息：
 
 ```bash
 python3 run.py
