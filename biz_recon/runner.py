@@ -7,7 +7,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from . import collect, analyze, task_plan, vuln, reanalyze
+from . import collect, analyze, vuln_task_plan, vuln, reanalyze
 from .workspace import OUTPUT_PARENT, setup_logging, log, find_surface_files, find_vuln_files
 
 
@@ -89,7 +89,7 @@ def main(work_dir: str | None = None,
     try:
         collect.run(work_path, extra_prompt=collect_prompt)
         analyze.run(work_path, max_workers)
-        task_plan.run(work_path, max_workers)
+        vuln_task_plan.run(work_path, max_workers)
         vuln.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
         reanalyze.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
     except RuntimeError as e:

@@ -14,7 +14,7 @@ def run(work_dir: Path, max_workers: int = 3,
     log(f"\n=== Stage 3: Vulnerability Analysis ===")
     ensure_dirs(work_dir)
 
-    tasks_dir = work_dir / OUTPUT_PARENT / "tasks"
+    tasks_dir = work_dir / OUTPUT_PARENT / "vuln_tasks"
     if not tasks_dir.exists():
         log("  No tasks directory found. Run task planning first.")
         return find_vuln_files(work_dir)

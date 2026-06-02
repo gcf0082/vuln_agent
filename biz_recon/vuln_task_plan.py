@@ -1,4 +1,4 @@
-"""Stage 2.5: Task planning — one client per analysis file, parallel."""
+"""Stage 2.5: Vulnerability task planning — generate vuln analysis tasks per file."""
 
 import concurrent.futures
 from pathlib import Path
@@ -8,14 +8,14 @@ from .workspace import OUTPUT_PARENT, build_vars, find_surface_files, log
 
 
 def run(work_dir: Path, max_workers: int = 3):
-    log(f"\n=== Stage 2.5: Task Planning ===")
+    log(f"\n=== Stage 2.5: Vulnerability Task Planning ===")
 
     analysis_files = find_surface_files(work_dir)
     if not analysis_files:
         log("  No analysis files found.")
         return []
 
-    tasks_dir = work_dir / OUTPUT_PARENT / "tasks"
+    tasks_dir = work_dir / OUTPUT_PARENT / "vuln_tasks"
     existing = sorted(tasks_dir.glob("*.md")) if tasks_dir.exists() else []
     if existing:
         log(f"  SKIP: tasks already exist ({len(existing)} files)")
@@ -32,7 +32,7 @@ def run(work_dir: Path, max_workers: int = 3):
             "surface_file": sf_path.name,
             "surface_stem": sf_path.stem,
         }
-        prompt = read_prompt("plan-tasks.txt", local_vars)
+        prompt = read_prompt("plan-vuln-tasks.txt", local_vars)
 
         client = OpenCodeClient()
         result = client.run(prompt)
