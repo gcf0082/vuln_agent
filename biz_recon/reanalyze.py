@@ -44,6 +44,7 @@ def run(work_dir: Path, max_workers: int = 3,
         analysis_name = re.sub(r'-\d+$', '', analysis_name) + '.md'
         local_vars = {**vars,
             "vuln_file": vf_path.name,
+            "vuln_file_stem": vf_path.stem,
             "analysis_file": analysis_name,
             "extra_prompt": f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else "",
         }
