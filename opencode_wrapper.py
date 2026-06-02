@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import sys
 import subprocess
 import tempfile
 from dataclasses import dataclass, field
@@ -182,8 +183,11 @@ class OpenCodeClient:
 
     def _run_via_script(self, prompt: str, profile: ProfileConfig,
                         verbose: bool = False) -> OpenCodeResult:
-        """Run prompt via llm-run.sh with profile preparation."""
-        script_path = Path(__file__).parent / "llm-run.sh"
+        """Run prompt via llm-run.sh (Linux) or llm-run.bat (Windows)."""
+        is_windows = sys.platform.startswith("win")
+        script_name = "llm-run.bat" if is_windows else "llm-run.sh"
+        script_path = Path(__file__).parent / script_name
+        shell_cmd = ["cmd", "/c", str(script_path)] if is_windows else ["bash", str(script_path)]
         profile_dir, needs_cleanup = self._prepare_profile_dir(profile)
 
         try:
@@ -193,7 +197,7 @@ class OpenCodeClient:
             env = self._build_env(profile_dir, profile, work_dir)
 
             proc = subprocess.Popen(
-                ["bash", str(script_path)],
+                shell_cmd,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
