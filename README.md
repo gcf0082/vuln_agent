@@ -57,22 +57,29 @@ python3 run.py [work_dir] [选项]
 | `--collect-prompt TEXT` | 暴露面识别阶段追加提示词 |
 | `--vuln-prompt TEXT` | 漏洞分析及二次审查阶段追加提示词 |
 | `--thinking` | 启用 LLM 思考模式 |
+| `--model MODEL` | 指定模型名称（如 `gpt-4`、`claude-sonnet-4`） |
+| `--agent AGENT` | LLM 代理程序名称（`nga` 或 `opencode`），默认自动检测 |
 | `--force-surface FILE` | 强制重新分析指定攻击面（逗号分隔，支持 `*` 通配），会清除已有产物 |
+| `--test` | 测试 LLM 连通性（询问模型自身名称），不执行管道 |
 
 ### 示例
 
 ```bash
-# 指定目录，给漏洞分析阶段加额外指引
-python3 run.py /target --vuln-prompt "优先关注命令注入和路径穿越"
+# 指定模型运行完整管道
+python3 run.py /target --model gpt-4
+
+# 测试 LLM 连通性
+python3 run.py --test
+python3 run.py --test --model gpt-4 --agent nga
+
+# 指定代理程序
+python3 run.py /target --agent opencode
 
 # 启用 thinking 模式
 python3 run.py /target --thinking
 
 # 强制重新分析特定攻击面
 python3 run.py /target --force-surface "iface-upload-*"
-
-# 强制重新分析多个攻击面
-python3 run.py /target --force-surface "iface-api-users-list.md,noniface-script-backup.md"
 ```
 
 ## 输出产物
