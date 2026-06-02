@@ -50,12 +50,15 @@ def run(work_dir: Path, max_workers: int = 3,
     for sf in analysis_files:
         _ensure_generic_task(work_dir, sf.name)
 
-    # Per-surface: skip if already has corresponding files (except -0.md)
+    # Per-surface: skip if already has corresponding files (except -0)
     def _has_existing(stem: str) -> bool:
         if not tasks_dir.exists():
             return False
-        # _no_tasks-{stem}.md or {stem}-{n}.md for n>=1
-        return any(p for p in tasks_dir.glob(f"*{stem}*") if not p.stem.endswith("-0"))
+        # _no_tasks-{stem}.md exists
+        if (tasks_dir / f"_no_tasks-{stem}.md").exists():
+            return True
+        # {stem}-{n}.md for n>=1 exists
+        return any(re.search(r'-\d+$', f.stem) for f in tasks_dir.glob(f"{stem}-*.md"))
 
     need_planning = [sf for sf in analysis_files if not _has_existing(sf.stem)]
     if not need_planning:
