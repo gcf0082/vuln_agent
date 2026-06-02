@@ -184,11 +184,10 @@ class OpenCodeClient:
 
     def _run_via_script(self, prompt: str, profile: ProfileConfig,
                         verbose: bool = False) -> OpenCodeResult:
-        """Run prompt via llm-run.sh (Linux) or llm-run.bat (Windows)."""
+        """Run prompt via llm-run.sh (Linux) or llm-run.py (Windows)."""
         is_windows = sys.platform.startswith("win")
-        script_name = "llm-run.bat" if is_windows else "llm-run.sh"
-        script_path = Path(__file__).parent / script_name
-        shell_cmd = ["cmd", "/c", str(script_path)] if is_windows else ["bash", str(script_path)]
+        script_path = Path(__file__).parent / ("llm-run.py" if is_windows else "llm-run.sh")
+        shell_cmd = [sys.executable, str(script_path)] if is_windows else ["bash", str(script_path)]
         profile_dir, needs_cleanup = self._prepare_profile_dir(profile)
 
         try:
