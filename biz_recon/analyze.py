@@ -41,6 +41,7 @@ def run(work_dir: Path, max_workers: int = 3,
             "surface_file": item.filename,
             "extra_prompt": f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else "",
         }
+        prompt = read_prompt("analyze-surface.txt", local_vars)
 
         client = OpenCodeClient()
         result = client.run(prompt)
