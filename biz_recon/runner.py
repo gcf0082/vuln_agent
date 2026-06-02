@@ -41,7 +41,8 @@ def main(work_dir: str | None = None,
          collect_prompt: str = "",
          vuln_prompt: str = "",
          thinking: bool = False,
-         force_surface: str = ""):
+         force_surface: str = "",
+         model: str = ""):
     work_path = Path(work_dir).resolve() if work_dir else \
                 (Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd())
     config = load_config()
@@ -56,6 +57,9 @@ def main(work_dir: str | None = None,
     if thinking:
         os.environ["OPENCODE_THINKING"] = "true"
         log("  Thinking:      enabled")
+    if model:
+        os.environ["LLM_MODEL"] = model
+        log(f"  Model:         {model}")
     log("=" * 50)
 
     # Parse force-surface list and expand wildcards

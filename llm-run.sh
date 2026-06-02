@@ -49,8 +49,10 @@ if [ -n "${OPENCODE_CONFIG:-}" ]; then
     WORK_DIR="${OPENCODE_WORK_DIR:-$(pwd)}"
     THINKING_FLAG=""
     [ "${OPENCODE_THINKING:-}" = "true" ] && THINKING_FLAG="--thinking"
+    MODEL_FLAG=""
+    [ -n "${LLM_MODEL:-}" ] && MODEL_FLAG="--model $LLM_MODEL"
     export OPENCODE_PERMISSION='{"read": "allow", "external_directory": {"/*":"allow"}}'
-    printf '%s' "$PROMPT" | $LLM_AGENT run --dir "$WORK_DIR" $THINKING_FLAG
+    printf '%s' "$PROMPT" | $LLM_AGENT run --dir "$WORK_DIR" $THINKING_FLAG $MODEL_FLAG
     exit $?
 fi
 
@@ -94,4 +96,6 @@ export OPENCODE_PERMISSION='{"read": "allow", "external_directory": {"/*":"allow
 
 THINKING_FLAG=""
 [ "${OPENCODE_THINKING:-}" = "true" ] && THINKING_FLAG="--thinking"
-printf '%s' "$PROMPT" | $LLM_AGENT run --dir "$WORK_DIR" $THINKING_FLAG
+MODEL_FLAG=""
+[ -n "${LLM_MODEL:-}" ] && MODEL_FLAG="--model $LLM_MODEL"
+printf '%s' "$PROMPT" | $LLM_AGENT run --dir "$WORK_DIR" $THINKING_FLAG $MODEL_FLAG

@@ -53,6 +53,8 @@ def _parse_args() -> argparse.Namespace:
                         help="Force re-analysis of specific surface file(s), comma-separated (e.g. iface-a.md,noniface-b.md)")
     parser.add_argument("--test", action="store_true",
                         help="Test LLM connectivity (ask what model it is)")
+    parser.add_argument("--model", default="",
+                        help="Model name to use (e.g. gpt-4, claude-sonnet-4)")
 
     # Show help when no arguments given
     if len(sys.argv) == 1:
@@ -71,4 +73,5 @@ if __name__ == "__main__":
              collect_prompt=args.collect_prompt,
              vuln_prompt=args.vuln_prompt,
              thinking=args.thinking,
-             force_surface=args.force_surface)
+             force_surface=args.force_surface,
+             model=args.model)
