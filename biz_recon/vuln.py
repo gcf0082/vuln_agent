@@ -21,6 +21,8 @@ def run(work_dir: Path, max_workers: int = 3,
         return find_vuln_files(work_dir)
 
     task_files = sorted(tasks_dir.glob("*.md"))
+    # Filter out _no_tasks files — they are not actual analysis tasks
+    task_files = [f for f in task_files if not f.name.startswith("_no_tasks")]
     if not task_files:
         log("  No task files found. Run task planning first.")
         return find_vuln_files(work_dir)
