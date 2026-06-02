@@ -9,6 +9,7 @@
 - 一个分析文件可产出多个任务
 - 每个任务写入 {target_work_dir}/_output/vuln_tasks/ 下的独立文件
 - 任务文件名：{surface_stem}-{序号}.md
+- 如经评估无需生成任务，写入 {target_work_dir}/_output/vuln_tasks/_no_tasks-{surface_stem}.md，说明原因（如无明显漏洞）
 
 ## 任务文件内容格式
 
