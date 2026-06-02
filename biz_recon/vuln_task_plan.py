@@ -47,17 +47,20 @@ def run(work_dir: Path, max_workers: int = 3):
     for sf in analysis_files:
         _ensure_generic_task(work_dir, sf.name)
 
-    # Check if specific tasks (excluding -0.md) already exist
-    existing_specific = sorted(
-        f for f in tasks_dir.glob("*.md")
-        if not f.name.startswith("_") and not f.stem.endswith("-0")
-    ) if tasks_dir.exists() else []
-    if existing_specific:
-        log(f"  SKIP: specific tasks already exist ({len(existing_specific)} files)")
+    # Per-surface: skip if already has corresponding files (except -0.md)
+    def _has_existing(stem: str) -> bool:
+        if not tasks_dir.exists():
+            return False
+        # _no_tasks-{stem}.md or {stem}-{n}.md for n>=1
+        return any(p for p in tasks_dir.glob(f"*{stem}*") if not p.stem.endswith("-0"))
+
+    need_planning = [sf for sf in analysis_files if not _has_existing(sf.stem)]
+    if not need_planning:
+        log(f"  All surfaces already have task files ({len(analysis_files)}/{len(analysis_files)})")
         return sorted(tasks_dir.glob("*.md"))
 
-    tasks_dir.mkdir(parents=True, exist_ok=True)
-    log(f"  Planning tasks from {len(analysis_files)} analysis files (workers={max_workers})...")
+    skipped = len(analysis_files) - len(need_planning)
+    log(f"  Planning tasks for {len(need_planning)} surfaces ({skipped} already have tasks, workers={max_workers})...")
     vars = build_vars(work_dir)
     failures: list[str] = []
 
@@ -78,7 +81,7 @@ def run(work_dir: Path, max_workers: int = 3):
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
-        for sf_path, ok in zip(analysis_files, pool.map(plan_one, analysis_files)):
+        for sf_path, ok in zip(need_planning, pool.map(plan_one, need_planning)):
             if not ok:
                 failures.append(sf_path.name)
 
