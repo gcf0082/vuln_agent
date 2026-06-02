@@ -47,6 +47,9 @@ python3 run.py /target --model gpt-4
 # 暴露面识别阶段追加提示
 python3 run.py /target --collect-prompt "重点关注登录后接口"
 
+# 攻击面分析阶段追加提示
+python3 run.py /target --analyze-prompt "重点分析参数校验逻辑"
+
 # 漏洞分析阶段追加提示
 python3 run.py /target --vuln-prompt "优先分析命令注入和路径穿越"
 
