@@ -26,25 +26,6 @@ python3 run.py /path/to/target
 python3 run.py
 ```
 
-## 管道阶段
-
-| 阶段 | 模块 | 功能 |
-|------|------|------|
-| Stage 1 | `collect` | 攻击面收集：扫描项目识别所有攻击面（REST API、MQ、gRPC、WebSocket、脚本、CLI 等） |
-| Stage 2 | `analyze` | 攻击面分析：对每个攻击面深入追踪数据流和关键控制点 |
-| Stage 2.5 | `vuln_task_plan` | 漏洞任务规划：基于分析结果生成待验证的漏洞分析任务 |
-| Stage 3 | `vuln` | 漏洞分析：逐任务验证漏洞是否存在（VULN / DISMISSED / CLEAN / SUSPECTED） |
-| Stage 4 | `reanalyze` | 漏洞二次审查：挑战者视角审查上一轮结论并验证 payload 可行性 |
-
-各阶段可独立运行：
-
-```bash
-python3 run_collect.py /path/to/target
-python3 run_analyze.py /path/to/target
-python3 run_vuln.py /path/to/target    # 指定 --vuln-prompt
-python3 run_review.py /path/to/target
-```
-
 ## 命令行参数
 
 ```bash
