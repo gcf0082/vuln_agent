@@ -57,8 +57,9 @@ def run(work_dir: Path, max_workers: int = 3,
         # _no_tasks-{stem}.md exists
         if (tasks_dir / f"_no_tasks-{stem}.md").exists():
             return True
-        # {stem}-{n}.md for n>=1 exists
-        return any(re.search(r'-\d+$', f.stem) for f in tasks_dir.glob(f"{stem}-*.md"))
+        # {stem}-{n}.md for n>=1 exists (exclude -0 which is the auto-generated generic task)
+        return any(re.search(r'-\d+$', f.stem) and not f.stem.endswith("-0")
+                   for f in tasks_dir.glob(f"{stem}-*.md"))
 
     need_planning = [sf for sf in analysis_files if not _has_existing(sf.stem)]
     if not need_planning:
