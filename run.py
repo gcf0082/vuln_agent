@@ -2,7 +2,8 @@
 """Entry point for biz-flow-recon pipeline.
 
 Usage:
-    python3 run.py [work_dir] [--collect-prompt TEXT] [--vuln-prompt TEXT]
+    python3 run.py [work_dir] [options]
+    python3 run.py --test
 """
 
 import argparse
@@ -11,6 +12,29 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from biz_recon.runner import main
+from opencode_wrapper import OpenCodeClient
+
+
+def _test_llm():
+    """Verify LLM connectivity by asking what model it is."""
+    client = OpenCodeClient()
+    prompt = (
+        "请用一句话回答：你是什么模型？"
+        "回答格式：在最后一行单独输出 `OK` 二字。"
+    )
+    print("Testing LLM connectivity...", flush=True)
+    result = client.run(prompt)
+
+    if result.exit_code != 0:
+        print(f"\n✗ Connection failed (exit={result.exit_code})")
+        sys.exit(1)
+
+    if not result.text.strip():
+        print("\n✗ Empty response")
+        sys.exit(1)
+
+    print(f"  Response: {result.text.strip()}")
+    print("\n✓ LLM connection successful")
 
 
 def _parse_args() -> argparse.Namespace:
@@ -27,6 +51,8 @@ def _parse_args() -> argparse.Namespace:
                         help="Enable thinking mode in LLM")
     parser.add_argument("--force-surface", default="",
                         help="Force re-analysis of specific surface file(s), comma-separated (e.g. iface-a.md,noniface-b.md)")
+    parser.add_argument("--test", action="store_true",
+                        help="Test LLM connectivity (ask what model it is)")
 
     # Show help when no arguments given
     if len(sys.argv) == 1:
@@ -38,8 +64,11 @@ def _parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = _parse_args()
-    main(work_dir=args.work_dir,
-         collect_prompt=args.collect_prompt,
-         vuln_prompt=args.vuln_prompt,
-         thinking=args.thinking,
-         force_surface=args.force_surface)
+    if args.test:
+        _test_llm()
+    else:
+        main(work_dir=args.work_dir,
+             collect_prompt=args.collect_prompt,
+             vuln_prompt=args.vuln_prompt,
+             thinking=args.thinking,
+             force_surface=args.force_surface)

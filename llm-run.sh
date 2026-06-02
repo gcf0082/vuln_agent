@@ -13,6 +13,23 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# ── LLM 工具检测 ──
+LLM_AGENT="${LLM_AGENT:-}"
+# 从命令行参数解析 --agent
+ARGS=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --agent) LLM_AGENT="$2"; shift 2 ;;
+        *) ARGS+=("$1"); shift ;;
+    esac
+done
+set -- "${ARGS[@]}"
+# 默认 nga，不存在则回退 opencode
+if [ -z "$LLM_AGENT" ]; then
+    LLM_AGENT="nga"
+    command -v nga &>/dev/null || LLM_AGENT="opencode"
+fi
+
 # ── 命令行参数优先，否则从 stdin 读取 ──
 if [ $# -ge 1 ]; then
     PROMPT="$*"
@@ -33,7 +50,7 @@ if [ -n "${OPENCODE_CONFIG:-}" ]; then
     THINKING_FLAG=""
     [ "${OPENCODE_THINKING:-}" = "true" ] && THINKING_FLAG="--thinking"
     export OPENCODE_PERMISSION='{"read": "allow", "external_directory": {"/*":"allow"}}'
-    printf '%s' "$PROMPT" | opencode --pure run --dir "$WORK_DIR" $THINKING_FLAG
+    printf '%s' "$PROMPT" | $LLM_AGENT run --dir "$WORK_DIR" $THINKING_FLAG
     exit $?
 fi
 
@@ -77,4 +94,4 @@ export OPENCODE_PERMISSION='{"read": "allow", "external_directory": {"/*":"allow
 
 THINKING_FLAG=""
 [ "${OPENCODE_THINKING:-}" = "true" ] && THINKING_FLAG="--thinking"
-printf '%s' "$PROMPT" | opencode --pure run --dir "$WORK_DIR" $THINKING_FLAG
+printf '%s' "$PROMPT" | $LLM_AGENT run --dir "$WORK_DIR" $THINKING_FLAG
