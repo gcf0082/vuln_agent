@@ -77,6 +77,18 @@ _output/
 
 ## 配置
 
+## 示例产物
+
+`docs/` 目录包含各阶段产出的示例文件：
+
+| 阶段 | 示例文件 | 说明 |
+|------|---------|------|
+| Stage 1 | `docs/surfaces/iface-REST-ping.md` | 攻击面识别记录 |
+| Stage 2 | `docs/analysis/iface-REST-ping.md` | 攻击面深度分析 |
+| Stage 2.5 | `docs/vuln_tasks/iface-REST-ping-1.md` | 漏洞分析任务 |
+| Stage 3 | `docs/vulnerabilities/VULN-iface-REST-ping-1-1.md` | 漏洞结论 |
+| Stage 4 | `docs/vuln_review/VULN-VULN-iface-REST-ping-1-1.md` | 二次审查结论 |
+
 `config/analysis-config.yaml` 控制各阶段启用和并行度：
 
 ```yaml
