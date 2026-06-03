@@ -12,11 +12,13 @@ from .workspace import OUTPUT_PARENT, build_vars, log
 def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
         force_list: list[str] | None = None):
-    log(f"\n=== Stage 4: Vulnerability Re-Analysis ===")
+    from .workspace import setup_stage_log
+    review_log = setup_stage_log("review")
+    review_log(f"\n=== Stage 4: Vulnerability Re-Analysis ===")
 
     review_dir = work_dir / OUTPUT_PARENT / "vuln_review"
     if not force_list and review_dir.exists() and any(review_dir.iterdir()):
-        log("  SKIP: vuln_review already has output")
+        review_log("  SKIP: vuln_review already has output")
         return sorted(review_dir.glob("*"))
 
     vuln_files = sorted((work_dir / OUTPUT_PARENT / "vulnerabilities").glob("*.md"))
@@ -25,19 +27,20 @@ def run(work_dir: Path, max_workers: int = 3,
         stems = [n.replace(".md", "") for n in force_list]
         vuln_files = [f for f in vuln_files if any(s in f.name for s in stems)]
         if not vuln_files:
-            log("  No matching vulnerability files found for force-list.")
+            review_log("  No matching vulnerability files found for force-list.")
             return []
-        log(f"  Force re-analyzing {len(vuln_files)} file(s): {[f.name for f in vuln_files]}")
+        review_log(f"  Force re-analyzing {len(vuln_files)} file(s): {[f.name for f in vuln_files]}")
     if not vuln_files:
-        log("  No vulnerability files found.")
+        review_log("  No vulnerability files found.")
         return []
 
-    log(f"  Re-analyzing {len(vuln_files)} files in parallel (workers={max_workers})...")
+    review_log(f"  Re-analyzing {len(vuln_files)} files in parallel (workers={max_workers})...")
     vars = build_vars(work_dir)
     failures: list[str] = []
 
     def reanalyze_one(vf_path):
-        log(f"  ▶ {vf_path.name}")
+        ra_log = setup_stage_log("review", vf_path.name)
+        ra_log(f"  ▶ {vf_path.name}")
         # Derive the corresponding analysis filename from the vuln filename
         # e.g. VULN-iface-REST-api-users-list-1.md → iface-REST-api-users-list.md
         analysis_name = re.sub(r'^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-', '', vf_path.stem)
@@ -50,12 +53,14 @@ def run(work_dir: Path, max_workers: int = 3,
         }
         prompt = read_prompt("review-vulnerability.txt", local_vars)
 
+        from .workspace import set_prompt_log_path
+        set_prompt_log_path("review", vf_path.name)
         client = OpenCodeClient()
         result = client.run(prompt)
         if result.exit_code != 0:
-            log(f"  ✗ {vf_path.name}")
+            ra_log(f"  ✗ {vf_path.name}")
             return False
-        log(f"  ✓ {vf_path.name}")
+        ra_log(f"  ✓ {vf_path.name}")
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
@@ -65,7 +70,7 @@ def run(work_dir: Path, max_workers: int = 3,
 
     if failures:
         msg = f"  FAILURES ({len(failures)}): {', '.join(failures)}"
-        log(msg)
+        review_log(msg)
         print(msg, flush=True)
 
     return sorted((work_dir / OUTPUT_PARENT / "vuln_review").glob("*"))

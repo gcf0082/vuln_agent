@@ -2,7 +2,9 @@
 """Output directory and file helpers."""
 
 import logging
+import os
 import re
+from datetime import datetime
 from pathlib import Path
 from .models import SurfaceItem
 
@@ -44,6 +46,59 @@ def setup_logging(work_dir: Path):
     pfh.setLevel(logging.DEBUG)
     pfh.setFormatter(logging.Formatter("%(asctime)s\n%(message)s", datefmt="%H:%M:%S"))
     _prompt_logger.addHandler(pfh)
+
+
+def set_prompt_log_path(stage: str, target: str = ""):
+    """Set LLM_PROMPT_LOG_PATH env var for llm-run.sh to consume.
+
+    The log filename includes stage, target file, and a readable timestamp.
+    """
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+    name = f"{ts}_{stage}"
+    if target:
+        name += f"_{target}"
+    name += "_prompt.txt"
+    path = Path.cwd() / "logs" / "prompts" / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    os.environ["LLM_PROMPT_LOG_PATH"] = str(path)
+
+
+def setup_stage_log(stage: str, target: str = ""):
+    """Create a per-target file logger for stage processing.
+
+    Returns a ``log()``-compatible callable that writes to:
+      - ``logs/{timestamp}_{stage}_{target}.log``
+      - console and ``pipeline.log`` (via the global pipeline logger)
+
+    In parallel stages, each thread creates its own logger via this function
+    to avoid file-handler cross-talk.
+    """
+    log_dir = Path.cwd() / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    name = f"{ts}_{stage}"
+    if target:
+        name += f"_{target}"
+
+    fh = logging.FileHandler(log_dir / f"{name}.log", encoding="utf-8")
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S"))
+
+    stage_logger = logging.getLogger(f"_stage_{name}")
+    stage_logger.setLevel(logging.DEBUG)
+    stage_logger.handlers.clear()
+    stage_logger.propagate = False
+    stage_logger.addHandler(fh)
+
+    def stage_log(msg: str = ""):
+        if msg:
+            stage_logger.info(msg)
+            if _logger:
+                _logger.info(msg)
+        else:
+            print()
+
+    return stage_log
 
 
 def log(msg: str = ""):

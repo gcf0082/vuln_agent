@@ -38,10 +38,15 @@ else
 fi
 
 # ── 保存本轮最终提示词到独立文件 ──
-PROMPT_LOG_DIR="${OPENCODE_WORK_DIR:-$SCRIPT_DIR}/logs/prompts"
-mkdir -p "$PROMPT_LOG_DIR"
-TS=$(date +%Y%m%d_%H%M%S)_$(date +%3N)
-echo "$PROMPT" > "$PROMPT_LOG_DIR/${TS}_prompt.txt"
+if [ -n "${LLM_PROMPT_LOG_PATH:-}" ]; then
+    mkdir -p "$(dirname "$LLM_PROMPT_LOG_PATH")"
+    echo "$PROMPT" > "$LLM_PROMPT_LOG_PATH"
+else
+    PROMPT_LOG_DIR="${OPENCODE_WORK_DIR:-$SCRIPT_DIR}/logs/prompts"
+    mkdir -p "$PROMPT_LOG_DIR"
+    TS=$(date +%Y%m%d_%H%M%S)_$(date +%3N)
+    echo "$PROMPT" > "$PROMPT_LOG_DIR/${TS}_prompt.txt"
+fi
 
 # ── 调用方已提供 profile？ ──
 if [ -n "${OPENCODE_CONFIG:-}" ]; then

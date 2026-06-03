@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 from . import collect, analyze, vuln_task_plan, vuln, reanalyze
-from .workspace import OUTPUT_PARENT, setup_logging, log, find_surface_files, find_vuln_files
+from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, find_surface_files, find_vuln_files
 
 
 def load_config() -> dict:
@@ -51,24 +51,25 @@ def main(work_dir: str | None = None,
     config = load_config()
     max_workers = config.get("max_workers", 3)
     setup_logging(Path.cwd())
-    log(f"Work directory: {work_path}")
-    log(f"Max workers:    {max_workers}")
+    runner_log = setup_stage_log("runner")
+    runner_log(f"Work directory: {work_path}")
+    runner_log(f"Max workers:    {max_workers}")
     if collect_prompt:
-        log(f"  Collect extra: {collect_prompt[:120]}")
+        runner_log(f"  Collect extra: {collect_prompt[:120]}")
     if analyze_prompt:
-        log(f"  Analyze extra: {analyze_prompt[:120]}")
+        runner_log(f"  Analyze extra: {analyze_prompt[:120]}")
     if vuln_prompt:
-        log(f"  Vuln extra:    {vuln_prompt[:120]}")
+        runner_log(f"  Vuln extra:    {vuln_prompt[:120]}")
     if thinking:
         os.environ["OPENCODE_THINKING"] = "true"
-        log("  Thinking:      show process")
+        runner_log("  Thinking:      show process")
     if agent:
         os.environ["LLM_AGENT"] = agent
-        log(f"  Agent:         {agent}")
+        runner_log(f"  Agent:         {agent}")
     if model:
         os.environ["LLM_MODEL"] = model
-        log(f"  Model:         {model}")
-    log("=" * 50)
+        runner_log(f"  Model:         {model}")
+    runner_log("=" * 50)
 
     # Parse force-surface list and expand wildcards
     raw_list = [s.strip() for s in force_surface.split(",") if s.strip()] if force_surface else []
@@ -80,12 +81,12 @@ def main(work_dir: str | None = None,
             if "*" in pat:
                 matched = fnmatch.filter(existing, pat)
                 if not matched:
-                    log(f"  No surfaces match pattern: {pat}")
+                    runner_log(f"  No surfaces match pattern: {pat}")
                 force_list.extend(matched)
             else:
                 force_list.append(pat)
         force_list = sorted(set(force_list))
-        log(f"  Force surfaces ({len(force_list)}): {force_list}")
+        runner_log(f"  Force surfaces ({len(force_list)}): {force_list}")
 
         # Delete existing products for these surfaces
         for dirname in ("vuln_tasks", "vulnerabilities", "vuln_review"):
@@ -95,7 +96,7 @@ def main(work_dir: str | None = None,
                 for f in d.glob(f"*{stem}*"):
                     if f.is_file():
                         f.unlink()
-                        log(f"  Removed: {d.name}/{f.name}")
+                        runner_log(f"  Removed: {d.name}/{f.name}")
 
         # Also clean up batch intermediates
         meta_batches = work_path / OUTPUT_PARENT / "meta" / "batches"
@@ -105,7 +106,7 @@ def main(work_dir: str | None = None,
                 batch_dir = meta_batches / stem
                 if batch_dir.exists():
                     shutil.rmtree(batch_dir)
-                    log(f"  Removed: {batch_dir.relative_to(work_path)}")
+                    runner_log(f"  Removed: {batch_dir.relative_to(work_path)}")
 
     try:
         collect.run(work_path, extra_prompt=collect_prompt)
@@ -114,16 +115,16 @@ def main(work_dir: str | None = None,
         vuln.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
         reanalyze.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
     except RuntimeError as e:
-        log(f"Pipeline aborted: {e}")
+        runner_log(f"Pipeline aborted: {e}")
         sys.exit(1)
 
-    log()
-    log("=" * 50)
-    log("Pipeline complete.")
+    runner_log()
+    runner_log("=" * 50)
+    runner_log("Pipeline complete.")
     surfaces = find_surface_files(work_path)
     vulns = find_vuln_files(work_path)
-    log(f"  Surface products: {len(surfaces)}")
-    log(f"  Vuln products:    {len(vulns)}")
+    runner_log(f"  Surface products: {len(surfaces)}")
+    runner_log(f"  Vuln products:    {len(vulns)}")
 
 
 if __name__ == "__main__":

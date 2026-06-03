@@ -11,11 +11,13 @@ DONE_MARKER = ".collect_done"
 
 
 def run(work_dir: Path, extra_prompt: str = ""):
-    log("\n=== Stage 1: Surface Collection ===")
+    from .workspace import setup_stage_log
+    collect_log = setup_stage_log("collect")
+    collect_log("\n=== Stage 1: Surface Collection ===")
 
     marker = work_dir / OUTPUT_PARENT / DONE_MARKER
     if marker.exists():
-        log("  SKIP: already completed (delete .collect_done to redo)")
+        collect_log("  SKIP: already completed (delete .collect_done to redo)")
         return
 
     ensure_dirs(work_dir)
@@ -23,9 +25,11 @@ def run(work_dir: Path, extra_prompt: str = ""):
     vars["extra_prompt"] = f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else ""
     prompt = read_prompt("identify-surfaces.txt", vars)
 
+    from .workspace import set_prompt_log_path
+    set_prompt_log_path("collect")
     client = OpenCodeClient()
     result = client.run(prompt)
-    log(f"  exit={result.exit_code}")
+    collect_log(f"  exit={result.exit_code}")
     if result.exit_code != 0:
         raise RuntimeError(f"Surface collection failed (exit={result.exit_code})")
 
@@ -34,8 +38,8 @@ def run(work_dir: Path, extra_prompt: str = ""):
 
     surfaces_dir = work_dir / OUTPUT_PARENT / "surfaces"
     surface_files = sorted(surfaces_dir.glob("*.md"))
-    log(f"  Generated {len(surface_files)} surface entries:")
+    collect_log(f"  Generated {len(surface_files)} surface entries:")
     for sf in surface_files:
-        log(f"    - {sf.name}")
+        collect_log(f"    - {sf.name}")
 
     return result

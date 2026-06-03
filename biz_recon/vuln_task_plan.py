@@ -28,11 +28,13 @@ def _ensure_generic_task(work_dir: Path, analysis_file: str):
 
 def run(work_dir: Path, max_workers: int = 3,
         force_list: list[str] | None = None):
-    log(f"\n=== Stage 2.5: Vulnerability Task Planning ===")
+    from .workspace import setup_stage_log
+    tplan_log = setup_stage_log("taskplan")
+    tplan_log(f"\n=== Stage 2.5: Vulnerability Task Planning ===")
 
     analysis_files = find_surface_files(work_dir)
     if not analysis_files:
-        log("  No analysis files found.")
+        tplan_log("  No analysis files found.")
         return []
 
     # Filter to forced surfaces if specified
@@ -40,9 +42,9 @@ def run(work_dir: Path, max_workers: int = 3,
         stems = [n.replace(".md", "") for n in force_list]
         analysis_files = [sf for sf in analysis_files if sf.stem in stems]
         if not analysis_files:
-            log("  No analysis files matched force_list.")
+            tplan_log("  No analysis files matched force_list.")
             return []
-        log(f"  Force surfaces: {[sf.name for sf in analysis_files]}")
+        tplan_log(f"  Force surfaces: {[sf.name for sf in analysis_files]}")
 
     tasks_dir = work_dir / OUTPUT_PARENT / "vuln_tasks"
 
@@ -58,28 +60,31 @@ def run(work_dir: Path, max_workers: int = 3,
 
     need_planning = [sf for sf in analysis_files if not _has_existing(sf.stem)]
     if not need_planning:
-        log(f"  All surfaces already have task files ({len(analysis_files)}/{len(analysis_files)})")
+        tplan_log(f"  All surfaces already have task files ({len(analysis_files)}/{len(analysis_files)})")
         return sorted(tasks_dir.glob("*.md"))
 
     skipped = len(analysis_files) - len(need_planning)
-    log(f"  Planning tasks for {len(need_planning)} surfaces ({skipped} already have tasks, workers={max_workers})...")
+    tplan_log(f"  Planning tasks for {len(need_planning)} surfaces ({skipped} already have tasks, workers={max_workers})...")
     vars = build_vars(work_dir)
     failures: list[str] = []
 
     def plan_one(sf_path):
-        log(f"  ▶ {sf_path.name}")
+        plan_log = setup_stage_log("taskplan", sf_path.name)
+        plan_log(f"  ▶ {sf_path.name}")
         local_vars = {**vars,
             "surface_file": sf_path.name,
             "surface_stem": sf_path.stem,
         }
         prompt = read_prompt("plan-vuln-tasks.txt", local_vars)
 
+        from .workspace import set_prompt_log_path
+        set_prompt_log_path("taskplan", sf_path.name)
         client = OpenCodeClient()
         result = client.run(prompt)
         if result.exit_code != 0:
-            log(f"  ✗ {sf_path.name}")
+            plan_log(f"  ✗ {sf_path.name}")
             return False
-        log(f"  ✓ {sf_path.name}")
+        plan_log(f"  ✓ {sf_path.name}")
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
@@ -89,7 +94,7 @@ def run(work_dir: Path, max_workers: int = 3,
 
     if failures:
         msg = f"  FAILURES ({len(failures)}): {', '.join(failures)}"
-        log(msg)
+        tplan_log(msg)
         print(msg, flush=True)
 
     return sorted(tasks_dir.glob("*.md"))
