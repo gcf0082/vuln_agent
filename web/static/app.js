@@ -1,5 +1,5 @@
 const { createApp, ref, reactive, computed, watch, nextTick, defineComponent, provide, inject, onMounted, onBeforeUnmount } = Vue;
-const VueSelectComponent = window.VueSelect;
+const VueSelectComponent = window['vue-select'];
 
 const API = '/api';
 const STAGES = ['surfaces', 'analysis', 'vuln_tasks', 'vulnerabilities', 'vuln_review'];
