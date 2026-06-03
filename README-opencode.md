@@ -4,21 +4,6 @@
 
 ## 快速开始
 
-### 1. 初始化环境（仅首次）
-
-从系统 OpenCode 配置读取 API key，生成 `.env` 文件：
-
-```bash
-python3 init_env.py
-```
-
-成功后生成 `.env`，内容示例：
-
-```env
-OPENCODE_API_KEY=sk-xxxx
-OPENCODE_DEFAULT_MODEL=opencode-go/deepseek-v4-flash
-```
-
 ### 2. 准备 skills 和 agents 仓库
 
 目录结构：
@@ -209,7 +194,7 @@ r5 = client.run("What model?",
 | 文件 | 用途 |
 |------|------|
 | `opencode_wrapper.py` | 核心封装（Client、Repo、ProfileConfig） |
-| `init_env.py` | 首次初始化，从系统配置生成 `.env` |
+
 | `example.py` | 多场景示例 |
 | `.env` | 环境配置（API key、默认模型） |
 | `my_skills/` | skills 仓库目录 |
