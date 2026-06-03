@@ -42,6 +42,7 @@ ProcessBuilder pb = new ProcessBuilder("bash", "scripts/scan.sh", filename);
 - 加解密 / 签名：算法？密钥来源？
 - 认证/鉴权（仅当存在时）：简述做了怎样的认证鉴权？
 - 电话号码、邮箱（仅当出现时）：用来做什么？
+- 认证凭据（仅当存在时）：用来做什么？
 
 ### 流程图画法
 
