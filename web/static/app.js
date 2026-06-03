@@ -353,19 +353,25 @@ app.component('RunDialog', {
         <div class="form-group">
           <label>Force Surface</label>
           <div class="multi-select">
-            <div class="ms-trigger" @click="dropdownOpen=!dropdownOpen" @keydown.enter="dropdownOpen=!dropdownOpen" tabindex="0">
+            <div class="ms-trigger" @click="dropdownOpen=!dropdownOpen" tabindex="0">
               <span v-if="selectedFiles.length===0" class="ms-placeholder">选择强制重分析的攻击面文件</span>
-              <span v-else>{{ selectedFiles.length }} 个文件已选</span>
-              <span class="ms-arrow">▼</span>
+              <template v-for="(f, i) in displayedTags" :key="f">
+                <span class="ms-tag">
+                  {{ f }}
+                  <span class="ms-tag-remove" @click.stop="removeFile(f)" @mousedown.prevent>&times;</span>
+                </span>
+              </template>
+              <span v-if="overflowCount>0" class="ms-overflow">+{{ overflowCount }}</span>
+              <span class="ms-arrow">▾</span>
             </div>
             <div v-if="dropdownOpen" class="ms-dropdown" @click.stop>
-              <div class="ms-search"><input v-model="search" placeholder="搜索文件名..." @input="onSearch"></div>
+              <div class="ms-search"><input v-model="search" placeholder="搜索文件名..." autofocus></div>
               <div class="ms-list">
                 <div v-for="f in filteredFiles" :key="f.id" class="ms-item" @click="toggleFile(f.filename)">
                   <input type="checkbox" :checked="selectedSet.has(f.filename)" @click.stop>
-                  <span>{{ f.filename }}</span>
+                  <span class="ms-item-label">{{ f.filename }}</span>
                 </div>
-                <div v-if="filteredFiles.length===0" style="padding:10px;color:#999;font-size:13px">无匹配文件</div>
+                <div v-if="filteredFiles.length===0" class="ms-empty">无匹配文件</div>
               </div>
             </div>
           </div>
@@ -396,6 +402,10 @@ app.component('RunDialog', {
       return analysisFiles.value.filter(f => f.filename.toLowerCase().includes(q));
     });
 
+    const MAX_VISIBLE_TAGS = 4;
+    const displayedTags = computed(() => selectedFiles.value.slice(0, MAX_VISIBLE_TAGS));
+    const overflowCount = computed(() => Math.max(0, selectedFiles.value.length - MAX_VISIBLE_TAGS));
+
     async function loadFiles() {
       try {
         const data = await api(`/projects/${props.projectName}/files/analysis`);
@@ -413,7 +423,13 @@ app.component('RunDialog', {
       form.force_surface = selectedFiles.value.join(',');
     }
 
-    function onSearch() {}
+    function removeFile(filename) {
+      const idx = selectedFiles.value.indexOf(filename);
+      if (idx >= 0) {
+        selectedFiles.value.splice(idx, 1);
+      }
+      form.force_surface = selectedFiles.value.join(',');
+    }
 
     function onDocumentClick(e) {
       if (dropdownOpen.value) {
@@ -443,7 +459,7 @@ app.component('RunDialog', {
       document.removeEventListener('click', onDocumentClick);
     });
 
-    return { form, starting, analysisFiles, selectedFiles, selectedSet, search, dropdownOpen, filteredFiles, toggleFile, onSearch, startRun };
+    return { form, starting, analysisFiles, selectedFiles, selectedSet, search, dropdownOpen, filteredFiles, displayedTags, overflowCount, toggleFile, removeFile, startRun };
   },
 });
 
