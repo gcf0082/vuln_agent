@@ -192,8 +192,8 @@ app.component('Dashboard', {
           <div v-if="trace" class="trace-section">
             <div class="trace-label">● 关联文件</div>
             <div class="trace-scroll">
-              <div v-for="s in stages" :key="'t'+s" v-if="trace.related[s] && trace.related[s].length">
-                <div style="margin-bottom:6px">
+              <template v-for="s in stages" :key="'t'+s">
+                <div v-if="trace.related[s] && trace.related[s].length" style="margin-bottom:6px">
                   <div style="font-size:10px;font-weight:600;margin-bottom:1px" :style="{color:stageColors[s]}">{{ stageLabels[s] || s }} ({{ trace.related[s].length }})</div>
                   <div v-for="f in trace.related[s]" :key="f.id"
                     class="trace-file"
@@ -202,7 +202,7 @@ app.component('Dashboard', {
                     {{ f.filename }}
                   </div>
                 </div>
-              </div>
+              </template>
             </div>
           </div>
         </div>
