@@ -8,7 +8,13 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="app"></div>
+<div id="app">
+  <project-list v-if="route === 'projects'" />
+  <dashboard v-else-if="route === 'dashboard'" :project-name="routeParams.name" :active-stage="routeParams.stage" :active-file-id="routeParams.fileId" />
+  <div v-if="toast.show" class="toast">{{ toast.msg }}</div>
+  <run-dialog v-if="runDialog.show" :project-name="runDialog.projectName" @close="runDialog.show=false" @started="onRunStarted" />
+</div>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="app.js"></script>
