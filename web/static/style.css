@@ -28,9 +28,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 
 .dash-body { display: flex; flex: 1; overflow: hidden; }
 .dash-sidebar { width: 260px; min-width: 260px; background: #fff; border-right: 1px solid #e0e0e0; overflow-y: auto; flex-shrink: 0; }
-.dash-main { flex: 1; display: flex; overflow: hidden; }
-.dash-content { flex: 1; overflow-y: auto; background: #f5f5f5; padding: 20px; min-width: 0; }
-.dash-trace { width: 300px; min-width: 300px; background: #fff; border-left: 1px solid #e0e0e0; overflow-y: auto; flex-shrink: 0; padding: 16px; }
+.dash-main { flex: 1; overflow-y: auto; background: #f5f5f5; padding: 20px; }
 
 /* === Sidebar Stage Groups === */
 .stage-group { border-bottom: 1px solid #eee; }
@@ -70,12 +68,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .detail-content ul, .detail-content ol { margin: 6px 0; padding-left: 20px; }
 .detail-content li { margin: 3px 0; }
 
-/* === Trace Section (right panel) === */
-.trace-section .trace-title { font-size: 14px; font-weight: 600; color: #555; }
-.trace-section .trace-stem { font-size: 11px; color: #aaa; margin-top: 4px; word-break: break-all; }
-.trace-file { padding: 4px 6px; font-size: 12px; color: #0366d6; cursor: pointer; border-radius: 3px; margin: 1px 0; word-break: break-all; }
-.trace-file:hover { background: #f0f6ff; }
-.trace-file.active-source { color: #999; cursor: default; background: transparent; }
+/* === Trace Section (sidebar) === */
+.trace-file { padding: 2px 6px; font-size: 11px; color: #0366d6; cursor: pointer; border-radius: 3px; margin: 1px 0; word-break: break-all; }
+.trace-file:hover { background: #e8f0fe; }
+.trace-file.active-source { color: #999; cursor: default; }
 
 /* === Create Form === */
 .create-section { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); padding: 20px; margin-bottom: 20px; }
@@ -101,18 +97,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .btn-primary:disabled { opacity: .5; cursor: default; }
 
 /* === Responsive === */
-@media (max-width: 1024px) {
-  .dash-trace { width: 220px; min-width: 220px; }
-}
 @media (max-width: 768px) {
-  .dash-sidebar { width: 180px; min-width: 180px; }
-  .dash-trace { width: 180px; min-width: 180px; }
-  .dash-content { padding: 12px; }
+  .dash-sidebar { width: 200px; min-width: 200px; }
+  .dash-main { padding: 12px; }
 }
 @media (max-width: 640px) {
   .dash-body { flex-direction: column; }
   .dash-sidebar { width: 100%; min-width: 0; max-height: 35vh; border-right: none; border-bottom: 1px solid #e0e0e0; }
-  .dash-main { flex-direction: column; }
-  .dash-content { max-height: 50vh; }
-  .dash-trace { width: 100%; min-width: 0; max-height: 30vh; border-left: none; border-top: 1px solid #e0e0e0; }
+  .dash-main { max-height: 65vh; }
 }

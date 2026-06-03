@@ -180,16 +180,12 @@ function renderDashLayout() {
       </div>
       <div class="dash-body">
         <div class="dash-sidebar" id="dash-sidebar"></div>
-        <div class="dash-main">
-          <div class="dash-content" id="dash-content"></div>
-          <div class="dash-trace" id="dash-trace"></div>
-        </div>
+        <div class="dash-main" id="dash-main"></div>
       </div>
     </div>
   `;
   renderSidebar();
   renderMiddle();
-  renderTrace();
 }
 
 function renderSidebar() {
@@ -197,7 +193,7 @@ function renderSidebar() {
   if (!el) return;
   const active = _dashState.active;
 
-  el.innerHTML = STAGES.map(s => {
+  let html = STAGES.map(s => {
     const files = _dashState.stageFiles[s] || [];
     const expanded = _dashState.expanded[s] !== false;
     const actKey = active ? `${active.stage}|${active.id}` : null;
@@ -219,10 +215,41 @@ function renderSidebar() {
       </div>
     `;
   }).join('');
+
+  // Trace section after surfaces
+  const trace = _dashState.trace;
+  if (trace) {
+    html += `
+      <div class="stage-group trace-group">
+        <div class="stage-header" style="cursor:default;border-top:1px solid #eee;margin-top:4px;padding-top:10px">
+          <span style="color:#0366d6">●</span>
+          关联文件
+        </div>
+        <div style="padding:4px 14px 8px">
+          ${STAGES.map(s => {
+            const files = trace.related[s] || [];
+            const a = _dashState.active;
+            if (files.length === 0) return '';
+            return `
+              <div style="margin-bottom:8px">
+                <div style="font-size:10px;font-weight:600;color:${STAGE_COLORS[s]};margin-bottom:2px">${STAGE_LABELS[s] || s} (${files.length})</div>
+                ${files.map(f => {
+                  const isSource = a && a.stage === s && a.filename === f.filename;
+                  return `<div class="trace-file ${isSource ? 'active-source' : ''}" ${isSource ? '' : `onclick="onTraceClick('${s}',${f.id})"`}>${esc(f.filename)}</div>`;
+                }).join('')}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  el.innerHTML = html;
 }
 
 function renderMiddle() {
-  const el = document.getElementById('dash-content');
+  const el = document.getElementById('dash-main');
   if (!el) return;
   const viewing = _dashState.viewing;
   const active = _dashState.active;
@@ -258,35 +285,6 @@ function renderMiddle() {
   document.querySelectorAll('.detail-content pre code').forEach(b => hljs.highlightElement(b));
 }
 
-function renderTrace() {
-  const el = document.getElementById('dash-trace');
-  if (!el) return;
-  const trace = _dashState.trace;
-  if (!trace) { el.innerHTML = ''; return; }
-
-  el.innerHTML = `
-    <div class="trace-section">
-      <div class="trace-title">关联文件</div>
-      <div class="trace-stem">surface: ${trace.stem}</div>
-      <div style="margin-top:16px">
-        ${STAGES.map(s => {
-          const files = trace.related[s] || [];
-          const active = _dashState.active;
-          return `
-            <div style="margin-bottom:16px">
-              <div style="font-size:11px;font-weight:600;color:${STAGE_COLORS[s]};margin-bottom:4px">${STAGE_LABELS[s] || s} (${files.length})</div>
-              ${files.length === 0 ? '<div style="font-size:12px;color:#ccc">—</div>' : files.map(f => {
-                const isSource = active && active.stage === s && active.filename === f.filename;
-                return `<div class="trace-file ${isSource ? 'active-source' : ''}" ${isSource ? '' : `onclick="onTraceClick('${s}',${f.id})"`}>${esc(f.filename)}</div>`;
-              }).join('')}
-            </div>
-          `;
-        }).join('')}
-      </div>
-    </div>
-  `;
-}
-
 // ── Actions ──
 
 // Called when clicking a file in the LEFT sidebar
@@ -306,7 +304,6 @@ async function onSelectFile(stage, fileId) {
   }
   renderSidebar();
   renderMiddle();
-  renderTrace();
 }
 
 // Called when clicking a file in the RIGHT trace panel
