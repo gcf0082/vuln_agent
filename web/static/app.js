@@ -110,10 +110,7 @@ app.component('ProjectList', {
             <div class="form-actions"><button type="submit" class="btn btn-primary">创建</button></div>
           </form>
         </div>
-        <h2 style="display:flex;align-items:center;gap:10px">
-          项目列表
-          <button class="btn" style="font-size:12px;padding:2px 10px" @click="loadProjects">⟳ 刷新</button>
-        </h2>
+        <h2>项目列表</h2>
         <div v-if="loading" style="color:#999;padding:20px 0">加载中...</div>
         <div v-else class="proj-grid">
           <p v-if="projects.length===0" style="color:#999;grid-column:1/-1">暂无项目</p>
@@ -176,6 +173,7 @@ app.component('Dashboard', {
         <span class="status" :class="project.status">{{ project.status }}</span>
         <span style="font-size:12px;color:#888">{{ project.target_dir }}</span>
         <span class="spacer"></span>
+        <button class="header-btn" @click="refresh">⟳</button>
         <button v-if="['pending','done','error'].includes(project.status)" class="header-btn" @click="showRunDialog">启动</button>
         <button class="header-btn danger" @click="deleteProject">删除</button>
       </div>
@@ -296,6 +294,31 @@ app.component('Dashboard', {
     const openRunDialog = inject('openRunDialog');
     function showRunDialog() { openRunDialog(props.projectName); }
 
+    async function refresh() {
+      try {
+        const [proj, ...fileLists] = await Promise.all([
+          api(`/projects/${props.projectName}`),
+          ...STAGES.map(s =>
+            api(`/projects/${props.projectName}/files/${s}`).then(d => d.files).catch(() => [])
+          ),
+        ]);
+        Object.assign(project, proj);
+        STAGES.forEach((s, i) => { stageFiles[s] = fileLists[i]; });
+        // Re-select active file if one was selected
+        if (active.value) {
+          const a = active.value;
+          try {
+            const [file, traceData] = await Promise.all([
+              api(`/projects/${props.projectName}/files/${a.stage}/${a.id}`),
+              api(`/projects/${props.projectName}/files/${a.stage}/${a.id}/trace`).catch(() => null),
+            ]);
+            viewing.value = { ...file, stage: a.stage, id: a.id };
+            trace.value = traceData;
+          } catch { /* file may have been deleted */ }
+        }
+      } catch {}
+    }
+
     async function deleteProject() {
       if (!confirm('确定删除项目 ' + props.projectName + '？将同时删除 _output 产物')) return;
       await api(`/projects/${props.projectName}`, { method: 'DELETE' });
@@ -335,7 +358,7 @@ app.component('Dashboard', {
       stageLabels: STAGE_LABELS,
       stageColors: STAGE_COLORS,
       project, stageFiles, active, viewing, trace, expanded, renderedContent,
-      navigate, selectFile, traceClick, toggleStage, showRunDialog, deleteProject,
+      navigate, selectFile, traceClick, toggleStage, showRunDialog, deleteProject, refresh,
     };
   },
 });
