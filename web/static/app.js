@@ -1,4 +1,5 @@
 const { createApp, ref, reactive, computed, watch, nextTick, defineComponent, provide, inject, onMounted, onBeforeUnmount } = Vue;
+const VueSelectComponent = window.VueSelect;
 
 const API = '/api';
 const STAGES = ['surfaces', 'analysis', 'vuln_tasks', 'vulnerabilities', 'vuln_review'];
@@ -352,29 +353,7 @@ app.component('RunDialog', {
         <div class="form-group"><label>Agent</label><input v-model="form.agent" placeholder="可选"></div>
         <div class="form-group">
           <label>Force Surface</label>
-          <div class="multi-select">
-            <div class="ms-trigger" @click="dropdownOpen=!dropdownOpen" tabindex="0">
-              <span v-if="selectedFiles.length===0" class="ms-placeholder">选择强制重分析的攻击面文件</span>
-              <template v-for="(f, i) in displayedTags" :key="f">
-                <span class="ms-tag">
-                  {{ f }}
-                  <span class="ms-tag-remove" @click.stop="removeFile(f)" @mousedown.prevent>&times;</span>
-                </span>
-              </template>
-              <span v-if="overflowCount>0" class="ms-overflow">+{{ overflowCount }}</span>
-              <span class="ms-arrow">▾</span>
-            </div>
-            <div v-if="dropdownOpen" class="ms-dropdown" @click.stop>
-              <div class="ms-search"><input v-model="search" placeholder="搜索文件名..." autofocus></div>
-              <div class="ms-list">
-                <div v-for="f in filteredFiles" :key="f.id" class="ms-item" @click="toggleFile(f.filename)">
-                  <input type="checkbox" :checked="selectedSet.has(f.filename)" @click.stop>
-                  <span class="ms-item-label">{{ f.filename }}</span>
-                </div>
-                <div v-if="filteredFiles.length===0" class="ms-empty">无匹配文件</div>
-              </div>
-            </div>
-          </div>
+          <v-select multiple v-model="selectedFiles" :options="fileOptions" :filter="filterFiles" placeholder="搜索并选择攻击面文件..."></v-select>
         </div>
         <div class="modal-actions">
           <button class="btn" @click="$emit('close')">取消</button>
@@ -386,9 +365,6 @@ app.component('RunDialog', {
   setup(props, { emit }) {
     const analysisFiles = ref([]);
     const selectedFiles = ref([]);
-    const selectedSet = computed(() => new Set(selectedFiles.value));
-    const search = ref('');
-    const dropdownOpen = ref(false);
     const starting = ref(false);
 
     const form = reactive({
@@ -396,48 +372,21 @@ app.component('RunDialog', {
       model: '', agent: '', force_surface: '',
     });
 
-    const filteredFiles = computed(() => {
-      const q = search.value.toLowerCase();
-      if (!q) return analysisFiles.value;
-      return analysisFiles.value.filter(f => f.filename.toLowerCase().includes(q));
-    });
+    const fileOptions = computed(() => analysisFiles.value.map(f => f.filename));
 
-    const MAX_VISIBLE_TAGS = 4;
-    const displayedTags = computed(() => selectedFiles.value.slice(0, MAX_VISIBLE_TAGS));
-    const overflowCount = computed(() => Math.max(0, selectedFiles.value.length - MAX_VISIBLE_TAGS));
+    function filterFiles(option, search) {
+      return option.toLowerCase().includes(search.toLowerCase());
+    }
+
+    watch(selectedFiles, (val) => {
+      form.force_surface = val.join(',');
+    }, { deep: true });
 
     async function loadFiles() {
       try {
         const data = await api(`/projects/${props.projectName}/files/analysis`);
         analysisFiles.value = data.files || [];
       } catch {}
-    }
-
-    function toggleFile(filename) {
-      const idx = selectedFiles.value.indexOf(filename);
-      if (idx >= 0) {
-        selectedFiles.value.splice(idx, 1);
-      } else {
-        selectedFiles.value.push(filename);
-      }
-      form.force_surface = selectedFiles.value.join(',');
-    }
-
-    function removeFile(filename) {
-      const idx = selectedFiles.value.indexOf(filename);
-      if (idx >= 0) {
-        selectedFiles.value.splice(idx, 1);
-      }
-      form.force_surface = selectedFiles.value.join(',');
-    }
-
-    function onDocumentClick(e) {
-      if (dropdownOpen.value) {
-        const el = document.querySelector('.multi-select');
-        if (el && !el.contains(e.target)) {
-          dropdownOpen.value = false;
-        }
-      }
     }
 
     async function startRun() {
@@ -451,16 +400,11 @@ app.component('RunDialog', {
       } catch (err) { alert('启动失败: ' + err.message); starting.value = false; }
     }
 
-    onMounted(() => {
-      loadFiles();
-      document.addEventListener('click', onDocumentClick);
-    });
-    onBeforeUnmount(() => {
-      document.removeEventListener('click', onDocumentClick);
-    });
+    onMounted(loadFiles);
 
-    return { form, starting, analysisFiles, selectedFiles, selectedSet, search, dropdownOpen, filteredFiles, displayedTags, overflowCount, toggleFile, removeFile, startRun };
+    return { form, starting, selectedFiles, fileOptions, filterFiles, startRun };
   },
 });
 
+if (VueSelectComponent) app.component('v-select', VueSelectComponent);
 app.mount('#app');

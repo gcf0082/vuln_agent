@@ -108,27 +108,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .modal-box .form-group input { width: 100%; padding: 6px 10px; border: 1px solid #d0d0d0; border-radius: 4px; font-size: 14px; }
 .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
 
-/* === Multi-Select (Force Surface) === */
-.multi-select { position: relative; }
-.multi-select .ms-trigger { width: 100%; min-height: 40px; padding: 4px 8px; border: 1px solid #d0d0d0; border-radius: 4px; font-size: 14px; cursor: pointer; background: #fff; text-align: left; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
-.multi-select .ms-trigger:hover { border-color: #b0b0b0; }
-.multi-select .ms-trigger:focus { border-color: #0366d6; outline: none; }
-.multi-select .ms-trigger .ms-placeholder { color: #999; padding: 2px 0; }
-.multi-select .ms-trigger .ms-arrow { font-size: 10px; color: #999; margin-left: auto; padding: 2px 0; }
-.multi-select .ms-tag { display: inline-flex; align-items: center; gap: 4px; background: #e8f0fe; color: #0366d6; font-size: 12px; padding: 2px 6px; border-radius: 3px; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.multi-select .ms-tag .ms-tag-remove { cursor: pointer; font-size: 14px; line-height: 1; color: #0366d6; opacity: .6; flex-shrink: 0; }
-.multi-select .ms-tag .ms-tag-remove:hover { opacity: 1; }
-.multi-select .ms-overflow { font-size: 12px; color: #888; padding: 2px 4px; }
-.multi-select .ms-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #d0d0d0; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.12); z-index: 20; max-height: 320px; display: flex; flex-direction: column; margin-top: 2px; }
-.multi-select .ms-search { padding: 8px; border-bottom: 1px solid #eee; flex-shrink: 0; }
-.multi-select .ms-search input { width: 100%; padding: 6px 10px; border: 1px solid #d0d0d0; border-radius: 4px; font-size: 13px; outline: none; box-sizing: border-box; }
-.multi-select .ms-search input:focus { border-color: #0366d6; }
-.multi-select .ms-list { overflow-y: auto; flex: 1; padding: 4px 0; }
-.multi-select .ms-item { padding: 6px 10px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; }
-.multi-select .ms-item:hover { background: #f0f6ff; }
-.multi-select .ms-item input { margin: 0; flex-shrink: 0; }
-.multi-select .ms-item .ms-item-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.multi-select .ms-empty { padding: 16px 10px; color: #999; font-size: 13px; text-align: center; }
+/* === Vue-Select overrides === */
+.v-select { font-size: 14px; }
+.v-select .vs__selected { font-size: 13px; margin: 2px; padding: 2px 6px; }
+.v-select .vs__search { font-size: 14px; margin: 0; }
+.v-select .vs__dropdown-option { font-size: 13px; padding: 6px 10px; }
+.v-select .vs__dropdown-option--highlight { background: #e8f0fe; color: #0366d6; }
 
 /* === Toast === */
 .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 24px; border-radius: 6px; font-size: 14px; z-index: 9999; transition: opacity .3s; }
