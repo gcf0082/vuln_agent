@@ -1,6 +1,7 @@
 """REST API blueprint for project management."""
 
 import os
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -42,7 +43,6 @@ def handle_create_project():
     db_path = proj_path / "results.db"
     db.init_db(str(db_path))
 
-    import sqlite3
     conn = sqlite3.connect(str(db_path))
     conn.execute(
         "INSERT INTO projects (name, target_dir, status) VALUES (?, ?, ?)",
@@ -101,7 +101,6 @@ def handle_get_project(name):
 @api_bp.route("/projects/<name>", methods=["DELETE"])
 def handle_delete_project(name):
     import shutil
-    import sqlite3
 
     proj_path = db.get_project_path(name)
     if not proj_path.exists():
@@ -310,7 +309,6 @@ def handle_run_project(name):
     data = request.get_json() or {}
 
     db_path = str(db.get_project_path(name) / "results.db")
-    import sqlite3
     conn = sqlite3.connect(db_path)
 
     # Save runtime params and update status
@@ -369,7 +367,6 @@ def handle_list_files(name, stage):
 @api_bp.route("/projects/<name>/stages/<stage>", methods=["DELETE"])
 def handle_clear_stage(name, stage):
     import shutil
-    import sqlite3
 
     VALID_STAGES = {"surfaces", "analysis", "vuln_tasks", "vulnerabilities", "vuln_review"}
     if stage not in VALID_STAGES:
