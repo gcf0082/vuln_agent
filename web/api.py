@@ -60,24 +60,36 @@ def handle_get_project(name):
     if proj is None:
         return jsonify({"error": "not found"}), 404
 
-    # Verify running status against actual PID
-    if proj.get("status") == "running":
-        pid_file = db.get_project_path(name) / "run.pid"
-        alive = False
-        if pid_file.exists():
-            try:
-                pid = int(pid_file.read_text().strip())
-                alive = _is_pid_alive(pid)
-            except (ValueError, OSError):
-                pass
-        if not alive:
-            import sqlite3
+    # Verify running status against actual process
+    pid_file = db.get_project_path(name) / "run.pid"
+    alive = False
+    if pid_file.exists():
+        try:
+            pid = int(pid_file.read_text().strip())
+            alive = _is_pid_alive(pid)
+        except (ValueError, OSError):
+            pass
+
+    if proj.get("status") == "running" and not alive:
+        # Mark as error if process died unexpectedly
+        db_path = str(db.get_project_path(name) / "results.db")
+        conn = sqlite3.connect(db_path)
+        conn.execute("UPDATE projects SET status=? WHERE name=?", ("error", name))
+        conn.commit()
+        conn.close()
+        proj["status"] = "error"
+    elif proj.get("status") != "running":
+        # pgrep fallback: process might be running without PID file or correct status
+        pgrep_pid = _find_running_by_pgrep(name)
+        if pgrep_pid is not None:
+            pid_file.parent.mkdir(parents=True, exist_ok=True)
+            pid_file.write_text(str(pgrep_pid))
             db_path = str(db.get_project_path(name) / "results.db")
             conn = sqlite3.connect(db_path)
-            conn.execute("UPDATE projects SET status=? WHERE name=?", ("error", name))
+            conn.execute("UPDATE projects SET status=? WHERE name=?", ("running", name))
             conn.commit()
             conn.close()
-            proj["status"] = "error"
+            proj["status"] = "running"
 
     db_path = str(db.get_project_path(name) / "results.db")
     proj["file_counts"] = {}
@@ -137,21 +149,59 @@ def _is_pid_alive(pid: int) -> bool:
         return False
 
 
+def _find_running_by_pgrep(project_name: str) -> int | None:
+    """Scan for run.py processes targeting this project name via pgrep.
+
+    Returns PID if found, None otherwise.
+    """
+    import subprocess as _sp
+    try:
+        result = _sp.run(
+            ["pgrep", "-f", f"run.py.*--project.*{project_name}"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0:
+            pids = [int(p) for p in result.stdout.strip().splitlines() if p.strip()]
+            # Exclude our own process (if this python process is run.py too)
+            own_pid = os.getpid()
+            for pid in pids:
+                if pid != own_pid and _is_pid_alive(pid):
+                    return pid
+    except Exception:
+        pass
+    return None
+
+
 def _check_running(proj: dict) -> tuple[dict | None, int | None]:
     """Return error response if project already has a running process, else (None, None).
 
+    Checks two sources:
+      1. PID file (normal case)
+      2. pgrep scan (resilient against missing PID file)
+
     Returns (error_body, status_code) on conflict, or (None, None) if clear to run.
     """
-    pid_file = db.get_project_path(proj["name"]) / "run.pid"
-    if not pid_file.exists():
-        return None, None
-    try:
-        pid = int(pid_file.read_text().strip())
-        if _is_pid_alive(pid):
-            return {"error": f"project already running (PID {pid})"}, 409
-        pid_file.unlink(missing_ok=True)
-    except (ValueError, OSError):
-        pid_file.unlink(missing_ok=True)
+    name = proj["name"]
+
+    # 1. PID file check
+    pid_file = db.get_project_path(name) / "run.pid"
+    if pid_file.exists():
+        try:
+            pid = int(pid_file.read_text().strip())
+            if _is_pid_alive(pid):
+                return {"error": f"project already running (PID {pid})"}, 409
+            pid_file.unlink(missing_ok=True)
+        except (ValueError, OSError):
+            pid_file.unlink(missing_ok=True)
+
+    # 2. pgrep fallback (in case PID file was lost but process still alive)
+    found_pid = _find_running_by_pgrep(name)
+    if found_pid is not None:
+        # Rescue the PID file so future checks find it too
+        pid_file.parent.mkdir(parents=True, exist_ok=True)
+        pid_file.write_text(str(found_pid))
+        return {"error": f"project already running (PID {found_pid})"}, 409
+
     return None, None
 
 
