@@ -89,8 +89,9 @@ def import_stage(db_path: str, stage: str, stage_dir: str):
     conn = sqlite3.connect(db_path)
     for f in sorted(dir_path.glob("*.md")):
         content = f.read_text(encoding="utf-8", errors="replace")
+        conn.execute(f"DELETE FROM {stage} WHERE filename=?", (f.name,))
         conn.execute(
-            f"INSERT OR IGNORE INTO {stage} (filename, content) VALUES (?, ?)",
+            f"INSERT INTO {stage} (filename, content) VALUES (?, ?)",
             (f.name, content),
         )
     conn.commit()
