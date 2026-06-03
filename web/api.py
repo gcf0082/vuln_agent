@@ -107,6 +107,16 @@ def handle_delete_project(name):
         if row:
             target_dir = row[0]
 
+    # Stop running process if alive
+    pid_file = proj_path / "run.pid"
+    if pid_file.exists():
+        try:
+            pid = int(pid_file.read_text().strip())
+            if _is_pid_alive(pid):
+                os.kill(pid, 15)  # SIGTERM
+        except (ValueError, OSError, ProcessLookupError):
+            pass
+
     # Delete _output under target directory
     if target_dir:
         output_path = Path(target_dir) / "_output"
