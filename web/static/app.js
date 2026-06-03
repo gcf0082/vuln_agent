@@ -110,7 +110,10 @@ app.component('ProjectList', {
             <div class="form-actions"><button type="submit" class="btn btn-primary">创建</button></div>
           </form>
         </div>
-        <h2>项目列表</h2>
+        <h2 style="display:flex;align-items:center;gap:10px">
+          项目列表
+          <button class="btn" style="font-size:12px;padding:2px 10px" @click="loadProjects">⟳ 刷新</button>
+        </h2>
         <div v-if="loading" style="color:#999;padding:20px 0">加载中...</div>
         <div v-else class="proj-grid">
           <p v-if="projects.length===0" style="color:#999;grid-column:1/-1">暂无项目</p>
