@@ -9,10 +9,10 @@
 </head>
 <body>
 <div id="app">
-  <project-list v-if="route === 'projects'" />
-  <dashboard v-else-if="route === 'dashboard'" :project-name="routeParams.name" :active-stage="routeParams.stage" :active-file-id="routeParams.fileId" />
+  <project-list v-if="route === 'projects'"></project-list>
+  <dashboard v-else-if="route === 'dashboard'" :project-name="routeParams.name" :active-stage="routeParams.stage" :active-file-id="routeParams.fileId"></dashboard>
   <div v-if="toast.show" class="toast">{{ toast.msg }}</div>
-  <run-dialog v-if="runDialog.show" :project-name="runDialog.projectName" @close="runDialog.show=false" @started="onRunStarted" />
+  <run-dialog v-if="runDialog.show" :project-name="runDialog.projectName" @close="runDialog.show=false" @started="onRunStarted"></run-dialog>
 </div>
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
