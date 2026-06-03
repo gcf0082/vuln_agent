@@ -99,13 +99,21 @@ attack_surface_collection: true
 vulnerability_analysis: true
 ```
 
-## 提示词日志
-
-每次 LLM 调用的完整提示词保存在 `logs/prompts/` 目录下，按时间戳命名，可用于复现测试：
+## 日志
 
 ```
-logs/prompts/20260601_120030_123_prompt.txt
+logs/
+├── prompts/               # 每次 LLM 调用的完整提示词，按时间戳命名
+│   └── 20260601_120030_123_prompt.txt
+├── 20260601_120030_runner.log       # 管道级运行日志
+├── 20260601_120030_collect.log      # Stage 1 暴露面收集
+├── 20260601_120030_analyze.log      # Stage 2 攻击面分析
+├── 20260601_120030_taskplan.log     # Stage 2.5 任务规划
+├── 20260601_120030_vuln.log         # Stage 3 漏洞分析
+└── 20260601_120030_review.log       # Stage 4 二次审查
 ```
+
+各阶段日志文件按 `{时间戳}_{阶段}_{文件名}` 命名，并行执行时为每个分析目标独立生成日志文件，避免多线程日志交错。
 
 ## 基础设施
 
