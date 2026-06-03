@@ -115,8 +115,3 @@ logs/
 
 各阶段日志文件按 `{时间戳}_{阶段}_{文件名}` 命名，并行执行时为每个分析目标独立生成日志文件，避免多线程日志交错。
 
-## 基础设施
-
-- `opencode_wrapper.py` — OpenCode CLI 的 Python 封装，提供隔离执行环境
-- `llm-run.sh` — LLM 调用脚本，处理环境变量、thinking 模式等
-- `test_llm.py` — 连通性测试
