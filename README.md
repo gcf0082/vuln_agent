@@ -79,8 +79,6 @@ _output/
 └── meta/              # 排除路径记录、中间分析产物
 ```
 
-## 配置
-
 ## 示例产物
 
 `docs/` 目录包含各阶段产出的示例文件，可点击查看：
@@ -91,13 +89,6 @@ _output/
 - [Stage 3 漏洞结论](docs/vulnerabilities/VULN-iface-REST-ping-1-1.md)
 - [Stage 4 二次审查](docs/vuln_review/VULN-VULN-iface-REST-ping-1-1.md)
 
-`config/analysis-config.yaml` 控制各阶段启用和并行度：
-
-```yaml
-max_workers: 3            # 并行线程数
-attack_surface_collection: true
-vulnerability_analysis: true
-```
 
 ## 日志
 
