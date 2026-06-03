@@ -41,12 +41,17 @@ def main():
         prompt = sys.stdin.read()
 
     # ── Save prompt to log file ──
-    work_dir = os.environ.get("OPENCODE_WORK_DIR", str(Path.cwd()))
-    log_dir = Path(work_dir) / "logs" / "prompts"
-    log_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:18]
-    log_file = log_dir / f"{ts}_prompt.txt"
-    log_file.write_text(prompt, encoding="utf-8", errors="replace")
+    log_path = os.environ.get("LLM_PROMPT_LOG_PATH")
+    if log_path:
+        Path(log_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(log_path).write_text(prompt, encoding="utf-8", errors="replace")
+    else:
+        work_dir = os.environ.get("OPENCODE_WORK_DIR", str(Path.cwd()))
+        log_dir = Path(work_dir) / "logs" / "prompts"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:18]
+        log_file = log_dir / f"{ts}_prompt.txt"
+        log_file.write_text(prompt, encoding="utf-8", errors="replace")
 
     # ── Build flags ──
     thinking_flag = "--thinking" if os.environ.get("OPENCODE_THINKING") == "true" else ""
