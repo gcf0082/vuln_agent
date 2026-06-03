@@ -18,6 +18,20 @@ const STAGE_COLORS = {
 
 // ── Helpers ──
 
+function showToast(msg, duration = 2500) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 24px;border-radius:6px;font-size:14px;z-index:9999;transition:opacity .3s;opacity:0;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, duration);
+}
+
 async function api(path, opts = {}) {
   const res = await fetch(API + path, { headers: { 'Content-Type': 'application/json' }, ...opts });
   if (!res.ok) {
@@ -97,6 +111,7 @@ async function renderProjectList() {
     const data = Object.fromEntries(new FormData(e.target));
     try {
       await api('/projects', { method: 'POST', body: JSON.stringify(data) });
+      showToast('项目创建成功');
       navigate('/projects');
     } catch (err) { alert('创建失败: ' + err.message); }
   });
@@ -353,6 +368,8 @@ async function startRun(projectName, btn) {
   };
   try {
     await api(`/projects/${projectName}/run`, { method: 'POST', body: JSON.stringify(data) });
+    btn.closest('.modal-overlay')?.remove();
+    showToast('任务已启动');
     navigate(`/projects/${projectName}`);
   } catch (err) { alert('启动失败: ' + err.message); btn.disabled = false; btn.textContent = '启动'; }
 }
