@@ -81,7 +81,7 @@ _output/
 
 ## 示例产物
 
-`docs/` 目录包含各阶段产出的示例文件，可点击查看：
+`<分析目标>/_output` 目录包含各阶段产出的示例文件，可点击查看：
 
 - [Stage 1 攻击面识别](docs/surfaces/iface-REST-ping.md)
 - [Stage 2 攻击面分析](docs/analysis/iface-REST-ping.md)
