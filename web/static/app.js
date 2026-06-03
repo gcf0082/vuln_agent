@@ -292,7 +292,14 @@ app.component('Dashboard', {
     function toggleStage(s) { expanded[s] = !expanded[s]; }
 
     const openRunDialog = inject('openRunDialog');
-    function showRunDialog() { openRunDialog(props.projectName); }
+    const showToast = inject('showToast');
+    function showRunDialog() {
+      if (project.status === 'running') {
+        showToast('项目正在运行中');
+        return;
+      }
+      openRunDialog(props.projectName);
+    }
 
     async function refresh() {
       try {
@@ -429,7 +436,17 @@ app.component('RunDialog', {
       } catch (err) { alert('启动失败: ' + err.message); starting.value = false; }
     }
 
-    onMounted(loadFiles);
+    onMounted(async () => {
+      // Double-check project isn't running
+      try {
+        const proj = await api(`/projects/${props.projectName}`);
+        if (proj.status === 'running') {
+          emit('close');
+          return;
+        }
+      } catch {}
+      loadFiles();
+    });
 
     return { form, starting, selectedFiles, fileOptions, filterFiles, startRun };
   },
