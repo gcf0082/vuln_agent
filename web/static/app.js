@@ -376,7 +376,10 @@ app.component('RunDialog', {
         <div class="form-group"><label>攻击面分析指令</label><input v-model="form.analyze_prompt" placeholder="例：分析认证凭据记录日志"></div>
         <div class="form-group"><label>漏洞分析指令</label><input v-model="form.vuln_prompt" placeholder="例：只分析文件操作相关的模式"></div>
         <div class="form-group"><label>模型</label><input v-model="form.model" placeholder="可选, 如 gpt-4、claude-sonnet-4"></div>
-        <div class="form-group"><label>Agent</label><input v-model="form.agent" placeholder="可选, 如 nga、opencode"></div>
+        <div class="form-group">
+          <label>Agent</label>
+          <v-select v-model="form.agent" :options="['nga', 'opencode']" placeholder="选择 Agent..."></v-select>
+        </div>
         <div class="form-group">
           <label>强制重分析的文件</label>
           <v-select multiple v-model="selectedFiles" :options="fileOptions" :filter="filterFiles" placeholder="搜索并选择需强制重分析的文件..."></v-select>
@@ -395,7 +398,7 @@ app.component('RunDialog', {
 
     const form = reactive({
       collect_prompt: '', analyze_prompt: '', vuln_prompt: '',
-      model: '', agent: '', force_surface: '',
+      model: '', agent: null, force_surface: '',
     });
 
     const fileOptions = computed(() => analysisFiles.value.map(f => f.filename));
