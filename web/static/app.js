@@ -168,13 +168,13 @@ app.component('Dashboard', {
   template: `
     <div class="dashboard">
       <div class="dash-header">
-        <span class="back" @click="navigate('/projects')">← 项目列表</span>
+        <span class="back" @click="navigate('/projects')">← 返回</span>
         <span class="title">{{ project.name }}</span>
         <span class="status" :class="project.status">{{ project.status }}</span>
-        <span style="font-size:12px;color:#888">{{ project.target_dir }}</span>
+        <button class="header-btn icon" @click="refresh" title="刷新">⟳</button>
+        <span class="target-dir">{{ project.target_dir }}</span>
         <span class="spacer"></span>
-        <button class="header-btn" @click="refresh">⟳</button>
-        <button v-if="['pending','done','error'].includes(project.status)" class="header-btn" @click="showRunDialog">启动</button>
+        <button v-if="['pending','done','error'].includes(project.status)" class="header-btn primary" @click="showRunDialog">启动</button>
         <button class="header-btn danger" @click="deleteProject">删除</button>
       </div>
       <div class="dash-body">
@@ -182,7 +182,7 @@ app.component('Dashboard', {
           <div v-for="s in stages" :key="s" class="stage-group">
             <div class="stage-header" @click="toggleStage(s)">
               <span class="arrow" :class="expanded[s]?'open':''">▶</span>
-              <span :style="{color: stageColors[s]}">●</span>
+              <span class="dot" :style="{background: stageColors[s]}"></span>
               {{ stageLabels[s] || s }}
               <span class="count">{{ (stageFiles[s]||[]).length }}</span>
             </div>
@@ -228,9 +228,9 @@ app.component('Dashboard', {
           <div v-else class="detail-panel">
             <div class="detail-header">
               <span class="file-name">{{ viewing.filename }}</span>
-              <span class="file-stage" :style="{background: stageColors[viewing.stage]+'22', color: stageColors[viewing.stage]}">{{ stageLabels[viewing.stage] || viewing.stage }}</span>
-              <span v-if="active && (active.stage!==viewing.stage || active.id!==viewing.id)" style="font-size:11px;color:#888">
-                (关联自: {{ stageLabels[active.stage] || active.stage }} / {{ active.filename }})
+              <span class="file-stage" :style="{background: stageColors[viewing.stage]+'18', color: stageColors[viewing.stage]}">{{ stageLabels[viewing.stage] || viewing.stage }}</span>
+              <span v-if="active && (active.stage!==viewing.stage || active.id!==viewing.id)" style="font-size:11px;color:#8e99ab;margin-left:auto">
+                关联自 {{ stageLabels[active.stage] || active.stage }} / {{ active.filename }}
               </span>
             </div>
             <div class="detail-content" v-html="renderedContent"></div>
