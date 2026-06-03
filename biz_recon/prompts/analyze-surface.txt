@@ -39,6 +39,7 @@ ProcessBuilder pb = new ProcessBuilder("bash", "scripts/scan.sh", filename);
 - HTTP 外呼：TLS 校验？主机名校验？目标 URL 含用户输入？
 - SQL：参数化绑定（`#{}` / `?`）vs 字符串拼接（`${}` / `+ input`）
 - 加解密 / 签名：算法？密钥来源？
+- 认证/鉴权（仅当存在时）：简述做了怎样的认证鉴权？
 
 ### 流程图画法
 
