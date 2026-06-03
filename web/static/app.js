@@ -168,7 +168,7 @@ app.component('Dashboard', {
         <span class="status" :class="project.status">{{ project.status }}</span>
         <span style="font-size:12px;color:#888">{{ project.target_dir }}</span>
         <span class="spacer"></span>
-        <button v-if="['pending','done','error'].includes(project.status)" class="header-btn" @click="showRunDialog">运行</button>
+        <button v-if="['pending','done','error'].includes(project.status)" class="header-btn" @click="showRunDialog">启动</button>
         <button class="header-btn danger" @click="deleteProject">删除</button>
       </div>
       <div class="dash-body">
