@@ -372,14 +372,14 @@ app.component('RunDialog', {
     <div class="modal-overlay" @click.self="$emit('close')">
       <div class="modal-box">
         <h3>启动分析 — {{ projectName }}</h3>
-        <div class="form-group"><label>Collect Prompt</label><input v-model="form.collect_prompt" placeholder="可选"></div>
-        <div class="form-group"><label>Analyze Prompt</label><input v-model="form.analyze_prompt" placeholder="可选"></div>
-        <div class="form-group"><label>Vuln Prompt</label><input v-model="form.vuln_prompt" placeholder="可选"></div>
-        <div class="form-group"><label>Model</label><input v-model="form.model" placeholder="可选"></div>
-        <div class="form-group"><label>Agent</label><input v-model="form.agent" placeholder="可选"></div>
+        <div class="form-group"><label>暴露面收集指令</label><input v-model="form.collect_prompt" placeholder="例：只采集Rest接口"></div>
+        <div class="form-group"><label>攻击面分析指令</label><input v-model="form.analyze_prompt" placeholder="例：分析认证凭据记录日志"></div>
+        <div class="form-group"><label>漏洞分析指令</label><input v-model="form.vuln_prompt" placeholder="例：只分析文件操作相关的模式"></div>
+        <div class="form-group"><label>模型</label><input v-model="form.model" placeholder="可选, 如 gpt-4、claude-sonnet-4"></div>
+        <div class="form-group"><label>Agent</label><input v-model="form.agent" placeholder="可选, 如 nga、opencode"></div>
         <div class="form-group">
-          <label>Force Surface</label>
-          <v-select multiple v-model="selectedFiles" :options="fileOptions" :filter="filterFiles" placeholder="搜索并选择攻击面文件..."></v-select>
+          <label>强制重分析的文件</label>
+          <v-select multiple v-model="selectedFiles" :options="fileOptions" :filter="filterFiles" placeholder="搜索并选择需强制重分析的文件..."></v-select>
         </div>
         <div class="modal-actions">
           <button class="btn" @click="$emit('close')">取消</button>
