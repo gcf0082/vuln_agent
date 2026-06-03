@@ -174,7 +174,7 @@ function renderDashLayout() {
         <span class="status ${p.status}">${p.status}</span>
         <span style="font-size:12px;color:#888">${esc(p.target_dir)}</span>
         <span class="spacer"></span>
-        ${p.status === 'pending' || p.status === 'done' ? `<button id="dash-run-btn" class="header-btn">运行</button>` : ''}
+        ${['pending', 'done', 'error'].includes(p.status) ? `<button id="dash-run-btn" class="header-btn">运行</button>` : ''}
         <button id="dash-del-btn" class="header-btn danger">删除</button>
       </div>
       <div class="dash-body">

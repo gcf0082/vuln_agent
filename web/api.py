@@ -60,6 +60,25 @@ def handle_get_project(name):
     if proj is None:
         return jsonify({"error": "not found"}), 404
 
+    # Verify running status against actual PID
+    if proj.get("status") == "running":
+        pid_file = db.get_project_path(name) / "run.pid"
+        alive = False
+        if pid_file.exists():
+            try:
+                pid = int(pid_file.read_text().strip())
+                alive = _is_pid_alive(pid)
+            except (ValueError, OSError):
+                pass
+        if not alive:
+            import sqlite3
+            db_path = str(db.get_project_path(name) / "results.db")
+            conn = sqlite3.connect(db_path)
+            conn.execute("UPDATE projects SET status=? WHERE name=?", ("error", name))
+            conn.commit()
+            conn.close()
+            proj["status"] = "error"
+
     db_path = str(db.get_project_path(name) / "results.db")
     proj["file_counts"] = {}
     for stage in ("surfaces", "analysis", "vuln_tasks", "vulnerabilities", "vuln_review"):
