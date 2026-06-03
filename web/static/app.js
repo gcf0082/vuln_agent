@@ -17,6 +17,10 @@ const STAGE_COLORS = {
   vuln_review: '#9c27b0',
 };
 
+if (typeof mermaid !== 'undefined') {
+  mermaid.initialize({ startOnLoad: false, theme: 'default' });
+}
+
 async function api(path, opts = {}) {
   const res = await fetch(API + path, {
     headers: { 'Content-Type': 'application/json' },
@@ -299,7 +303,20 @@ app.component('Dashboard', {
         nextTick(() => {
           renderedContent.value = marked.parse(v.content);
           nextTick(() => {
-            document.querySelectorAll('.detail-content pre code').forEach(b => hljs.highlightElement(b));
+            document.querySelectorAll('.detail-content pre code').forEach(b => {
+              if (b.classList.contains('language-mermaid')) {
+                const pre = b.parentElement;
+                const div = document.createElement('div');
+                div.className = 'mermaid';
+                div.textContent = b.textContent;
+                pre.replaceWith(div);
+              } else {
+                hljs.highlightElement(b);
+              }
+            });
+            if (document.querySelector('.mermaid')) {
+              mermaid.run({ querySelector: '.mermaid' });
+            }
           });
         });
       } else {
