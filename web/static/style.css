@@ -101,12 +101,28 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 
 /* === Run Dialog Modal === */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal-box { background: #fff; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,.2); padding: 24px; min-width: 500px; max-width: 640px; max-height: 80vh; overflow-y: auto; }
+.modal-box { background: #fff; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,.2); padding: 24px; min-width: 560px; max-width: 700px; max-height: 80vh; overflow-y: auto; }
 .modal-box h3 { font-size: 17px; margin-bottom: 16px; }
 .modal-box .form-group { margin-bottom: 10px; }
 .modal-box .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 2px; color: #666; }
 .modal-box .form-group input { width: 100%; padding: 6px 10px; border: 1px solid #d0d0d0; border-radius: 4px; font-size: 14px; }
 .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+
+/* === Multi-Select (Force Surface) === */
+.multi-select { position: relative; }
+.multi-select .ms-trigger { width: 100%; padding: 6px 10px; border: 1px solid #d0d0d0; border-radius: 4px; font-size: 14px; cursor: pointer; background: #fff; text-align: left; display: flex; align-items: center; justify-content: space-between; min-height: 32px; }
+.multi-select .ms-trigger:hover { border-color: #b0b0b0; }
+.multi-select .ms-trigger .ms-placeholder { color: #999; }
+.multi-select .ms-trigger .ms-arrow { font-size: 10px; color: #999; }
+.multi-select .ms-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #d0d0d0; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,.12); z-index: 10; max-height: 260px; display: flex; flex-direction: column; }
+.multi-select .ms-search { border-bottom: 1px solid #eee; padding: 6px 8px; }
+.multi-select .ms-search input { width: 100%; padding: 4px 8px; border: 1px solid #d0d0d0; border-radius: 3px; font-size: 13px; outline: none; }
+.multi-select .ms-search input:focus { border-color: #0366d6; }
+.multi-select .ms-list { overflow-y: auto; flex: 1; }
+.multi-select .ms-item { padding: 5px 10px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.multi-select .ms-item:hover { background: #f0f6ff; }
+.multi-select .ms-item input { margin: 0; }
+.multi-select .ms-count { font-size: 11px; color: #999; margin-left: auto; }
 
 /* === Toast === */
 .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 24px; border-radius: 6px; font-size: 14px; z-index: 9999; transition: opacity .3s; }

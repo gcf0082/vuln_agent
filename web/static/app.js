@@ -1,4 +1,4 @@
-const { createApp, ref, reactive, computed, watch, nextTick, defineComponent, provide, inject } = Vue;
+const { createApp, ref, reactive, computed, watch, nextTick, defineComponent, provide, inject, onMounted, onBeforeUnmount } = Vue;
 
 const API = '/api';
 const STAGES = ['surfaces', 'analysis', 'vuln_tasks', 'vulnerabilities', 'vuln_review'];
@@ -350,7 +350,26 @@ app.component('RunDialog', {
         <div class="form-group"><label>Vuln Prompt</label><input v-model="form.vuln_prompt" placeholder="可选"></div>
         <div class="form-group"><label>Model</label><input v-model="form.model" placeholder="可选"></div>
         <div class="form-group"><label>Agent</label><input v-model="form.agent" placeholder="可选"></div>
-        <div class="form-group"><label>Force Surface</label><input v-model="form.force_surface" placeholder="可选, 逗号分隔"></div>
+        <div class="form-group">
+          <label>Force Surface</label>
+          <div class="multi-select">
+            <div class="ms-trigger" @click="dropdownOpen=!dropdownOpen" @keydown.enter="dropdownOpen=!dropdownOpen" tabindex="0">
+              <span v-if="selectedFiles.length===0" class="ms-placeholder">选择强制重分析的攻击面文件</span>
+              <span v-else>{{ selectedFiles.length }} 个文件已选</span>
+              <span class="ms-arrow">▼</span>
+            </div>
+            <div v-if="dropdownOpen" class="ms-dropdown" @click.stop>
+              <div class="ms-search"><input v-model="search" placeholder="搜索文件名..." @input="onSearch"></div>
+              <div class="ms-list">
+                <div v-for="f in filteredFiles" :key="f.id" class="ms-item" @click="toggleFile(f.filename)">
+                  <input type="checkbox" :checked="selectedSet.has(f.filename)" @click.stop>
+                  <span>{{ f.filename }}</span>
+                </div>
+                <div v-if="filteredFiles.length===0" style="padding:10px;color:#999;font-size:13px">无匹配文件</div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="modal-actions">
           <button class="btn" @click="$emit('close')">取消</button>
           <button class="btn btn-primary" :disabled="starting" @click="startRun">{{ starting ? '启动中...' : '启动' }}</button>
@@ -359,11 +378,51 @@ app.component('RunDialog', {
     </div>
   `,
   setup(props, { emit }) {
+    const analysisFiles = ref([]);
+    const selectedFiles = ref([]);
+    const selectedSet = computed(() => new Set(selectedFiles.value));
+    const search = ref('');
+    const dropdownOpen = ref(false);
+    const starting = ref(false);
+
     const form = reactive({
       collect_prompt: '', analyze_prompt: '', vuln_prompt: '',
       model: '', agent: '', force_surface: '',
     });
-    const starting = ref(false);
+
+    const filteredFiles = computed(() => {
+      const q = search.value.toLowerCase();
+      if (!q) return analysisFiles.value;
+      return analysisFiles.value.filter(f => f.filename.toLowerCase().includes(q));
+    });
+
+    async function loadFiles() {
+      try {
+        const data = await api(`/projects/${props.projectName}/files/analysis`);
+        analysisFiles.value = data.files || [];
+      } catch {}
+    }
+
+    function toggleFile(filename) {
+      const idx = selectedFiles.value.indexOf(filename);
+      if (idx >= 0) {
+        selectedFiles.value.splice(idx, 1);
+      } else {
+        selectedFiles.value.push(filename);
+      }
+      form.force_surface = selectedFiles.value.join(',');
+    }
+
+    function onSearch() {}
+
+    function onDocumentClick(e) {
+      if (dropdownOpen.value) {
+        const el = document.querySelector('.multi-select');
+        if (el && !el.contains(e.target)) {
+          dropdownOpen.value = false;
+        }
+      }
+    }
 
     async function startRun() {
       starting.value = true;
@@ -376,7 +435,15 @@ app.component('RunDialog', {
       } catch (err) { alert('启动失败: ' + err.message); starting.value = false; }
     }
 
-    return { form, starting, startRun };
+    onMounted(() => {
+      loadFiles();
+      document.addEventListener('click', onDocumentClick);
+    });
+    onBeforeUnmount(() => {
+      document.removeEventListener('click', onDocumentClick);
+    });
+
+    return { form, starting, analysisFiles, selectedFiles, selectedSet, search, dropdownOpen, filteredFiles, toggleFile, onSearch, startRun };
   },
 });
 
