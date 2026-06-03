@@ -42,15 +42,11 @@ def handle_create_project():
     db_path = proj_path / "results.db"
     db.init_db(str(db_path))
 
-    # Write project metadata
     import sqlite3
     conn = sqlite3.connect(str(db_path))
     conn.execute(
-        "INSERT INTO projects (name, target_dir, collect_prompt, analyze_prompt, vuln_prompt, model, agent, force_surface, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (name, target_dir, data.get("collect_prompt", ""),
-         data.get("analyze_prompt", ""), data.get("vuln_prompt", ""),
-         data.get("model", ""), data.get("agent", ""),
-         data.get("force_surface", ""), "pending"),
+        "INSERT INTO projects (name, target_dir, status) VALUES (?, ?, ?)",
+        (name, target_dir, "pending"),
     )
     conn.commit()
     conn.close()
@@ -141,28 +137,37 @@ def handle_run_project(name):
     if err_body:
         return jsonify(err_body), err_code
 
-    # Update status to running
+    data = request.get_json() or {}
+
     db_path = str(db.get_project_path(name) / "results.db")
     import sqlite3
     conn = sqlite3.connect(db_path)
-    conn.execute("UPDATE projects SET status=? WHERE name=?", ("running", name))
+
+    # Save runtime params and update status
+    conn.execute(
+        "UPDATE projects SET collect_prompt=?, analyze_prompt=?, vuln_prompt=?, model=?, agent=?, force_surface=?, status=? WHERE name=?",
+        (data.get("collect_prompt", ""), data.get("analyze_prompt", ""),
+         data.get("vuln_prompt", ""), data.get("model", ""),
+         data.get("agent", ""), data.get("force_surface", ""),
+         "running", name),
+    )
     conn.commit()
     conn.close()
 
-    # Build command
+    # Build command using request params
     cmd = [sys.executable, "run.py", proj["target_dir"], "--project", name]
-    if proj.get("collect_prompt"):
-        cmd += ["--collect-prompt", proj["collect_prompt"]]
-    if proj.get("analyze_prompt"):
-        cmd += ["--analyze-prompt", proj["analyze_prompt"]]
-    if proj.get("vuln_prompt"):
-        cmd += ["--vuln-prompt", proj["vuln_prompt"]]
-    if proj.get("model"):
-        cmd += ["--model", proj["model"]]
-    if proj.get("agent"):
-        cmd += ["--agent", proj["agent"]]
-    if proj.get("force_surface"):
-        cmd += ["--force-surface", proj["force_surface"]]
+    if data.get("collect_prompt"):
+        cmd += ["--collect-prompt", data["collect_prompt"]]
+    if data.get("analyze_prompt"):
+        cmd += ["--analyze-prompt", data["analyze_prompt"]]
+    if data.get("vuln_prompt"):
+        cmd += ["--vuln-prompt", data["vuln_prompt"]]
+    if data.get("model"):
+        cmd += ["--model", data["model"]]
+    if data.get("agent"):
+        cmd += ["--agent", data["agent"]]
+    if data.get("force_surface"):
+        cmd += ["--force-surface", data["force_surface"]]
 
     # Launch asynchronously
     proc = subprocess.Popen(

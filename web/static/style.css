@@ -99,6 +99,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .btn-danger { background: #d73a49; color: #fff; }
 .btn-primary:disabled { opacity: .5; cursor: default; }
 
+/* === Run Dialog Modal === */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-box { background: #fff; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,.2); padding: 24px; min-width: 500px; max-width: 640px; max-height: 80vh; overflow-y: auto; }
+.modal-box h3 { font-size: 16px; margin-bottom: 16px; }
+.modal-box .form-group { margin-bottom: 10px; }
+.modal-box .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 2px; color: #666; }
+.modal-box .form-group input { width: 100%; padding: 6px 10px; border: 1px solid #d0d0d0; border-radius: 4px; font-size: 13px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+
 /* === Responsive === */
 @media (max-width: 1100px) {
   .dash-sidebar { width: 320px; min-width: 320px; }

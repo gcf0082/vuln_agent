@@ -71,15 +71,6 @@ async function renderProjectList() {
               <div class="form-group"><label>项目名</label><input name="name" required></div>
               <div class="form-group"><label>目标目录</label><input name="target_dir" required></div>
             </div>
-            <div class="form-row">
-              <div class="form-group"><label>Collect Prompt</label><input name="collect_prompt"></div>
-              <div class="form-group"><label>Analyze Prompt</label><input name="analyze_prompt"></div>
-              <div class="form-group"><label>Vuln Prompt</label><input name="vuln_prompt"></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label>Model</label><input name="model"></div>
-              <div class="form-group"><label>Agent</label><input name="agent"></div>
-            </div>
             <div class="form-actions"><button type="submit" class="btn btn-primary">创建</button></div>
           </form>
         </div>
@@ -149,14 +140,7 @@ async function renderDashboard(name, activeStage, activeFileId) {
 
   // Bind header buttons
   const btnRun = qs('#dash-run-btn');
-  if (btnRun) btnRun.onclick = async () => {
-    btnRun.disabled = true;
-    btnRun.textContent = '启动中...';
-    try {
-      await api(`/projects/${name}/run`, { method: 'POST' });
-      navigate(`/projects/${name}`);
-    } catch (err) { alert('启动失败: ' + err.message); btnRun.disabled = false; btnRun.textContent = '运行'; }
-  };
+  if (btnRun) btnRun.onclick = () => showRunDialog(name);
   const btnDel = qs('#dash-del-btn');
   if (btnDel) btnDel.onclick = async () => {
     if (!confirm('确定删除项目 ' + name + '？将同时删除 _output 产物')) return;
@@ -330,6 +314,47 @@ async function selectFile(stage, fileId) {
     _dashState.viewing = null;
     _dashState.trace = null;
   }
+}
+
+// ── Run Dialog ──
+
+function showRunDialog(projectName) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <h3>启动分析 — ${esc(projectName)}</h3>
+      <div class="form-group"><label>Collect Prompt</label><input id="run-collect-prompt" placeholder="可选"></div>
+      <div class="form-group"><label>Analyze Prompt</label><input id="run-analyze-prompt" placeholder="可选"></div>
+      <div class="form-group"><label>Vuln Prompt</label><input id="run-vuln-prompt" placeholder="可选"></div>
+      <div class="form-group"><label>Model</label><input id="run-model" placeholder="可选"></div>
+      <div class="form-group"><label>Agent</label><input id="run-agent" placeholder="可选"></div>
+      <div class="form-group"><label>Force Surface</label><input id="run-force-surface" placeholder="可选, 逗号分隔"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="this.closest('.modal-overlay').remove()">取消</button>
+        <button class="btn btn-primary" onclick="startRun('${projectName}', this)">启动</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+}
+
+async function startRun(projectName, btn) {
+  btn.disabled = true;
+  btn.textContent = '启动中...';
+  const data = {
+    collect_prompt: document.getElementById('run-collect-prompt')?.value || '',
+    analyze_prompt: document.getElementById('run-analyze-prompt')?.value || '',
+    vuln_prompt: document.getElementById('run-vuln-prompt')?.value || '',
+    model: document.getElementById('run-model')?.value || '',
+    agent: document.getElementById('run-agent')?.value || '',
+    force_surface: document.getElementById('run-force-surface')?.value || '',
+  };
+  try {
+    await api(`/projects/${projectName}/run`, { method: 'POST', body: JSON.stringify(data) });
+    navigate(`/projects/${projectName}`);
+  } catch (err) { alert('启动失败: ' + err.message); btn.disabled = false; btn.textContent = '启动'; }
 }
 
 function toggleStage(stage) {
