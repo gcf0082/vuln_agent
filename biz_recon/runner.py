@@ -5,6 +5,7 @@
 import fnmatch
 import os
 import shutil
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -39,6 +40,7 @@ def load_config() -> dict:
 
 
 def main(work_dir: str | None = None,
+         project: str = "",
          collect_prompt: str = "",
          analyze_prompt: str = "",
          vuln_prompt: str = "",
@@ -50,7 +52,16 @@ def main(work_dir: str | None = None,
                 (Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd())
     config = load_config()
     max_workers = config.get("max_workers", 3)
-    setup_logging(Path.cwd())
+    # Project mode setup
+    if project:
+        from db import get_project_path, import_stage
+        proj_path = get_project_path(project)
+        os.environ["OPENCODE_WORK_DIR"] = str(proj_path)
+        db_path = str(proj_path / "results.db")
+        setup_logging(Path.cwd(), log_base=proj_path)
+    else:
+        db_path = None
+        setup_logging(Path.cwd())
     runner_log = setup_stage_log("runner")
     runner_log(f"Work directory: {work_path}")
     runner_log(f"Max workers:    {max_workers}")
@@ -110,13 +121,39 @@ def main(work_dir: str | None = None,
 
     try:
         collect.run(work_path, extra_prompt=collect_prompt)
+        if db_path:
+            import_stage(db_path, "surfaces", str(work_path / OUTPUT_PARENT / "surfaces"))
+
         analyze.run(work_path, max_workers, extra_prompt=analyze_prompt, only_surfaces=force_list or None)
+        if db_path:
+            import_stage(db_path, "analysis", str(work_path / OUTPUT_PARENT / "analysis"))
+
         vuln_task_plan.run(work_path, max_workers, force_list=force_list or None)
+        if db_path:
+            import_stage(db_path, "vuln_tasks", str(work_path / OUTPUT_PARENT / "vuln_tasks"))
+
         vuln.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
+        if db_path:
+            import_stage(db_path, "vulnerabilities", str(work_path / OUTPUT_PARENT / "vulnerabilities"))
+
         reanalyze.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
+        if db_path:
+            import_stage(db_path, "vuln_review", str(work_path / OUTPUT_PARENT / "vuln_review"))
     except RuntimeError as e:
+        if project and db_path:
+            conn = sqlite3.connect(db_path)
+            conn.execute("UPDATE projects SET status=? WHERE name=?", ("error", project))
+            conn.commit()
+            conn.close()
         runner_log(f"Pipeline aborted: {e}")
         sys.exit(1)
+
+    # After success
+    if project and db_path:
+        conn = sqlite3.connect(db_path)
+        conn.execute("UPDATE projects SET status=? WHERE name=?", ("done", project))
+        conn.commit()
+        conn.close()
 
     runner_log()
     runner_log("=" * 50)

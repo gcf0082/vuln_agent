@@ -15,9 +15,10 @@ _logger: logging.Logger | None = None
 _prompt_logger: logging.Logger | None = None
 
 
-def setup_logging(work_dir: Path):
+def setup_logging(work_dir: Path, log_base: Path | None = None):
     global _logger, _prompt_logger
-    log_dir = work_dir / "logs"
+    base = log_base or work_dir
+    log_dir = base / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
 
     _logger = logging.getLogger("pipeline")
@@ -58,7 +59,8 @@ def set_prompt_log_path(stage: str, target: str = ""):
     if target:
         name += f"_{target}"
     name += "_prompt.txt"
-    path = Path.cwd() / "logs" / "prompts" / name
+    base = Path(os.environ.get("OPENCODE_WORK_DIR", Path.cwd()))
+    path = base / "logs" / "prompts" / name
     path.parent.mkdir(parents=True, exist_ok=True)
     os.environ["LLM_PROMPT_LOG_PATH"] = str(path)
 
@@ -73,7 +75,7 @@ def setup_stage_log(stage: str, target: str = ""):
     In parallel stages, each thread creates its own logger via this function
     to avoid file-handler cross-talk.
     """
-    log_dir = Path.cwd() / "logs"
+    log_dir = Path(os.environ.get("OPENCODE_WORK_DIR", Path.cwd())) / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     name = f"{ts}_{stage}"

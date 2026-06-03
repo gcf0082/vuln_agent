@@ -43,6 +43,23 @@ def _test_llm(model: str = "", agent: str = ""):
     print("\n✓ LLM connection successful")
 
 
+def _resolve_project(name: str) -> str:
+    """Resolve project name: use given name, or auto-generate project_N."""
+    if name:
+        return name
+    from db import VAR_DIR
+    VAR_DIR.mkdir(parents=True, exist_ok=True)
+    max_n = 0
+    for d in VAR_DIR.iterdir():
+        if d.is_dir() and d.name.startswith("project_"):
+            try:
+                n = int(d.name.split("_")[1])
+                max_n = max(max_n, n)
+            except (IndexError, ValueError):
+                pass
+    return f"project_{max_n + 1}"
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Biz-flow-recon: automated security analysis pipeline",
@@ -65,6 +82,8 @@ def _parse_args() -> argparse.Namespace:
                         help="Model name to use (e.g. gpt-4, claude-sonnet-4)")
     parser.add_argument("--agent", default="",
                         help="LLM agent binary (nga or opencode)")
+    parser.add_argument("--project", default="",
+                        help="Project name for output tracking (auto-generated if omitted)")
 
     # Show help when no arguments given
     if len(sys.argv) == 1 or sys.argv[1:] == ["--"]:
@@ -79,7 +98,25 @@ if __name__ == "__main__":
     if args.test:
         _test_llm(model=args.model, agent=args.agent)
     else:
+        from db import init_db, get_project_path
+        project_name = _resolve_project(args.project)
+        proj_path = get_project_path(project_name)
+        proj_path.mkdir(parents=True, exist_ok=True)
+        db_path = proj_path / "results.db"
+        init_db(str(db_path))
+        # Write project metadata
+        import sqlite3
+        conn = sqlite3.connect(str(db_path))
+        conn.execute(
+            "INSERT OR REPLACE INTO projects (name, target_dir, collect_prompt, analyze_prompt, vuln_prompt, model, agent, force_surface) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (project_name, args.work_dir or os.getcwd(),
+             args.collect_prompt, args.analyze_prompt, args.vuln_prompt,
+             args.model, args.agent, args.force_surface)
+        )
+        conn.commit()
+        conn.close()
         main(work_dir=args.work_dir,
+             project=project_name,
              collect_prompt=args.collect_prompt,
              analyze_prompt=args.analyze_prompt,
              vuln_prompt=args.vuln_prompt,

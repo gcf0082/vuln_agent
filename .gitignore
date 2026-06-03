@@ -6,3 +6,5 @@ _output/
 _temp/
 _runtime/
 *.log
+node_modules/
+var/
