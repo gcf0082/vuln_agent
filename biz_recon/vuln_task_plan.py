@@ -27,7 +27,8 @@ def _ensure_generic_task(work_dir: Path, analysis_file: str):
 
 
 def run(work_dir: Path, max_workers: int = 3,
-        force_list: list[str] | None = None):
+        force_list: list[str] | None = None,
+        generate_generic: bool = False):
     from .workspace import setup_stage_log
     tplan_log = setup_stage_log("taskplan")
     tplan_log(f"\n=== Stage 2.5: Vulnerability Task Planning ===")
@@ -48,9 +49,10 @@ def run(work_dir: Path, max_workers: int = 3,
 
     tasks_dir = work_dir / OUTPUT_PARENT / "vuln_tasks"
 
-    # Always ensure generic task -0.md exists for each surface
-    for sf in analysis_files:
-        _ensure_generic_task(work_dir, sf.name)
+    # Ensure generic task -0.md exists for each surface (unless disabled)
+    if generate_generic:
+        for sf in analysis_files:
+            _ensure_generic_task(work_dir, sf.name)
 
     # Per-surface: skip if any file exists for this surface (except auto-generated -0.md)
     def _has_existing(stem: str) -> bool:

@@ -128,7 +128,8 @@ def main(work_dir: str | None = None,
         if db_path:
             import_stage(db_path, "analysis", str(work_path / OUTPUT_PARENT / "analysis"))
 
-        vuln_task_plan.run(work_path, max_workers, force_list=force_list or None)
+        vuln_task_plan.run(work_path, max_workers, force_list=force_list or None,
+                           generate_generic=config.get("generate_generic_task", False))
         if db_path:
             import_stage(db_path, "vuln_tasks", str(work_path / OUTPUT_PARENT / "vuln_tasks"))
 
