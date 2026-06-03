@@ -80,7 +80,7 @@ def handle_get_project(name):
         proj["status"] = "error"
     elif proj.get("status") != "running":
         # pgrep fallback: process might be running without PID file or correct status
-        pgrep_pid = _find_running_by_pgrep(name)
+        pgrep_pid = _find_running_process(name)
         if pgrep_pid is not None:
             pid_file.parent.mkdir(parents=True, exist_ok=True)
             pid_file.write_text(str(pgrep_pid))
@@ -149,26 +149,117 @@ def _is_pid_alive(pid: int) -> bool:
         return False
 
 
-def _find_running_by_pgrep(project_name: str) -> int | None:
-    """Scan for run.py processes targeting this project name via pgrep.
+def _find_running_process(project_name: str) -> int | None:
+    """Cross-platform scan for run.py processes targeting this project name.
+
+    Linux: tries pgrep -f, then falls back to /proc/[pid]/cmdline.
+    Windows: uses wmic CommandLine filter.
+    macOS: same as Linux (pgrep).
 
     Returns PID if found, None otherwise.
     """
     import subprocess as _sp
-    try:
-        result = _sp.run(
-            ["pgrep", "-f", f"run.py.*--project.*{project_name}"],
-            capture_output=True, text=True, timeout=5,
-        )
-        if result.returncode == 0:
-            pids = [int(p) for p in result.stdout.strip().splitlines() if p.strip()]
-            # Exclude our own process (if this python process is run.py too)
-            own_pid = os.getpid()
-            for pid in pids:
-                if pid != own_pid and _is_pid_alive(pid):
-                    return pid
-    except Exception:
-        pass
+    import platform
+    own_pid = os.getpid()
+    system = platform.system()
+
+    # --- Linux / macOS: pgrep ---
+    if system in ('Linux', 'Darwin'):
+        try:
+            result = _sp.run(
+                ["pgrep", "-f", f"run.py.*--project.*{project_name}"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode == 0:
+                for p in result.stdout.strip().splitlines():
+                    p = p.strip()
+                    if not p:
+                        continue
+                    try:
+                        pid = int(p)
+                    except ValueError:
+                        continue
+                    if pid != own_pid and _is_pid_alive(pid):
+                        return pid
+        except FileNotFoundError:
+            pass  # pgrep not installed, fall through
+        except Exception:
+            pass
+
+    # --- Linux fallback: /proc scan (works without pgrep) ---
+    if system == 'Linux':
+        import glob
+        for pid_dir in sorted(glob.glob('/proc/[0-9]*')):
+            try:
+                pid = int(os.path.basename(pid_dir))
+                if pid == own_pid:
+                    continue
+                cmdline_path = os.path.join(pid_dir, 'cmdline')
+                with open(cmdline_path, 'rb') as f:
+                    raw = f.read()
+                cmdline = raw.decode('utf-8', errors='replace').replace('\0', ' ')
+                if 'run.py' in cmdline and '--project' in cmdline and project_name in cmdline:
+                    if _is_pid_alive(pid):
+                        return pid
+            except (OSError, ValueError):
+                continue
+
+    # --- Windows: wmic ---
+    if system == 'Windows':
+        try:
+            result = _sp.run(
+                ['wmic', 'process', 'where',
+                 f'CommandLine like \'%run.py%\' and CommandLine like \'%{project_name}%\'',
+                 'get', 'ProcessId', '/FORMAT:CSV'],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode == 0:
+                for line in result.stdout.strip().splitlines():
+                    line = line.strip()
+                    if not line or line.startswith('ProcessId') or line.startswith('Node'):
+                        continue
+                    try:
+                        pid = int(line)
+                    except ValueError:
+                        continue
+                    if pid != own_pid and _is_pid_alive(pid):
+                        return pid
+        except Exception:
+            pass
+
+    # --- Windows fallback: tasklist ---
+    if system == 'Windows':
+        try:
+            result = _sp.run(
+                ['tasklist', '/FO', 'CSV', '/NH'],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode == 0:
+                for line in result.stdout.strip().splitlines():
+                    parts = line.strip().split('","')
+                    if len(parts) < 2:
+                        continue
+                    try:
+                        pid = int(parts[1].strip('"'))
+                    except (ValueError, IndexError):
+                        continue
+                    if pid == own_pid:
+                        continue
+                    # Verify this is our python process via wmic CommandLine
+                    wmi_result = _sp.run(
+                        ['wmic', 'process', 'where',
+                         f'ProcessId={pid}',
+                         'get', 'CommandLine', '/FORMAT:CSV'],
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    if wmi_result.returncode == 0:
+                        cmdline = wmi_result.stdout
+                        if 'run.py' in cmdline and project_name in cmdline:
+                            if _is_pid_alive(pid):
+                                return pid
+        except Exception:
+            pass
+
     return None
 
 
@@ -177,7 +268,7 @@ def _check_running(proj: dict) -> tuple[dict | None, int | None]:
 
     Checks two sources:
       1. PID file (normal case)
-      2. pgrep scan (resilient against missing PID file)
+      2. _find_running_process scan (resilient against missing PID file)
 
     Returns (error_body, status_code) on conflict, or (None, None) if clear to run.
     """
@@ -194,8 +285,8 @@ def _check_running(proj: dict) -> tuple[dict | None, int | None]:
         except (ValueError, OSError):
             pid_file.unlink(missing_ok=True)
 
-    # 2. pgrep fallback (in case PID file was lost but process still alive)
-    found_pid = _find_running_by_pgrep(name)
+    # 2. Cross-platform process scan fallback (in case PID file was lost but process still alive)
+    found_pid = _find_running_process(name)
     if found_pid is not None:
         # Rescue the PID file so future checks find it too
         pid_file.parent.mkdir(parents=True, exist_ok=True)
