@@ -220,19 +220,16 @@ function renderSidebar() {
   const trace = _dashState.trace;
   if (trace) {
     html += `
-      <div class="stage-group trace-group">
-        <div class="stage-header" style="cursor:default;border-top:1px solid #eee;margin-top:4px;padding-top:10px">
-          <span style="color:#0366d6">●</span>
-          关联文件
-        </div>
-        <div style="padding:4px 14px 8px">
+      <div class="trace-section">
+        <div class="trace-label">● 关联文件</div>
+        <div class="trace-scroll">
           ${STAGES.map(s => {
             const files = trace.related[s] || [];
             const a = _dashState.active;
             if (files.length === 0) return '';
             return `
-              <div style="margin-bottom:8px">
-                <div style="font-size:10px;font-weight:600;color:${STAGE_COLORS[s]};margin-bottom:2px">${STAGE_LABELS[s] || s} (${files.length})</div>
+              <div style="margin-bottom:6px">
+                <div style="font-size:10px;font-weight:600;color:${STAGE_COLORS[s]};margin-bottom:1px">${STAGE_LABELS[s] || s} (${files.length})</div>
                 ${files.map(f => {
                   const isSource = a && a.stage === s && a.filename === f.filename;
                   return `<div class="trace-file ${isSource ? 'active-source' : ''}" ${isSource ? '' : `onclick="onTraceClick('${s}',${f.id})"`}>${esc(f.filename)}</div>`;
