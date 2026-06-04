@@ -50,7 +50,7 @@
 
 | 分类 | 补充字段 |
 |------|---------|
-| REST | `**URL**`：`GET /api/users/{id}`、`**入口**`：`/src/main/java/com/acme/UserController.java:48 listUsers()`、`**参数**`：path: id, query: page |
+| REST | `**URL**`：`GET /api/users/{id}`、`**入口**`：`src/main/java/com/acme/UserController.java:48 listUsers()`、`**参数**`：path: id, query: page |
 | MQ | `**队列/Topic**`：order.created、`**消费者**`：OrderHandler.onCreated() |
 | gRPC | `**服务**`：UserService、`**方法**`：GetUser、`**Proto**`：user.proto |
 | WebSocket | `**端点**`：/ws/chat、`**处理器**`：ChatHandler |
