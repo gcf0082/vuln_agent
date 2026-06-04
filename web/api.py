@@ -518,8 +518,9 @@ def _stem_and_prefix(stage: str, filename: str) -> dict:
         exact["analysis"].add(surface_name)
         exact["surfaces"].add(surface_name)
 
-        # Prefix: VULN-{S}-{T}- for vulns, VULN-/NOVULN-/SUSPECTED-VULN-{S}-{T}- for reviews
-        prefix["vulnerabilities"].add("VULN-" + s)
+        # Prefix: VULN-/DISMISSED-/CLEAN-/SUSPECTED-{S}-{T}- for vulns, VULN-/NOVULN-/SUSPECTED-VULN-{S}-{T}- for reviews
+        for vp in ("VULN-", "DISMISSED-", "CLEAN-", "SUSPECTED-"):
+            prefix["vulnerabilities"].add(vp + s)
         for rp in ("VULN-VULN-", "NOVULN-VULN-", "SUSPECTED-VULN-"):
             prefix["vuln_review"].add(rp + s)
 
@@ -528,9 +529,10 @@ def _stem_and_prefix(stage: str, filename: str) -> dict:
         exact["analysis"].add(filename)
         exact["surfaces"].add(filename)
 
-        # Prefix: {S}- for tasks, VULN-/NOVULN-/SUSPECTED-{S} for vulns/reviews
+        # Prefix: {S}- for tasks, VULN-/DISMISSED-/CLEAN-/SUSPECTED-{S} for vulns, VULN-/NOVULN-/SUSPECTED-VULN-{S} for reviews
         prefix["vuln_tasks"].add(s + "-")
-        prefix["vulnerabilities"].add("VULN-" + s)
+        for vp in ("VULN-", "DISMISSED-", "CLEAN-", "SUSPECTED-"):
+            prefix["vulnerabilities"].add(vp + s)
         for rp in ("VULN-VULN-", "NOVULN-VULN-", "SUSPECTED-VULN-"):
             prefix["vuln_review"].add(rp + s)
 
