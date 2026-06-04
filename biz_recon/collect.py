@@ -22,7 +22,17 @@ def run(work_dir: Path, extra_prompt: str = ""):
 
     ensure_dirs(work_dir)
     vars = build_vars(work_dir)
-    vars["extra_prompt"] = f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else ""
+
+    extras = ""
+    if extra_prompt:
+        extras += f"\n**用户特殊要求：**{extra_prompt}"
+    ext_file = Path(__file__).parent.parent / "prompts-ext" / "collect.md"
+    if ext_file.exists():
+        content = ext_file.read_text(encoding="utf-8").strip()
+        if content:
+            label = "用户自定义策略（来自 agent_env/pipeline-ext/collect.md）"
+            extras += f"\n\n**{label}**\n{content}"
+    vars["extra_prompt"] = extras
     prompt = read_prompt("identify-surfaces.txt", vars)
 
     from .workspace import set_prompt_log_path
