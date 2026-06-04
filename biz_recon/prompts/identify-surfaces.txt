@@ -10,7 +10,7 @@
 - **接口**：web（REST / JAX-RS / Servlet / GraphQL）、MQ 消费者、gRPC、WebSocket / SSE — 识别 REST API 暴露面时可使用 `rest-api-extractor` skill 辅助分析
 - **非接口**：独立可执行脚本、独立工具（含 main 入口的可执行程序）、定时任务、CLI 命令入口
 
-每条目必须提取精确的**来源信息**（完整文件路径:行号、函数名），路径必须是完整的绝对或相对项目根路径，供后续分析步骤直接使用。**"独立工具"**指有 main 函数作为入口的可独立执行的程序，不是编译产物分析也不是工具类/工具函数。
+每条目必须提取精确的**来源信息**（完整文件路径:行号、函数名），路径必须是完整的绝对或相对项目根路径，供后续分析步骤直接使用。**REST 接口必须找到实际的 Controller 入口代码位置（文件路径:行号:函数名），而非路由配置或接口文档来源。****"独立工具"**指有 main 函数作为入口的可独立执行的程序，不是编译产物分析也不是工具类/工具函数。
 
 基于入口处已采集的信息，完整填写输出格式中各字段（代码路径、函数名、接口参数等），尽量详细。不要求主动获取更多信息或跨函数追踪。
 
@@ -50,7 +50,7 @@
 
 | 分类 | 补充字段 |
 |------|---------|
-| REST | `**URL**`：`GET /api/users/{id}`、`**方法**`：listUsers()、`**参数**`：path: id, query: page |
+| REST | `**URL**`：`GET /api/users/{id}`、`**入口**`：`/src/main/java/com/acme/UserController.java:48 listUsers()`、`**参数**`：path: id, query: page |
 | MQ | `**队列/Topic**`：order.created、`**消费者**`：OrderHandler.onCreated() |
 | gRPC | `**服务**`：UserService、`**方法**`：GetUser、`**Proto**`：user.proto |
 | WebSocket | `**端点**`：/ws/chat、`**处理器**`：ChatHandler |
