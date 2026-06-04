@@ -12,6 +12,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# 确保两个分支（调用方配置 / 独立运行）都能找到 agent_env 下的技能和代理
+export OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR:-$SCRIPT_DIR/agent_env}"
+
 # ── LLM 工具检测 ──
 LLM_AGENT="${LLM_AGENT:-}"
 # 从命令行参数解析 --agent
@@ -77,7 +80,6 @@ if [ ! -f "$OPENCODE_CONFIG" ]; then
     exit 1
 fi
 export OPENCODE_CONFIG
-export OPENCODE_CONFIG_DIR="$SCRIPT_DIR/agent_env"
 
 export OPENCODE_PERMISSION='{"read": "allow", "external_directory": {"/*":"allow"}}'
 
