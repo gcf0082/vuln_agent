@@ -30,8 +30,7 @@ def run(work_dir: Path, extra_prompt: str = ""):
     if ext_file.exists():
         content = ext_file.read_text(encoding="utf-8").strip()
         if content:
-            label = "用户自定义策略（来自 agent_env/pipeline-ext/collect.md）"
-            extras += f"\n\n**{label}**\n{content}"
+            extras += f"\n\n{content}"
     vars["extra_prompt"] = extras
     prompt = read_prompt("identify-surfaces.txt", vars)
 
