@@ -4,8 +4,7 @@
 # 输出: 响应文本 (stdout)
 # 退出码: 0=成功, 非0=失败
 #
-# 已设 OPENCODE_CONFIG 时跳过 profile 创建（由调用方管理）,
-# 否则自动创建隔离 profile。
+# 已设 OPENCODE_CONFIG 时由调用方管理，否则使用 agent_env/llm-config.json 静态配置。
 #
 # 要切换其他 LLM 工具时，修改此文件即可。
 
@@ -37,17 +36,6 @@ else
     PROMPT=$(cat)
 fi
 
-# ── 保存本轮最终提示词到独立文件 ──
-if [ -n "${LLM_PROMPT_LOG_PATH:-}" ]; then
-    mkdir -p "$(dirname "$LLM_PROMPT_LOG_PATH")"
-    echo "$PROMPT" > "$LLM_PROMPT_LOG_PATH"
-else
-    PROMPT_LOG_DIR="${OPENCODE_WORK_DIR:-$SCRIPT_DIR}/logs/prompts"
-    mkdir -p "$PROMPT_LOG_DIR"
-    TS=$(date +%Y%m%d_%H%M%S)_$(date +%3N)
-    echo "$PROMPT" > "$PROMPT_LOG_DIR/${TS}_prompt.txt"
-fi
-
 # ── 调用方已提供 profile？ ──
 if [ -n "${OPENCODE_CONFIG:-}" ]; then
     # 调用方（如 opencode_wrapper.py）已设置好配置目录和隔离环境
@@ -70,8 +58,8 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
     set +a
 fi
 
-# 工作目录：外部指定优先，否则当前目录
-WORK_DIR="${OPENCODE_WORK_DIR:-$(pwd)}"
+# 工作目录：外部指定优先，否则 agent_env
+WORK_DIR="${OPENCODE_WORK_DIR:-$SCRIPT_DIR/agent_env}"
 
 # 隔离环境变量
 export OPENCODE_DISABLE_CLAUDE_CODE=true
@@ -82,19 +70,12 @@ export OPENCODE_DISABLE_AUTOUPDATE=true
 export OPENCODE_DISABLE_MODELS_FETCH=true
 export OPENCODE_DISABLE_PRUNE=true
 
-# 配置写入临时文件
-OPENCODE_CONFIG=$(mktemp -t llm-config-XXXXXX.json)
-trap 'rm -f "$OPENCODE_CONFIG"' EXIT
-cat > "$OPENCODE_CONFIG" << 'CONFIGJSON'
-{
-  "$schema": "https://opencode.ai/config.json",
-  "model": "{env:OPENCODE_DEFAULT_MODEL}",
-  "autoupdate": false,
-  "permission": {"*": "allow"},
-  "snapshot": false
-}
-CONFIGJSON
-
+# 静态配置
+OPENCODE_CONFIG="$SCRIPT_DIR/agent_env/llm-config.json"
+if [ ! -f "$OPENCODE_CONFIG" ]; then
+    echo "ERROR: missing $OPENCODE_CONFIG" >&2
+    exit 1
+fi
 export OPENCODE_CONFIG
 
 export OPENCODE_PERMISSION='{"read": "allow", "external_directory": {"/*":"allow"}}'
