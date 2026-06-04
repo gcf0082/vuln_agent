@@ -36,6 +36,7 @@ ProcessBuilder pb = new ProcessBuilder("bash", "scripts/scan.sh", filename);
 - 下载操作：读文件？内存生成？
 - 命令执行：参数含用户输入？命令白名单？
 - HTTP 外呼：TLS 校验？主机名校验？目标 URL 含用户输入？
+- 复杂逻辑（含外部请求）：如何处理？
 - SQL：参数化绑定（`#{}` / `?`）vs 字符串拼接（`${}` / `+ input`）
 - 临时文件：如何处理？
 - 加解密 / 签名：算法？密钥来源？
