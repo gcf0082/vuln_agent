@@ -7,7 +7,7 @@
 
 收集所有攻击面（接口 + 非接口）：
 
-- **接口**：web（REST / JAX-RS / Servlet / GraphQL）、MQ 消费者、gRPC、WebSocket / SSE
+- **接口**：web（REST / JAX-RS / Servlet / GraphQL）、MQ 消费者、gRPC、WebSocket / SSE — 识别 REST API 暴露面时可使用 `rest-api-extractor` skill 辅助分析
 - **非接口**：独立可执行脚本、独立工具（含 main 入口的可执行程序）、定时任务、CLI 命令入口
 
 每条目必须提取精确的**来源信息**（完整文件路径:行号、函数名），路径必须是完整的绝对或相对项目根路径，供后续分析步骤直接使用。**"独立工具"**指有 main 函数作为入口的可独立执行的程序，不是编译产物分析也不是工具类/工具函数。
