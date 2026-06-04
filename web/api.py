@@ -495,9 +495,9 @@ def _stem_and_prefix(stage: str, filename: str) -> dict:
         exact["surfaces"].add(surface_name)
 
     elif stage == "vulnerabilities":
-        # VULN-{S}-{T}-{V}.md → VULN-VULN-{S}-{T}-{V}.md (review)
-        review_name = "VULN-" + filename
-        exact["vuln_review"].add(review_name)
+        # VULN-{S}-{T}-{V}.md → VULN-/NOVULN-/SUSPECTED-VULN-{S}-{T}-{V}.md (review)
+        for rev_prefix in ("VULN-", "NOVULN-", "SUSPECTED-"):
+            exact["vuln_review"].add(rev_prefix + filename)
 
         # strip VULN- → {S}-{T}-{V}, strip trailing -\d+ → {S}-{T} (task)
         vuln_stem = re.sub(r"^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-", "", s, count=1)
@@ -518,19 +518,21 @@ def _stem_and_prefix(stage: str, filename: str) -> dict:
         exact["analysis"].add(surface_name)
         exact["surfaces"].add(surface_name)
 
-        # Prefix: VULN-{S}-{T}- for vulns, VULN-VULN-{S}-{T}- for reviews
+        # Prefix: VULN-{S}-{T}- for vulns, VULN-/NOVULN-/SUSPECTED-VULN-{S}-{T}- for reviews
         prefix["vulnerabilities"].add("VULN-" + s)
-        prefix["vuln_review"].add("VULN-VULN-" + s)
+        for rp in ("VULN-VULN-", "NOVULN-VULN-", "SUSPECTED-VULN-"):
+            prefix["vuln_review"].add(rp + s)
 
     elif stage in ("analysis", "surfaces"):
         # Exact: the same file is in both stages
         exact["analysis"].add(filename)
         exact["surfaces"].add(filename)
 
-        # Prefix: {S}- for tasks, VULN-{S}- for vulns, VULN-VULN-{S}- for reviews
+        # Prefix: {S}- for tasks, VULN-/NOVULN-/SUSPECTED-{S} for vulns/reviews
         prefix["vuln_tasks"].add(s + "-")
         prefix["vulnerabilities"].add("VULN-" + s)
-        prefix["vuln_review"].add("VULN-VULN-" + s)
+        for rp in ("VULN-VULN-", "NOVULN-VULN-", "SUSPECTED-VULN-"):
+            prefix["vuln_review"].add(rp + s)
 
     return {"exact": exact, "prefix": prefix}
 
