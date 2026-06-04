@@ -77,6 +77,7 @@ if [ ! -f "$OPENCODE_CONFIG" ]; then
     exit 1
 fi
 export OPENCODE_CONFIG
+export OPENCODE_CONFIG_DIR="$SCRIPT_DIR/agent_env"
 
 export OPENCODE_PERMISSION='{"read": "allow", "external_directory": {"/*":"allow"}}'
 
