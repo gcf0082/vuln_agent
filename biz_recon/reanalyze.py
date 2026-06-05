@@ -9,6 +9,14 @@ from .prompt import read_prompt
 from .workspace import OUTPUT_PARENT, build_vars, log
 
 
+def _vuln_has_review(vuln_stem: str, review_dir: Path) -> bool:
+    """Check if a vulnerability file already has a corresponding review result."""
+    if not review_dir.exists():
+        return False
+    pattern = re.compile(rf'^(?:VULN-|NOVULN-|SUSPECTED-){re.escape(vuln_stem)}\.md$')
+    return any(pattern.match(f.name) for f in review_dir.glob("*.md"))
+
+
 def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
         force_list: list[str] | None = None):
@@ -17,24 +25,30 @@ def run(work_dir: Path, max_workers: int = 3,
     review_log(f"\n=== Stage 4: Vulnerability Re-Analysis ===")
 
     review_dir = work_dir / OUTPUT_PARENT / "vuln_review"
-    if not force_list and review_dir.exists() and any(review_dir.iterdir()):
-        review_log("  SKIP: vuln_review already has output")
-        return sorted(review_dir.glob("*"))
+    review_dir.mkdir(parents=True, exist_ok=True)
 
     vuln_files = sorted((work_dir / OUTPUT_PARENT / "vulnerabilities").glob("*.md"))
+    if not vuln_files:
+        review_log("  No vulnerability files found.")
+        return []
+
     if force_list:
-        # Match vuln files by surface stem (e.g. iface-REST-api-users-list)
         stems = [n.replace(".md", "") for n in force_list]
         vuln_files = [f for f in vuln_files if any(s in f.name for s in stems)]
         if not vuln_files:
             review_log("  No matching vulnerability files found for force-list.")
             return []
         review_log(f"  Force re-analyzing {len(vuln_files)} file(s): {[f.name for f in vuln_files]}")
-    if not vuln_files:
-        review_log("  No vulnerability files found.")
-        return []
+    else:
+        # Per-vuln-file skip: only review files without existing review results
+        need_review = [f for f in vuln_files if not _vuln_has_review(f.stem, review_dir)]
+        skipped = len(vuln_files) - len(need_review)
+        if not need_review:
+            review_log(f"  All {len(vuln_files)} vuln files already have review results.")
+            return sorted(review_dir.glob("*"))
+        vuln_files = need_review
+        review_log(f"  Re-analyzing {len(vuln_files)} vuln files ({skipped} already reviewed, workers={max_workers})...")
 
-    review_log(f"  Re-analyzing {len(vuln_files)} files in parallel (workers={max_workers})...")
     vars = build_vars(work_dir)
     failures: list[str] = []
 

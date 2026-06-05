@@ -9,6 +9,14 @@ from .prompt import read_prompt
 from .workspace import OUTPUT_PARENT, build_vars, find_vuln_files, log
 
 
+def _task_has_vuln_output(task_stem: str, vuln_dir: Path) -> bool:
+    """Check if a task file already has corresponding vulnerability analysis results."""
+    if not vuln_dir.exists():
+        return False
+    pattern = re.compile(rf'^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-{re.escape(task_stem)}-\d+\.md$')
+    return any(pattern.match(f.name) for f in vuln_dir.iterdir())
+
+
 def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
         force_list: list[str] | None = None):
@@ -29,6 +37,8 @@ def run(work_dir: Path, max_workers: int = 3,
         vuln_log("  No task files found. Run task planning first.")
         return find_vuln_files(work_dir)
 
+    vuln_dir = work_dir / OUTPUT_PARENT / "vulnerabilities"
+
     if force_list:
         stems = [n.replace(".md", "") for n in force_list]
         task_files = [f for f in task_files if any(s in f.name for s in stems)]
@@ -37,7 +47,14 @@ def run(work_dir: Path, max_workers: int = 3,
             return find_vuln_files(work_dir)
         vuln_log(f"  Force re-analyzing {len(task_files)} task(s): {[f.name for f in task_files]}")
     else:
-        vuln_log(f"  Analyzing {len(task_files)} tasks in parallel (workers={max_workers})...")
+        # Per-task skip: only analyze tasks without existing vuln outputs
+        need_analysis = [f for f in task_files if not _task_has_vuln_output(f.stem, vuln_dir)]
+        skipped = len(task_files) - len(need_analysis)
+        if not need_analysis:
+            vuln_log(f"  All {len(task_files)} tasks already have vulnerability analysis results.")
+            return find_vuln_files(work_dir)
+        task_files = need_analysis
+        vuln_log(f"  Analyzing {len(task_files)} tasks ({skipped} already have results, workers={max_workers})...")
 
     vars = build_vars(work_dir)
     failures: list[str] = []
