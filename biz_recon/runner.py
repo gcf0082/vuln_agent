@@ -9,7 +9,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-from . import collect, analyze, vuln_task_plan, vuln, reanalyze
+from . import surface_discover, surface_analyze, plan_vuln_tasks, vuln_analyze, review_vuln
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, find_surface_files, find_vuln_files
 
 
@@ -86,7 +86,7 @@ def main(work_dir: str | None = None,
     raw_list = [s.strip() for s in force_surface.split(",") if s.strip()] if force_surface else []
     force_list: list[str] = []
     if raw_list:
-        analysis_dir = work_path / OUTPUT_PARENT / "analysis"
+        analysis_dir = work_path / OUTPUT_PARENT / "analyzed_surfaces"
         existing = [f.name for f in analysis_dir.glob("*.md")] if analysis_dir.exists() else []
         for pat in raw_list:
             if "*" in pat:
@@ -100,7 +100,7 @@ def main(work_dir: str | None = None,
         runner_log(f"  Force surfaces ({len(force_list)}): {force_list}")
 
         # Delete existing products for these surfaces
-        for dirname in ("vuln_tasks", "vulnerabilities", "vuln_review"):
+        for dirname in ("planned_vuln_tasks", "vuln_findings", "vuln_reviews"):
             d = work_path / OUTPUT_PARENT / dirname
             for name in force_list:
                 stem = name.replace(".md", "")
@@ -120,26 +120,26 @@ def main(work_dir: str | None = None,
                     runner_log(f"  Removed: {batch_dir.relative_to(work_path)}")
 
     try:
-        collect.run(work_path, extra_prompt=collect_prompt)
+        surface_discover.run(work_path, extra_prompt=collect_prompt)
         if db_path:
-            import_stage(db_path, "surfaces", str(work_path / OUTPUT_PARENT / "surfaces"))
+            import_stage(db_path, "discovered_surfaces", str(work_path / OUTPUT_PARENT / "discovered_surfaces"))
 
-        analyze.run(work_path, max_workers, extra_prompt=analyze_prompt, only_surfaces=force_list or None)
+        surface_analyze.run(work_path, max_workers, extra_prompt=analyze_prompt, only_surfaces=force_list or None)
         if db_path:
-            import_stage(db_path, "analysis", str(work_path / OUTPUT_PARENT / "analysis"))
+            import_stage(db_path, "analyzed_surfaces", str(work_path / OUTPUT_PARENT / "analyzed_surfaces"))
 
-        vuln_task_plan.run(work_path, max_workers, force_list=force_list or None,
-                           generate_generic=config.get("generate_generic_task", False))
+        plan_vuln_tasks.run(work_path, max_workers, force_list=force_list or None,
+                            extra_prompt=vuln_prompt)
         if db_path:
-            import_stage(db_path, "vuln_tasks", str(work_path / OUTPUT_PARENT / "vuln_tasks"))
+            import_stage(db_path, "planned_vuln_tasks", str(work_path / OUTPUT_PARENT / "planned_vuln_tasks"))
 
-        vuln.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
+        vuln_analyze.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
         if db_path:
-            import_stage(db_path, "vulnerabilities", str(work_path / OUTPUT_PARENT / "vulnerabilities"))
+            import_stage(db_path, "vuln_findings", str(work_path / OUTPUT_PARENT / "vuln_findings"))
 
-        reanalyze.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
+        review_vuln.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
         if db_path:
-            import_stage(db_path, "vuln_review", str(work_path / OUTPUT_PARENT / "vuln_review"))
+            import_stage(db_path, "vuln_reviews", str(work_path / OUTPUT_PARENT / "vuln_reviews"))
     except RuntimeError as e:
         if project and db_path:
             conn = sqlite3.connect(db_path)

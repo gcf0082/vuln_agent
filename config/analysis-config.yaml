@@ -17,9 +17,6 @@ vulnerability_analysis: true
 # Whether to re-analyze confirmed VULNs for business-context validation
 vuln_re_analysis: false
 
-# Whether to auto-generate a generic task (*-0.md) for surfaces without tasks
-generate_generic_task: false
-
 # Whether to allow access to sibling directories when tracing code
 allow_sibling_access: true
 

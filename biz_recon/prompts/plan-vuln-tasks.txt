@@ -10,7 +10,7 @@
 
 ## 输入
 
-- **分析文件**：`{target_work_dir}/.vuln_agent_output/analysis/{surface_file}`，描述单个入口的代码位置、参数定义、关键控制点校验情况、入参流向
+- **分析文件**：`{target_work_dir}/.vuln_agent_output/analyzed_surfaces/{surface_file}`，描述单个入口的代码位置、参数定义、关键控制点校验情况、入参流向
 
 **必须严格基于输入文件内容分析**：输入描述了哪些参数、哪些关键控制点，就只分析哪些。不得自行推测输入中未提及的漏洞类型。例如：
 
@@ -37,7 +37,7 @@
 
 ### 有任务时
 
-每个任务写入 `{target_work_dir}/.vuln_agent_output/vuln_tasks/{surface_stem}-{序号}.md`（序号从 1 开始）。
+每个任务写入 `{target_work_dir}/.vuln_agent_output/planned_vuln_tasks/{surface_stem}-{序号}.md`（序号从 1 开始）。
 
 任务文件要求简洁，直接描述疑点，不展开论证或提供代码片段：
 
@@ -52,7 +52,7 @@
 
 ### 无任务时
 
-经评估无需生成任务的，写入 `{target_work_dir}/.vuln_agent_output/vuln_tasks/_no_tasks-{surface_stem}.md`。
+经评估无需生成任务的，写入 `{target_work_dir}/.vuln_agent_output/planned_vuln_tasks/_no_tasks-{surface_stem}.md`。
 
 逐条排查分析文件中的每个操作点（命令执行、文件 I/O、网络、数据库等），逐一说明无风险原因。每个操作点以独立条目列出，确保人工审计员可逐条复核：
 

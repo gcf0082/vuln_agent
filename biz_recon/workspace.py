@@ -113,7 +113,7 @@ def log(msg: str = ""):
 
 
 def ensure_dirs(work_dir: Path):
-    for d in ["surfaces", "analysis", "vuln_tasks", "vulnerabilities", "vuln_review", "meta/error"]:
+    for d in ["discovered_surfaces", "analyzed_surfaces", "planned_vuln_tasks", "vuln_findings", "vuln_reviews", "meta/error"]:
         (work_dir / OUTPUT_PARENT / d).mkdir(parents=True, exist_ok=True)
 
 
@@ -132,9 +132,9 @@ def _parse_field(line: str, label: str) -> str | None:
 
 
 def read_surface_list(work_dir: Path) -> list[SurfaceItem]:
-    """Read surface entries from ``_surfaces/`` directory (one file per entry)."""
+    """Read surface entries from ``discovered_surfaces/`` directory (one file per entry)."""
     items: list[SurfaceItem] = []
-    collect_dir = work_dir / OUTPUT_PARENT / "surfaces"
+    collect_dir = work_dir / OUTPUT_PARENT / "discovered_surfaces"
     if not collect_dir.exists():
         return items
 
@@ -171,13 +171,13 @@ def read_surface_list(work_dir: Path) -> list[SurfaceItem]:
 
 
 def find_surface_files(work_dir: Path) -> list[Path]:
-    return sorted((work_dir / OUTPUT_PARENT / "analysis").glob("*.md"))
+    return sorted((work_dir / OUTPUT_PARENT / "analyzed_surfaces").glob("*.md"))
 
 
 def find_vuln_files(work_dir: Path) -> list[Path]:
     results = []
     for prefix in ("VULN", "DISMISSED", "CLEAN", "SUSPECTED"):
-        results.extend(sorted((work_dir / OUTPUT_PARENT / "vulnerabilities").glob(f"{prefix}-*.md")))
+        results.extend(sorted((work_dir / OUTPUT_PARENT / "vuln_findings").glob(f"{prefix}-*.md")))
     return results
 
 

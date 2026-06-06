@@ -71,23 +71,23 @@ python3 run.py /target --force-surface "iface-upload-*"
 
 ```
 .vuln_agent_output/
-├── surfaces/          # Stage 1: 攻击面记录，每文件一个条目
-├── analysis/          # Stage 2: 攻击面深度分析（含流程图、数据流追踪）
-├── vuln_tasks/        # Stage 2.5: 漏洞分析任务清单
-├── vulnerabilities/   # Stage 3: 漏洞结论（VULN-/DISMISSED-/CLEAN-/SUSPECTED-）
-├── vuln_review/       # Stage 4: 二次审查结论（VULN-/NOVULN-/SUSPECTED-）
-└── meta/              # 排除路径记录、中间分析产物
+├── discovered_surfaces/   # Stage 1 (surface_discover): 攻击面记录，每文件一个条目
+├── analyzed_surfaces/     # Stage 2 (surface_analyze): 攻击面深度分析（含流程图、数据流追踪）
+├── planned_vuln_tasks/    # Stage 3 (plan_vuln_tasks): 漏洞分析任务清单
+├── vuln_findings/         # Stage 4 (vuln_analyze): 漏洞结论（VULN-/DISMISSED-/CLEAN-/SUSPECTED-）
+├── vuln_reviews/          # Stage 5 (review_vuln): 二次审查结论（VULN-/NOVULN-/SUSPECTED-）
+└── meta/                  # 排除路径记录、中间分析产物
 ```
 
 ## 示例产物
 
 `<分析目标>/.vuln_agent_output` 目录包含各阶段产出的示例文件，可点击查看：
 
-- [Stage 1 攻击面识别](docs/surfaces/iface-REST-ping.md)
-- [Stage 2 攻击面分析](docs/analysis/iface-REST-ping.md)
-- [Stage 2.5 漏洞分析任务](docs/vuln_tasks/iface-REST-ping-1.md)
-- [Stage 3 漏洞结论](docs/vulnerabilities/VULN-iface-REST-ping-1-1.md)
-- [Stage 4 二次审查](docs/vuln_review/VULN-VULN-iface-REST-ping-1-1.md)
+- [Stage 1 攻击面识别](docs/discovered_surfaces/iface-REST-ping.md)
+- [Stage 2 攻击面分析](docs/analyzed_surfaces/iface-REST-ping.md)
+- [Stage 3 漏洞分析任务](docs/planned_vuln_tasks/iface-REST-ping-1.md)
+- [Stage 4 漏洞结论](docs/vuln_findings/VULN-iface-REST-ping-1-1.md)
+- [Stage 5 二次审查](docs/vuln_reviews/VULN-VULN-iface-REST-ping-1-1.md)
 
 
 ## 日志

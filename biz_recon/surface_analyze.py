@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Stage 2: Surface analysis — one client per entry, parallel."""
+"""Stage 2: surface_analyze — deep-analyze each discovered surface, parallel."""
 
 import concurrent.futures
 from pathlib import Path
@@ -12,29 +12,29 @@ def run(work_dir: Path, max_workers: int = 3,
         only_surfaces: list[str] | None = None,
         extra_prompt: str = ""):
     from .workspace import setup_stage_log
-    analyze_log = setup_stage_log("analyze")
-    analyze_log(f"\n=== Stage 2: Surface Analysis ===")
+    sa_log = setup_stage_log("surface_analyze")
+    sa_log(f"\n=== Stage 2: Surface Analysis ===")
 
     items = read_surface_list(work_dir)
     if not items:
-        analyze_log("  No surface items found.")
+        sa_log("  No surface items found.")
         return items
 
     if only_surfaces is not None:
         filtered = [item for item in items if item.filename in only_surfaces]
         if not filtered:
-            analyze_log("  No surfaces matched the --only filter. Nothing to analyze.")
+            sa_log("  No surfaces matched the --only filter. Nothing to analyze.")
             return filtered
-        analyze_log(f"  Filtered: {len(items)} → {len(filtered)} items (--only match)")
+        sa_log(f"  Filtered: {len(items)} → {len(filtered)} items (--only match)")
         items = filtered
 
-    analyze_log(f"  {len(items)} items, analyzing in parallel (workers={max_workers})...")
+    sa_log(f"  {len(items)} items, analyzing in parallel (workers={max_workers})...")
     vars = build_vars(work_dir)
     failures: list[str] = []
 
     def analyze_one(item):
-        ao_log = setup_stage_log("analyze", item.filename)
-        output_path = work_dir / OUTPUT_PARENT / "analysis" / item.filename
+        ao_log = setup_stage_log("surface_analyze", item.filename)
+        output_path = work_dir / OUTPUT_PARENT / "analyzed_surfaces" / item.filename
         if output_path.exists():
             ao_log(f"  ⏭ {item.filename}")
             return True
@@ -47,7 +47,7 @@ def run(work_dir: Path, max_workers: int = 3,
         prompt = read_prompt("analyze-surface.txt", local_vars)
 
         from .workspace import set_prompt_log_path
-        set_prompt_log_path("analyze", item.filename)
+        set_prompt_log_path("surface_analyze", item.filename)
         client = OpenCodeClient()
         result = client.run(prompt)
         if result.exit_code != 0:
@@ -63,7 +63,7 @@ def run(work_dir: Path, max_workers: int = 3,
 
     if failures:
         msg = f"  FAILURES ({len(failures)}): {', '.join(failures)}"
-        analyze_log(msg)
+        sa_log(msg)
         print(msg, flush=True)
 
     return items

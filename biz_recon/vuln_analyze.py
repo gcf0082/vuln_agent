@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Stage 3: Vulnerability analysis — one client per task, parallel."""
+"""Stage 4: vuln_analyze — execute vulnerability analysis per planned task, parallel."""
 
 import concurrent.futures
 import re
@@ -21,46 +21,46 @@ def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
         force_list: list[str] | None = None):
     from .workspace import ensure_dirs, setup_stage_log
-    vuln_log = setup_stage_log("vuln")
-    vuln_log(f"\n=== Stage 3: Vulnerability Analysis ===")
+    va_log = setup_stage_log("vuln_analyze")
+    va_log(f"\n=== Stage 4: Vulnerability Analysis ===")
     ensure_dirs(work_dir)
 
-    tasks_dir = work_dir / OUTPUT_PARENT / "vuln_tasks"
+    tasks_dir = work_dir / OUTPUT_PARENT / "planned_vuln_tasks"
     if not tasks_dir.exists():
-        vuln_log("  No tasks directory found. Run task planning first.")
+        va_log("  No tasks directory found. Run task planning first.")
         return find_vuln_files(work_dir)
 
     task_files = sorted(tasks_dir.glob("*.md"))
     # Filter out _no_tasks files — they are not actual analysis tasks
     task_files = [f for f in task_files if not f.name.startswith("_no_tasks")]
     if not task_files:
-        vuln_log("  No task files found. Run task planning first.")
+        va_log("  No task files found. Run task planning first.")
         return find_vuln_files(work_dir)
 
-    vuln_dir = work_dir / OUTPUT_PARENT / "vulnerabilities"
+    vuln_dir = work_dir / OUTPUT_PARENT / "vuln_findings"
 
     if force_list:
         stems = [n.replace(".md", "") for n in force_list]
         task_files = [f for f in task_files if any(s in f.name for s in stems)]
         if not task_files:
-            vuln_log(f"  No matching tasks for force-list: {force_list}")
+            va_log(f"  No matching tasks for force-list: {force_list}")
             return find_vuln_files(work_dir)
-        vuln_log(f"  Force re-analyzing {len(task_files)} task(s): {[f.name for f in task_files]}")
+        va_log(f"  Force re-analyzing {len(task_files)} task(s): {[f.name for f in task_files]}")
     else:
         # Per-task skip: only analyze tasks without existing vuln outputs
         need_analysis = [f for f in task_files if not _task_has_vuln_output(f.stem, vuln_dir)]
         skipped = len(task_files) - len(need_analysis)
         if not need_analysis:
-            vuln_log(f"  All {len(task_files)} tasks already have vulnerability analysis results.")
+            va_log(f"  All {len(task_files)} tasks already have vulnerability analysis results.")
             return find_vuln_files(work_dir)
         task_files = need_analysis
-        vuln_log(f"  Analyzing {len(task_files)} tasks ({skipped} already have results, workers={max_workers})...")
+        va_log(f"  Analyzing {len(task_files)} tasks ({skipped} already have results, workers={max_workers})...")
 
     vars = build_vars(work_dir)
     failures: list[str] = []
 
     def analyze_one(task_path):
-        ao_log = setup_stage_log("vuln", task_path.name)
+        ao_log = setup_stage_log("vuln_analyze", task_path.name)
         ao_log(f"  ▶ {task_path.name}")
         task_text = task_path.read_text()
 
@@ -80,7 +80,7 @@ def run(work_dir: Path, max_workers: int = 3,
         prompt = read_prompt("analyze-vulnerability.txt", local_vars)
 
         from .workspace import set_prompt_log_path
-        set_prompt_log_path("vuln", task_path.name)
+        set_prompt_log_path("vuln_analyze", task_path.name)
         client = OpenCodeClient()
         result = client.run(prompt)
         if result.exit_code != 0:
@@ -96,7 +96,7 @@ def run(work_dir: Path, max_workers: int = 3,
 
     if failures:
         msg = f"  FAILURES ({len(failures)}): {', '.join(failures)}"
-        vuln_log(msg)
+        va_log(msg)
         print(msg, flush=True)
 
     return find_vuln_files(work_dir)

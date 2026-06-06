@@ -2,20 +2,20 @@ const { createApp, ref, reactive, computed, watch, nextTick, defineComponent, pr
 const VueSelectComponent = window['vue-select'];
 
 const API = '/api';
-const STAGES = ['surfaces', 'analysis', 'vuln_tasks', 'vulnerabilities', 'vuln_review'];
+const STAGES = ['discovered_surfaces', 'analyzed_surfaces', 'planned_vuln_tasks', 'vuln_findings', 'vuln_reviews'];
 const STAGE_LABELS = {
-  surfaces: '暴露面',
-  analysis: '攻击面分析',
-  vuln_tasks: '漏洞分析任务',
-  vulnerabilities: '漏洞分析结论',
-  vuln_review: '二次审查结论',
+  discovered_surfaces: '暴露面',
+  analyzed_surfaces: '攻击面分析',
+  planned_vuln_tasks: '漏洞分析任务',
+  vuln_findings: '漏洞分析结论',
+  vuln_reviews: '二次审查结论',
 };
 const STAGE_COLORS = {
-  surfaces: '#4caf50',
-  analysis: '#2196f3',
-  vuln_tasks: '#ff9800',
-  vulnerabilities: '#f44336',
-  vuln_review: '#9c27b0',
+  discovered_surfaces: '#4caf50',
+  analyzed_surfaces: '#2196f3',
+  planned_vuln_tasks: '#ff9800',
+  vuln_findings: '#f44336',
+  vuln_reviews: '#9c27b0',
 };
 
 if (typeof mermaid !== 'undefined') {
@@ -420,7 +420,7 @@ app.component('RunDialog', {
 
     async function loadFiles() {
       try {
-        const data = await api(`/projects/${props.projectName}/files/analysis`);
+        const data = await api(`/projects/${props.projectName}/files/analyzed_surfaces`);
         analysisFiles.value = data.files || [];
       } catch {}
     }

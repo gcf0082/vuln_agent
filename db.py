@@ -29,35 +29,35 @@ def init_db(db_path: str):
             created_at TEXT DEFAULT (datetime('now'))
         );
 
-        CREATE TABLE IF NOT EXISTS surfaces (
+        CREATE TABLE IF NOT EXISTS discovered_surfaces (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             filename TEXT NOT NULL,
             content TEXT NOT NULL,
             created_at TEXT DEFAULT (datetime('now'))
         );
 
-        CREATE TABLE IF NOT EXISTS analysis (
+        CREATE TABLE IF NOT EXISTS analyzed_surfaces (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             filename TEXT NOT NULL,
             content TEXT NOT NULL,
             created_at TEXT DEFAULT (datetime('now'))
         );
 
-        CREATE TABLE IF NOT EXISTS vuln_tasks (
+        CREATE TABLE IF NOT EXISTS planned_vuln_tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             filename TEXT NOT NULL,
             content TEXT NOT NULL,
             created_at TEXT DEFAULT (datetime('now'))
         );
 
-        CREATE TABLE IF NOT EXISTS vulnerabilities (
+        CREATE TABLE IF NOT EXISTS vuln_findings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             filename TEXT NOT NULL,
             content TEXT NOT NULL,
             created_at TEXT DEFAULT (datetime('now'))
         );
 
-        CREATE TABLE IF NOT EXISTS vuln_review (
+        CREATE TABLE IF NOT EXISTS vuln_reviews (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             filename TEXT NOT NULL,
             content TEXT NOT NULL,
@@ -72,13 +72,13 @@ def import_stage(db_path: str, stage: str, stage_dir: str):
     """Scan stage_dir for .md files and insert into the corresponding table.
 
     stage → table mapping:
-        surfaces → surfaces
-        analysis → analysis
-        vuln_tasks → vuln_tasks
-        vulnerabilities → vulnerabilities
-        vuln_review → vuln_review
+        discovered_surfaces → discovered_surfaces
+        analyzed_surfaces → analyzed_surfaces
+        planned_vuln_tasks → planned_vuln_tasks
+        vuln_findings → vuln_findings
+        vuln_reviews → vuln_reviews
     """
-    VALID_STAGES = {"surfaces", "analysis", "vuln_tasks", "vulnerabilities", "vuln_review"}
+    VALID_STAGES = {"discovered_surfaces", "analyzed_surfaces", "planned_vuln_tasks", "vuln_findings", "vuln_reviews"}
     if stage not in VALID_STAGES:
         raise ValueError(f"Unknown stage: {stage}")
 
