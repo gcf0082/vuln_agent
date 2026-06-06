@@ -4,7 +4,6 @@ __pycache__/
 logs/
 _output/
 .vuln_agent_output/
-_temp/
 _runtime/
 *.log
 node_modules/
