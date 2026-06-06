@@ -128,9 +128,9 @@ def handle_delete_project(name):
         except (ValueError, OSError, ProcessLookupError):
             pass
 
-    # Delete _output under target directory
+    # Delete .vuln_agent_output under target directory
     if target_dir:
-        output_path = Path(target_dir) / "_output"
+        output_path = Path(target_dir) / ".vuln_agent_output"
         if output_path.exists():
             shutil.rmtree(output_path)
 
@@ -380,8 +380,8 @@ def handle_clear_stage(name, stage):
     db_path = str(db.get_project_path(name) / "results.db")
     db.clear_stage(db_path, stage)
 
-    # Delete _output/<stage> files
-    output_dir = Path(proj["target_dir"]) / "_output" / stage
+    # Delete .vuln_agent_output/<stage> files
+    output_dir = Path(proj["target_dir"]) / ".vuln_agent_output" / stage
     if output_dir.exists():
         shutil.rmtree(output_dir)
 
@@ -405,8 +405,8 @@ def handle_delete_file(name, stage, file_id):
     if filename is None:
         return jsonify({"error": "file not found"}), 404
 
-    # Delete file from _output/<stage>/
-    file_path = Path(proj["target_dir"]) / "_output" / stage / filename
+    # Delete file from .vuln_agent_output/<stage>/
+    file_path = Path(proj["target_dir"]) / ".vuln_agent_output" / stage / filename
     if file_path.exists():
         file_path.unlink()
 

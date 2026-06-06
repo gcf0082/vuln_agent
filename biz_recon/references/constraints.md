@@ -10,8 +10,8 @@
 - 静态资源、图片、字体
 - 文档、README
 
-遇到这些非目标文件时跳过即可，排除的路径会记录到 `{target_work_dir}/_output/meta/excluded-paths.md` 供审计复核。
+遇到这些非目标文件时跳过即可，排除的路径会记录到 `{target_work_dir}/.vuln_agent_output/meta/excluded-paths.md` 供审计复核。
 
 ## 临时脚本
 
-分析过程中如需生成并执行临时脚本（如扫描、提取、转换），统一放在 `{target_work_dir}/_temp/scripts/` 目录下，与 `_output/analysis/` 平级。用完即弃，不影响源码和产物。
+分析过程中如需生成并执行临时脚本（如扫描、提取、转换），统一放在 `{target_work_dir}/_temp/scripts/` 目录下，与 `.vuln_agent_output/analysis/` 平级。用完即弃，不影响源码和产物。

@@ -327,7 +327,7 @@ app.component('Dashboard', {
     }
 
     async function deleteProject() {
-      if (!confirm('确定删除项目 ' + props.projectName + '？将同时删除 _output 产物')) return;
+      if (!confirm('确定删除项目 ' + props.projectName + '？将同时删除 .vuln_agent_output 产物')) return;
       await api(`/projects/${props.projectName}`, { method: 'DELETE' });
       navigate('/projects');
     }

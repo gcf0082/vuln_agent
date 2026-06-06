@@ -2,8 +2,8 @@
 
 **用中文思考。**
 
-输入文件：{target_work_dir}/_output/surfaces/{surface_file}
-输出文件：{target_work_dir}/_output/analysis/{surface_file}
+输入文件：{target_work_dir}/.vuln_agent_output/surfaces/{surface_file}
+输出文件：{target_work_dir}/.vuln_agent_output/analysis/{surface_file}
 
 {extra_prompt}
 ## 分析方法

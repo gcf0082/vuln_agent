@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from .models import SurfaceItem
 
-OUTPUT_PARENT = "_output"
+OUTPUT_PARENT = ".vuln_agent_output"
 TOOL_DIR = Path(__file__).parent
 
 _logger: logging.Logger | None = None

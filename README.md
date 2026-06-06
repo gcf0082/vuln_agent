@@ -70,7 +70,7 @@ python3 run.py /target --force-surface "iface-upload-*"
 ## 输出产物
 
 ```
-_output/
+.vuln_agent_output/
 ├── surfaces/          # Stage 1: 攻击面记录，每文件一个条目
 ├── analysis/          # Stage 2: 攻击面深度分析（含流程图、数据流追踪）
 ├── vuln_tasks/        # Stage 2.5: 漏洞分析任务清单
@@ -81,7 +81,7 @@ _output/
 
 ## 示例产物
 
-`<分析目标>/_output` 目录包含各阶段产出的示例文件，可点击查看：
+`<分析目标>/.vuln_agent_output` 目录包含各阶段产出的示例文件，可点击查看：
 
 - [Stage 1 攻击面识别](docs/surfaces/iface-REST-ping.md)
 - [Stage 2 攻击面分析](docs/analysis/iface-REST-ping.md)

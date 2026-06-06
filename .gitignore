@@ -3,6 +3,7 @@ __pycache__/
 .env
 logs/
 _output/
+.vuln_agent_output/
 _temp/
 _runtime/
 *.log
