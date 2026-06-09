@@ -7,18 +7,17 @@ Supports both OPENCODE_CONFIG mode (via opencode_wrapper.py) and standalone.
 """
 
 import argparse
-import json
 import os
 import shutil
 import subprocess
 import sys
-import tempfile
 from datetime import datetime
 from pathlib import Path
 
 
 def main():
     script_dir = Path(__file__).parent
+    os.environ.setdefault("OPENCODE_CONFIG_DIR", str(script_dir / "agent_env"))
 
     # ── Parse --agent from CLI args ──
     parser = argparse.ArgumentParser()
@@ -46,7 +45,7 @@ def main():
         Path(log_path).parent.mkdir(parents=True, exist_ok=True)
         Path(log_path).write_text(prompt, encoding="utf-8", errors="replace")
     else:
-        work_dir = os.environ.get("OPENCODE_WORK_DIR", str(Path.cwd()))
+        work_dir = os.environ.get("OPENCODE_WORK_DIR", str(script_dir / "agent_env"))
         log_dir = Path(work_dir) / "logs" / "prompts"
         log_dir.mkdir(parents=True, exist_ok=True)
         ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:18]
@@ -88,20 +87,12 @@ def main():
     os.environ.setdefault("OPENCODE_DISABLE_MODELS_FETCH", "true")
     os.environ.setdefault("OPENCODE_DISABLE_PRUNE", "true")
 
-    # Create temporary config
-    config = {
-        "$schema": "https://opencode.ai/config.json",
-        "model": "{env:OPENCODE_DEFAULT_MODEL}",
-        "autoupdate": False,
-        "permission": {"*": "allow"},
-        "snapshot": False,
-    }
-    config_file = tempfile.NamedTemporaryFile(
-        mode="w", suffix=".json", delete=False, encoding="utf-8"
-    )
-    json.dump(config, config_file, indent=2)
-    config_file.close()
-    os.environ["OPENCODE_CONFIG"] = config_file.name
+    # 静态配置
+    config_path = script_dir / "agent_env" / "llm-config.json"
+    if not config_path.exists():
+        print(f"ERROR: missing {config_path}", file=sys.stderr)
+        sys.exit(1)
+    os.environ["OPENCODE_CONFIG"] = str(config_path)
     os.environ["OPENCODE_PERMISSION"] = '{"read": "allow", "external_directory": {"/*":"allow"}}'
 
     cmd = [agent, "run", "--dir", work_dir]

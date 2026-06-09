@@ -53,7 +53,7 @@ def _resolve_includes(text: str) -> str:
         seen.add(ref_name)
         ref_path = TOOL_DIR / "references" / ref_name
         if ref_path.exists():
-            content = ref_path.read_text()
+            content = ref_path.read_text(encoding="utf-8")
             text = text.replace(m.group(0), content, 1)
         else:
             text = text.replace(m.group(0), f"<!-- missing ref: {ref_name} -->", 1)
@@ -94,7 +94,7 @@ def read_prompt(name: str, vars: dict[str, str]) -> str:
 
         {include:constraints.md}
     """
-    text = (TOOL_DIR / "prompts" / name).read_text()
+    text = (TOOL_DIR / "prompts" / name).read_text(encoding="utf-8")
     text = _resolve_includes(text)
     resolved = _subst(text, vars)
     log_prompt(name, resolved)
