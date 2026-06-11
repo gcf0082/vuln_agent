@@ -2,18 +2,16 @@ const { createApp, ref, reactive, computed, watch, nextTick, defineComponent, pr
 const VueSelectComponent = window['vue-select'];
 
 const API = '/api';
-const STAGES = ['discovered_surfaces', 'analyzed_surfaces', 'planned_vuln_tasks', 'vuln_findings', 'vuln_reviews'];
+const STAGES = ['discovered_surfaces', 'analyzed_surfaces', 'vuln_findings', 'vuln_reviews'];
 const STAGE_LABELS = {
   discovered_surfaces: '暴露面',
   analyzed_surfaces: '攻击面分析',
-  planned_vuln_tasks: '漏洞分析任务',
   vuln_findings: '漏洞分析结论',
   vuln_reviews: '二次审查结论',
 };
 const STAGE_COLORS = {
   discovered_surfaces: '#4caf50',
   analyzed_surfaces: '#2196f3',
-  planned_vuln_tasks: '#ff9800',
   vuln_findings: '#f44336',
   vuln_reviews: '#9c27b0',
 };

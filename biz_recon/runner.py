@@ -9,7 +9,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-from . import surface_discover, surface_analyze, plan_vuln_tasks, vuln_analyze, review_vuln
+from . import surface_discover, surface_analyze, vuln_analyze, review_vuln
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, find_surface_files, find_vuln_files
 
 
@@ -100,7 +100,7 @@ def main(work_dir: str | None = None,
         runner_log(f"  Force surfaces ({len(force_list)}): {force_list}")
 
         # Delete existing products for these surfaces
-        for dirname in ("planned_vuln_tasks", "vuln_findings", "vuln_reviews"):
+        for dirname in ("vuln_findings", "vuln_reviews"):
             d = work_path / OUTPUT_PARENT / dirname
             for name in force_list:
                 stem = name.replace(".md", "")
@@ -127,11 +127,6 @@ def main(work_dir: str | None = None,
         surface_analyze.run(work_path, max_workers, extra_prompt=analyze_prompt, only_surfaces=force_list or None)
         if db_path:
             import_stage(db_path, "analyzed_surfaces", str(work_path / OUTPUT_PARENT / "analyzed_surfaces"))
-
-        plan_vuln_tasks.run(work_path, max_workers, force_list=force_list or None,
-                            extra_prompt=vuln_prompt)
-        if db_path:
-            import_stage(db_path, "planned_vuln_tasks", str(work_path / OUTPUT_PARENT / "planned_vuln_tasks"))
 
         vuln_analyze.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
         if db_path:

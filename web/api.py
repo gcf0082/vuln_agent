@@ -93,7 +93,7 @@ def handle_get_project(name):
 
     db_path = str(db.get_project_path(name) / "results.db")
     proj["file_counts"] = {}
-    for stage in ("discovered_surfaces", "analyzed_surfaces", "planned_vuln_tasks", "vuln_findings", "vuln_reviews"):
+    for stage in ("discovered_surfaces", "analyzed_surfaces", "vuln_findings", "vuln_reviews"):
         proj["file_counts"][stage] = db.count_files(db_path, stage)
     return jsonify(proj)
 
@@ -353,7 +353,7 @@ def handle_run_project(name):
 
 @api_bp.route("/projects/<name>/files/<stage>", methods=["GET"])
 def handle_list_files(name, stage):
-    VALID_STAGES = {"discovered_surfaces", "analyzed_surfaces", "planned_vuln_tasks", "vuln_findings", "vuln_reviews"}
+    VALID_STAGES = {"discovered_surfaces", "analyzed_surfaces", "vuln_findings", "vuln_reviews"}
     if stage not in VALID_STAGES:
         return jsonify({"error": f"invalid stage: {stage}"}), 400
 
@@ -368,7 +368,7 @@ def handle_list_files(name, stage):
 def handle_clear_stage(name, stage):
     import shutil
 
-    VALID_STAGES = {"discovered_surfaces", "analyzed_surfaces", "planned_vuln_tasks", "vuln_findings", "vuln_reviews"}
+    VALID_STAGES = {"discovered_surfaces", "analyzed_surfaces", "vuln_findings", "vuln_reviews"}
     if stage not in VALID_STAGES:
         return jsonify({"error": f"invalid stage: {stage}"}), 400
 
@@ -392,7 +392,7 @@ def handle_clear_stage(name, stage):
 def handle_delete_file(name, stage, file_id):
     import shutil
 
-    VALID_STAGES = {"discovered_surfaces", "analyzed_surfaces", "planned_vuln_tasks", "vuln_findings", "vuln_reviews"}
+    VALID_STAGES = {"discovered_surfaces", "analyzed_surfaces", "vuln_findings", "vuln_reviews"}
     if stage not in VALID_STAGES:
         return jsonify({"error": f"invalid stage: {stage}"}), 400
 
@@ -442,7 +442,7 @@ def _extract_surface_stem(filename: str) -> str:
 
 @api_bp.route("/projects/<name>/files/<stage>/<int:file_id>", methods=["GET"])
 def handle_get_file(name, stage, file_id):
-    VALID_STAGES = {"discovered_surfaces", "analyzed_surfaces", "planned_vuln_tasks", "vuln_findings", "vuln_reviews"}
+    VALID_STAGES = {"discovered_surfaces", "analyzed_surfaces", "vuln_findings", "vuln_reviews"}
     if stage not in VALID_STAGES:
         return jsonify({"error": f"invalid stage: {stage}"}), 400
 
@@ -471,8 +471,8 @@ def _stem_and_prefix(stage: str, filename: str) -> dict:
     """
     import re
     s = filename.replace('.md', '')
-    exact: dict[str, set[str]] = {st: set() for st in ("discovered_surfaces", "analyzed_surfaces", "planned_vuln_tasks", "vuln_findings", "vuln_reviews")}
-    prefix: dict[str, set[str]] = {st: set() for st in ("discovered_surfaces", "analyzed_surfaces", "planned_vuln_tasks", "vuln_findings", "vuln_reviews")}
+    exact: dict[str, set[str]] = {st: set() for st in ("discovered_surfaces", "analyzed_surfaces", "vuln_findings", "vuln_reviews")}
+    prefix: dict[str, set[str]] = {st: set() for st in ("discovered_surfaces", "analyzed_surfaces", "vuln_findings", "vuln_reviews")}
 
     # Always include itself
     exact[stage].add(filename)
@@ -485,9 +485,6 @@ def _stem_and_prefix(stage: str, filename: str) -> dict:
         # vuln stem without prefix → {S}-{T}-{V}, strip trailing -\d+ → {S}-{T} (task)
         vuln_stem = re.sub(r"^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-", "", vuln_name.replace(".md", ""), count=1)
         task_stem = _strip_one_number(vuln_stem)
-        task_name = task_stem + ".md"
-        exact["planned_vuln_tasks"].add(task_name)
-
         # task stem without trailing -\d+ → {S} (surface)
         surface_stem = _strip_one_number(task_stem)
         surface_name = surface_stem + ".md"
@@ -499,38 +496,19 @@ def _stem_and_prefix(stage: str, filename: str) -> dict:
         for rev_prefix in ("VULN-", "NOVULN-", "SUSPECTED-"):
             exact["vuln_reviews"].add(rev_prefix + filename)
 
-        # strip VULN- → {S}-{T}-{V}, strip trailing -\d+ → {S}-{T} (task)
+        # strip VULN- → {S}-{T}-{V}, strip trailing -\d+ → {S} (surface)
         vuln_stem = re.sub(r"^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-", "", s, count=1)
-        task_stem = _strip_one_number(vuln_stem)
-        task_name = task_stem + ".md"
-        exact["planned_vuln_tasks"].add(task_name)
-
-        # task stem without trailing -\d+ → {S} (surface)
-        surface_stem = _strip_one_number(task_stem)
+        surface_stem = _strip_one_number(vuln_stem)
         surface_name = surface_stem + ".md"
         exact["analyzed_surfaces"].add(surface_name)
         exact["discovered_surfaces"].add(surface_name)
-
-    elif stage == "planned_vuln_tasks":
-        # {S}-{T}.md → {S}.md (analyzed_surfaces/discovered_surfaces)
-        surface_stem = _strip_one_number(s)
-        surface_name = surface_stem + ".md"
-        exact["analyzed_surfaces"].add(surface_name)
-        exact["discovered_surfaces"].add(surface_name)
-
-        # Prefix: VULN-/DISMISSED-/CLEAN-/SUSPECTED-{S}-{T}- for vulns, VULN-/NOVULN-/SUSPECTED-VULN-{S}-{T}- for reviews
-        for vp in ("VULN-", "DISMISSED-", "CLEAN-", "SUSPECTED-"):
-            prefix["vuln_findings"].add(vp + s)
-        for rp in ("VULN-VULN-", "NOVULN-VULN-", "SUSPECTED-VULN-"):
-            prefix["vuln_reviews"].add(rp + s)
 
     elif stage in ("analyzed_surfaces", "discovered_surfaces"):
         # Exact: the same file is in both stages
         exact["analyzed_surfaces"].add(filename)
         exact["discovered_surfaces"].add(filename)
 
-        # Prefix: {S}- for tasks, VULN-/DISMISSED-/CLEAN-/SUSPECTED-{S} for vulns, VULN-/NOVULN-/SUSPECTED-VULN-{S} for reviews
-        prefix["planned_vuln_tasks"].add(s + "-")
+        # Prefix: VULN-/DISMISSED-/CLEAN-/SUSPECTED-{S} for vulns, VULN-/NOVULN-/SUSPECTED-VULN-{S} for reviews
         for vp in ("VULN-", "DISMISSED-", "CLEAN-", "SUSPECTED-"):
             prefix["vuln_findings"].add(vp + s)
         for rp in ("VULN-VULN-", "NOVULN-VULN-", "SUSPECTED-VULN-"):
@@ -541,7 +519,7 @@ def _stem_and_prefix(stage: str, filename: str) -> dict:
 
 @api_bp.route("/projects/<name>/files/<stage>/<int:file_id>/trace", methods=["GET"])
 def handle_trace_file(name, stage, file_id):
-    VALID_STAGES = {"discovered_surfaces", "analyzed_surfaces", "planned_vuln_tasks", "vuln_findings", "vuln_reviews"}
+    VALID_STAGES = {"discovered_surfaces", "analyzed_surfaces", "vuln_findings", "vuln_reviews"}
     if stage not in VALID_STAGES:
         return jsonify({"error": f"invalid stage: {stage}"}), 400
 
