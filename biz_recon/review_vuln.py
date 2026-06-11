@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Stage 5: review_vuln — challenge-review each vuln finding, parallel."""
+"""Stage 4: review_vuln — challenge-review each vuln finding, parallel."""
 
 import concurrent.futures
 import re
@@ -22,7 +22,7 @@ def run(work_dir: Path, max_workers: int = 3,
         force_list: list[str] | None = None):
     from .workspace import setup_stage_log
     rv_log = setup_stage_log("review_vuln")
-    rv_log(f"\n=== Stage 5: Vulnerability Review ===")
+    rv_log(f"\n=== Stage 4: Vulnerability Review ===")
 
     review_dir = work_dir / OUTPUT_PARENT / "vuln_reviews"
     review_dir.mkdir(parents=True, exist_ok=True)
