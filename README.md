@@ -83,11 +83,11 @@ python3 run.py /target --force-surface "iface-upload-*"
 
 `<分析目标>/.vuln_agent_output` 目录包含各阶段产出的示例文件，可点击查看：
 
-- [Stage 1 攻击面识别](docs/discovered_surfaces/iface-REST-ping.md)
-- [Stage 2 攻击面分析](docs/analyzed_surfaces/iface-REST-ping.md)
-- [Stage 3 漏洞分析任务](docs/planned_vuln_tasks/iface-REST-ping-1.md)
-- [Stage 4 漏洞结论](docs/vuln_findings/VULN-iface-REST-ping-1-1.md)
-- [Stage 5 二次审查](docs/vuln_reviews/VULN-VULN-iface-REST-ping-1-1.md)
+- [Stage 1 攻击面识别](docs/surfaces/iface-REST-ping.md)
+- [Stage 2 攻击面分析](docs/analysis/iface-REST-ping.md)
+- [Stage 3 漏洞分析任务](docs/vuln_tasks/iface-REST-ping-1.md)
+- [Stage 4 漏洞结论](docs/vulnerabilities/VULN-iface-REST-ping-1-1.md)
+- [Stage 5 二次审查](docs/vuln_review/VULN-VULN-iface-REST-ping-1-1.md)
 
 
 ## 日志
