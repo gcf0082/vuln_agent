@@ -313,23 +313,25 @@ def handle_run_project(name):
 
     # Save runtime params and update status
     conn.execute(
-        "UPDATE projects SET collect_prompt=?, analyze_prompt=?, vuln_prompt=?, model=?, agent=?, force_surface=?, status=? WHERE name=?",
-        (data.get("collect_prompt", ""), data.get("analyze_prompt", ""),
-         data.get("vuln_prompt", ""), data.get("model", ""),
-         data.get("agent", ""), data.get("force_surface", ""),
-         "running", name),
+        "UPDATE projects SET recon_prompt=?, flow_prompt=?, vuln_prompt=?, verify_prompt=?, model=?, agent=?, force_surface=?, status=? WHERE name=?",
+        (data.get("recon_prompt", ""), data.get("flow_prompt", ""),
+         data.get("vuln_prompt", ""), data.get("verify_prompt", ""),
+         data.get("model", ""), data.get("agent", ""),
+         data.get("force_surface", ""), "running", name),
     )
     conn.commit()
     conn.close()
 
     # Build command using request params
     cmd = [sys.executable, "run.py", proj["target_dir"], "--project", name]
-    if data.get("collect_prompt"):
-        cmd += ["--collect-prompt", data["collect_prompt"]]
-    if data.get("analyze_prompt"):
-        cmd += ["--analyze-prompt", data["analyze_prompt"]]
+    if data.get("recon_prompt"):
+        cmd += ["--recon-prompt", data["recon_prompt"]]
+    if data.get("flow_prompt"):
+        cmd += ["--flow-prompt", data["flow_prompt"]]
     if data.get("vuln_prompt"):
         cmd += ["--vuln-prompt", data["vuln_prompt"]]
+    if data.get("verify_prompt"):
+        cmd += ["--verify-prompt", data["verify_prompt"]]
     if data.get("model"):
         cmd += ["--model", data["model"]]
     if data.get("agent"):

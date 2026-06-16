@@ -377,9 +377,10 @@ app.component('RunDialog', {
     <div class="modal-overlay" @click.self="$emit('close')">
       <div class="modal-box">
         <h3>启动分析 — {{ projectName }}</h3>
-        <div class="form-group"><label>暴露面收集指令</label><input v-model="form.collect_prompt" placeholder="例：只采集Rest接口"></div>
-        <div class="form-group"><label>攻击面分析指令</label><input v-model="form.analyze_prompt" placeholder="例：分析认证凭据记录日志"></div>
-        <div class="form-group"><label>漏洞分析指令</label><input v-model="form.vuln_prompt" placeholder="例：只分析文件操作相关的模式"></div>
+        <div class="form-group"><label>暴露面收集指令 (recon)</label><input v-model="form.recon_prompt" placeholder="例：只采集Rest接口"></div>
+        <div class="form-group"><label>业务流分析指令 (flow)</label><input v-model="form.flow_prompt" placeholder="例：分析认证凭据记录日志"></div>
+        <div class="form-group"><label>漏洞分析指令 (vuln)</label><input v-model="form.vuln_prompt" placeholder="例：只分析文件操作相关的模式"></div>
+        <div class="form-group"><label>二次审查指令 (verify)</label><input v-model="form.verify_prompt" placeholder="例：重点验证命令注入"></div>
         <div class="form-group"><label>模型</label><input v-model="form.model" placeholder="可选, 如 gpt-4、claude-sonnet-4"></div>
         <div class="form-group">
           <label>Agent</label>
@@ -402,7 +403,7 @@ app.component('RunDialog', {
     const starting = ref(false);
 
     const form = reactive({
-      collect_prompt: '', analyze_prompt: '', vuln_prompt: '',
+      recon_prompt: '', flow_prompt: '', vuln_prompt: '', verify_prompt: '',
       model: '', agent: null, force_surface: '',
     });
 

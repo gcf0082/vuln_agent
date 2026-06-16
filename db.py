@@ -15,13 +15,21 @@ def init_db(db_path: str):
     """Create database and all stage tables if they don't exist."""
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA journal_mode=WAL")
+    # Migrate old schema: add new columns if missing
+    for col in ("recon_prompt", "flow_prompt", "verify_prompt"):
+        try:
+            conn.execute(f"ALTER TABLE projects ADD COLUMN {col} TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS projects (
             name TEXT PRIMARY KEY,
             target_dir TEXT NOT NULL,
-            collect_prompt TEXT DEFAULT '',
-            analyze_prompt TEXT DEFAULT '',
+            recon_prompt TEXT DEFAULT '',
+            flow_prompt TEXT DEFAULT '',
             vuln_prompt TEXT DEFAULT '',
+            verify_prompt TEXT DEFAULT '',
             model TEXT DEFAULT '',
             agent TEXT DEFAULT '',
             force_surface TEXT DEFAULT '',
