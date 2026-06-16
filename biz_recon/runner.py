@@ -83,8 +83,12 @@ def _prepare_stage(work_path: Path, stage: str, overwrite: bool, runner_log) -> 
     if overwrite:
         d = work_path / OUTPUT_PARENT / _STAGE_DIRS[stage]
         if d.exists():
-            shutil.rmtree(d)
-            runner_log(f"  Removed: {OUTPUT_PARENT}/{_STAGE_DIRS[stage]}/")
+            for child in d.iterdir():
+                if child.is_file():
+                    child.unlink()
+                elif child.is_dir():
+                    shutil.rmtree(child)
+            runner_log(f"  Cleared: {OUTPUT_PARENT}/{_STAGE_DIRS[stage]}/")
 
 
 def _run_stage(stage_func, db_path: str | None, stage_key: str,
@@ -189,7 +193,7 @@ def main(work_dir: str | None = None,
         stages = [stage] if stage else ["recon", "flow", "vuln", "verify"]
 
         for s in stages:
-            if overwrite or stage:
+            if (overwrite or stage) and not force_list:
                 _prepare_stage(work_path, s, overwrite, runner_log)
             if s == "recon":
                 _run_stage(surface_discover.run, db_path, "discovered_surfaces",
