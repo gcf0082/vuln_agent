@@ -161,12 +161,13 @@ def main(work_dir: str | None = None,
         force_list = sorted(set(force_list))
         runner_log(f"  Force surfaces ({len(force_list)}): {force_list}")
 
-        # Delete existing products for these surfaces
-        for dirname in ("vuln_findings", "vuln_reviews"):
+        # Delete existing products for these surfaces (per-file, not all)
+        for dirname in ("analyzed_surfaces", "vuln_findings", "vuln_reviews"):
             d = work_path / OUTPUT_PARENT / dirname
             for name in force_list:
                 stem = name.replace(".md", "")
-                for f in d.glob(f"*{stem}*"):
+                pattern = f"{stem}*" if dirname == "analyzed_surfaces" else f"*{stem}*"
+                for f in d.glob(pattern):
                     if f.is_file():
                         f.unlink()
                         runner_log(f"  Removed: {d.name}/{f.name}")
