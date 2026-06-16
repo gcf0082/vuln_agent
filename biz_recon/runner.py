@@ -77,20 +77,14 @@ def _check_stage_deps(work_path: Path, stage: str) -> None:
 def _prepare_stage(work_path: Path, stage: str, overwrite: bool, runner_log) -> None:
     """Prepare stage output directory before execution.
 
-    overwrite=True:  delete entire output directory (fresh start).
-    overwrite=False: only remove done-markers so stage doesn't skip (append mode).
+    overwrite=True:  delete entire output directory for a fresh start.
+    overwrite=False: do nothing (append mode — stage receives force=True to skip internal checks).
     """
     if overwrite:
         d = work_path / OUTPUT_PARENT / _STAGE_DIRS[stage]
         if d.exists():
             shutil.rmtree(d)
             runner_log(f"  Removed: {OUTPUT_PARENT}/{_STAGE_DIRS[stage]}/")
-    marker = _STAGE_MARKERS.get(stage)
-    if marker:
-        m = work_path / OUTPUT_PARENT / marker
-        if m.exists():
-            m.unlink()
-            runner_log(f"  Removed marker: {marker}")
 
 
 def _run_stage(stage_func, db_path: str | None, stage_key: str,
@@ -199,7 +193,8 @@ def main(work_dir: str | None = None,
             if s == "recon":
                 _run_stage(surface_discover.run, db_path, "discovered_surfaces",
                            runner_log, work_path, "discovered_surfaces",
-                           work_dir=work_path, extra_prompt=recon_prompt)
+                           work_dir=work_path, extra_prompt=recon_prompt,
+                           force=bool(stage))
             elif s == "flow":
                 _run_stage(surface_analyze.run, db_path, "analyzed_surfaces",
                            runner_log, work_path, "analyzed_surfaces",

@@ -10,13 +10,13 @@ from .workspace import OUTPUT_PARENT, ensure_dirs, build_vars, log
 DONE_MARKER = ".surface_discover_done"
 
 
-def run(work_dir: Path, extra_prompt: str = ""):
+def run(work_dir: Path, extra_prompt: str = "", force: bool = False):
     from .workspace import setup_stage_log
     sd_log = setup_stage_log("surface_discover")
     sd_log("\n=== Stage 1: Surface Discovery ===")
 
     marker = work_dir / OUTPUT_PARENT / DONE_MARKER
-    if marker.exists():
+    if not force and marker.exists():
         sd_log("  SKIP: already completed (delete .surface_discover_done to redo)")
         return
 
