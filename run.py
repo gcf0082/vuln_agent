@@ -113,19 +113,19 @@ if __name__ == "__main__":
         project_name = _resolve_project(args.project)
         proj_path = get_project_path(project_name)
         proj_path.mkdir(parents=True, exist_ok=True)
-        db_path = proj_path / "results.db"
-        init_db(str(db_path))
-        # Write project metadata
-        import sqlite3
-        conn = sqlite3.connect(str(db_path))
-        conn.execute(
-            "INSERT OR REPLACE INTO projects (name, target_dir, recon_prompt, flow_prompt, vuln_prompt, verify_prompt, model, agent, force_surface) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (project_name, args.work_dir or os.getcwd(),
-             args.recon_prompt, args.flow_prompt, args.vuln_prompt, args.verify_prompt,
-             args.model, args.agent, args.force_surface)
-        )
-        conn.commit()
-        conn.close()
+        # db_path = proj_path / "results.db"
+        # init_db(str(db_path))
+        ## Write project metadata
+        # import sqlite3
+        # conn = sqlite3.connect(str(db_path))
+        # conn.execute(
+        #     "INSERT OR REPLACE INTO projects (name, target_dir, recon_prompt, flow_prompt, vuln_prompt, verify_prompt, model, agent, force_surface) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        #     (project_name, args.work_dir or os.getcwd(),
+        #      args.recon_prompt, args.flow_prompt, args.vuln_prompt, args.verify_prompt,
+        #      args.model, args.agent, args.force_surface)
+        # )
+        # conn.commit()
+        # conn.close()
         main(work_dir=args.work_dir,
              project=project_name,
              recon_prompt=args.recon_prompt,
