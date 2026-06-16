@@ -11,6 +11,7 @@ from pathlib import Path
 
 from . import surface_discover, surface_analyze, vuln_analyze, review_vuln
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, find_surface_files, find_vuln_files
+from db import import_stage
 
 
 def load_config() -> dict:
@@ -88,7 +89,7 @@ def main(work_dir: str | None = None,
     max_workers = config.get("max_workers", 3)
     # Project mode setup
     if project:
-        from db import get_project_path, import_stage
+        from db import get_project_path
         proj_path = get_project_path(project)
         os.environ["OPENCODE_WORK_DIR"] = str(proj_path)
         db_path = str(proj_path / "results.db")
