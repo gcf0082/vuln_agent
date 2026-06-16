@@ -29,13 +29,15 @@ python3 run.py [work_dir] [选项]
 | 参数 | 说明 |
 |------|------|
 | `work_dir` | 目标代码目录（默认当前目录） |
-| `--collect-prompt TEXT` | 暴露面识别阶段追加提示词 |
-| `--analyze-prompt TEXT` | 攻击面深度分析阶段追加提示词 |
-| `--vuln-prompt TEXT` | 漏洞分析及二次审查阶段追加提示词 |
+| `--recon-prompt TEXT` | 暴露面识别阶段追加提示词 |
+| `--flow-prompt TEXT` | 业务流分析阶段追加提示词 |
+| `--vuln-prompt TEXT` | 漏洞分析阶段追加提示词 |
+| `--verify-prompt TEXT` | 二次审查阶段追加提示词 |
 | `--thinking` | 显示 LLM 思考过程 |
 | `--model MODEL` | 指定模型名称（如 `gpt-4`、`claude-sonnet-4`） |
 | `--agent AGENT` | LLM 代理程序名称（`nga` 或 `opencode`），默认自动检测 |
 | `--force-surface FILE` | 强制重新分析指定攻击面（逗号分隔，支持 `*` 通配），会清除已有产物 |
+| `--stage {recon,flow,vuln,verify}` | 只运行单个阶段 |
 | `--test` | 测试 LLM 连通性（询问模型自身名称），不执行管道 |
 
 ### 示例
@@ -45,13 +47,16 @@ python3 run.py [work_dir] [选项]
 python3 run.py /target --model gpt-4
 
 # 暴露面识别阶段追加提示
-python3 run.py /target --collect-prompt "重点关注登录后接口"
+python3 run.py /target --recon-prompt "重点关注登录后接口"
 
-# 攻击面分析阶段追加提示
-python3 run.py /target --analyze-prompt "重点分析参数校验逻辑"
+# 业务流分析阶段追加提示
+python3 run.py /target --flow-prompt "重点分析参数校验逻辑"
 
 # 漏洞分析阶段追加提示
 python3 run.py /target --vuln-prompt "优先分析命令注入和路径穿越"
+
+# 二次审查阶段追加提示
+python3 run.py /target --verify-prompt "重点验证命令注入结论"
 
 # 测试 LLM 连通性
 python3 run.py --test

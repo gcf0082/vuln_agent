@@ -71,12 +71,14 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("work_dir", nargs="?", default=None,
                         help="Target code directory")
-    parser.add_argument("--collect-prompt", default="",
-                        help="Extra prompt appended to the surface-collection stage")
-    parser.add_argument("--analyze-prompt", default="",
-                        help="Extra prompt appended to the surface-analysis stage")
+    parser.add_argument("--recon-prompt", default="",
+                        help="Extra prompt appended to the recon stage (surface discovery)")
+    parser.add_argument("--flow-prompt", default="",
+                        help="Extra prompt appended to the flow stage (surface analysis)")
     parser.add_argument("--vuln-prompt", default="",
-                        help="Extra prompt appended to the vulnerability-analysis and review stage")
+                        help="Extra prompt appended to the vuln stage (vulnerability analysis)")
+    parser.add_argument("--verify-prompt", default="",
+                        help="Extra prompt appended to the verify stage (vulnerability review)")
     parser.add_argument("--thinking", action="store_true",
                         help="Show LLM thinking process")
     parser.add_argument("--force-surface", default="",
@@ -115,18 +117,19 @@ if __name__ == "__main__":
         import sqlite3
         conn = sqlite3.connect(str(db_path))
         conn.execute(
-            "INSERT OR REPLACE INTO projects (name, target_dir, collect_prompt, analyze_prompt, vuln_prompt, model, agent, force_surface) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO projects (name, target_dir, recon_prompt, flow_prompt, vuln_prompt, verify_prompt, model, agent, force_surface) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (project_name, args.work_dir or os.getcwd(),
-             args.collect_prompt, args.analyze_prompt, args.vuln_prompt,
+             args.recon_prompt, args.flow_prompt, args.vuln_prompt, args.verify_prompt,
              args.model, args.agent, args.force_surface)
         )
         conn.commit()
         conn.close()
         main(work_dir=args.work_dir,
              project=project_name,
-             collect_prompt=args.collect_prompt,
-             analyze_prompt=args.analyze_prompt,
+             recon_prompt=args.recon_prompt,
+             flow_prompt=args.flow_prompt,
              vuln_prompt=args.vuln_prompt,
+             verify_prompt=args.verify_prompt,
              thinking=args.thinking,
              force_surface=args.force_surface,
              model=args.model,

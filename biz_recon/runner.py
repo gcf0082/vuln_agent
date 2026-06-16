@@ -73,9 +73,10 @@ def _run_stage(stage_func, db_path: str | None, stage_key: str,
 
 def main(work_dir: str | None = None,
          project: str = "",
-         collect_prompt: str = "",
-         analyze_prompt: str = "",
+         recon_prompt: str = "",
+         flow_prompt: str = "",
          vuln_prompt: str = "",
+         verify_prompt: str = "",
          thinking: bool = False,
          force_surface: str = "",
          model: str = "",
@@ -98,12 +99,14 @@ def main(work_dir: str | None = None,
     runner_log = setup_stage_log("runner")
     runner_log(f"Work directory: {work_path}")
     runner_log(f"Max workers:    {max_workers}")
-    if collect_prompt:
-        runner_log(f"  Collect extra: {collect_prompt[:120]}")
-    if analyze_prompt:
-        runner_log(f"  Analyze extra: {analyze_prompt[:120]}")
+    if recon_prompt:
+        runner_log(f"  Recon extra:   {recon_prompt[:120]}")
+    if flow_prompt:
+        runner_log(f"  Flow extra:    {flow_prompt[:120]}")
     if vuln_prompt:
         runner_log(f"  Vuln extra:    {vuln_prompt[:120]}")
+    if verify_prompt:
+        runner_log(f"  Verify extra:  {verify_prompt[:120]}")
     if thinking:
         os.environ["OPENCODE_THINKING"] = "true"
         runner_log("  Thinking:      show process")
@@ -162,12 +165,12 @@ def main(work_dir: str | None = None,
             if s == "recon":
                 _run_stage(surface_discover.run, db_path, "discovered_surfaces",
                            runner_log, work_path, "discovered_surfaces",
-                           work_dir=work_path, extra_prompt=collect_prompt)
+                           work_dir=work_path, extra_prompt=recon_prompt)
             elif s == "flow":
                 _run_stage(surface_analyze.run, db_path, "analyzed_surfaces",
                            runner_log, work_path, "analyzed_surfaces",
                            work_dir=work_path, max_workers=max_workers,
-                           extra_prompt=analyze_prompt,
+                           extra_prompt=flow_prompt,
                            only_surfaces=force_list or None)
             elif s == "vuln":
                 _run_stage(vuln_analyze.run, db_path, "vuln_findings",
@@ -178,7 +181,7 @@ def main(work_dir: str | None = None,
                 _run_stage(review_vuln.run, db_path, "vuln_reviews",
                            runner_log, work_path, "vuln_reviews",
                            work_dir=work_path, max_workers=max_workers,
-                           extra_prompt=vuln_prompt, force_list=force_list)
+                           extra_prompt=verify_prompt, force_list=force_list)
     except RuntimeError as e:
         if project and db_path:
             conn = sqlite3.connect(db_path)
