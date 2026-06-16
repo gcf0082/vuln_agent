@@ -47,7 +47,7 @@ if [ -n "${OPENCODE_CONFIG:-}" ]; then
     [ "${OPENCODE_THINKING:-}" = "true" ] && THINKING_FLAG="--thinking"
     MODEL_FLAG=""
     [ -n "${LLM_MODEL:-}" ] && MODEL_FLAG="--model $LLM_MODEL"
-    export OPENCODE_PERMISSION='{"read": "allow", "external_directory": {"/*":"allow"}}'
+    export OPENCODE_PERMISSION='{"read":"allow","write":"allow","edit":"allow","command":"allow","browse":"allow","external_directory":{"/*":"allow"}}'
     printf '%s' "$PROMPT" | $LLM_AGENT run --dir "$WORK_DIR" $THINKING_FLAG $MODEL_FLAG
     exit $?
 fi
@@ -81,7 +81,7 @@ if [ ! -f "$OPENCODE_CONFIG" ]; then
 fi
 export OPENCODE_CONFIG
 
-export OPENCODE_PERMISSION='{"read": "allow", "external_directory": {"/*":"allow"}}'
+export OPENCODE_PERMISSION='{"read":"allow","write":"allow","edit":"allow","command":"allow","browse":"allow","external_directory":{"/*":"allow"}}'
 
 THINKING_FLAG=""
 [ "${OPENCODE_THINKING:-}" = "true" ] && THINKING_FLAG="--thinking"
