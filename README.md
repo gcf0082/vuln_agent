@@ -65,6 +65,12 @@ python3 run.py /target --thinking
 
 # 强制重新分析特定攻击面
 python3 run.py /target --force-surface "iface-upload-*"
+
+# 只运行单个阶段
+python3 run.py /target --stage recon    # 仅暴露面识别
+python3 run.py /target --stage flow     # 仅业务流分析
+python3 run.py /target --stage vuln     # 仅漏洞分析
+python3 run.py /target --stage verify   # 仅二次审查
 ```
 
 ## 输出产物

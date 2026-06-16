@@ -89,6 +89,8 @@ def _parse_args() -> argparse.Namespace:
                         help="LLM agent binary (nga or opencode)")
     parser.add_argument("--project", default="",
                         help="Project name for output tracking (auto-generated if omitted)")
+    parser.add_argument("--stage", choices=["recon", "flow", "vuln", "verify"],
+                        help="Run a single pipeline stage only: recon / flow / vuln / verify")
 
     # Show help when no arguments given
     if len(sys.argv) == 1 or sys.argv[1:] == ["--"]:
@@ -128,4 +130,5 @@ if __name__ == "__main__":
              thinking=args.thinking,
              force_surface=args.force_surface,
              model=args.model,
-             agent=args.agent)
+             agent=args.agent,
+             stage=args.stage)

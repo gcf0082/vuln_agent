@@ -39,6 +39,38 @@ def load_config() -> dict:
     return config
 
 
+_STAGE_NAMES = {
+    "recon":  "暴露面识别",
+    "flow":   "业务流分析",
+    "vuln":   "漏洞分析",
+    "verify": "二次审查",
+}
+
+_STAGE_REQUIRES = {
+    "flow":   "discovered_surfaces",
+    "vuln":   "analyzed_surfaces",
+    "verify": "vuln_findings",
+}
+
+
+def _check_stage_deps(work_path: Path, stage: str) -> None:
+    """Check that a single stage's prerequisites exist."""
+    sub = _STAGE_REQUIRES.get(stage)
+    if sub and not (work_path / OUTPUT_PARENT / sub).exists():
+        print(f"Error: --stage {stage} requires {OUTPUT_PARENT}/{sub}/ to exist. "
+              f"Run 'recon' first or run full pipeline.", file=sys.stderr)
+        sys.exit(1)
+
+
+def _run_stage(stage_func, db_path: str | None, stage_key: str,
+               runner_log, work_path: Path, stage_result_key: str, **kwargs):
+    """Run a single stage, import to DB if in project mode."""
+    stage_func(**kwargs)
+    if db_path:
+        import_stage(db_path, stage_key, str(work_path / OUTPUT_PARENT / stage_result_key))
+    runner_log(f"  ✓ {_STAGE_NAMES.get(stage_key, stage_key)}")
+
+
 def main(work_dir: str | None = None,
          project: str = "",
          collect_prompt: str = "",
@@ -47,7 +79,8 @@ def main(work_dir: str | None = None,
          thinking: bool = False,
          force_surface: str = "",
          model: str = "",
-         agent: str = ""):
+         agent: str = "",
+         stage: str = ""):
     work_path = Path(work_dir).resolve() if work_dir else \
                 (Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd())
     config = load_config()
@@ -119,22 +152,33 @@ def main(work_dir: str | None = None,
                     shutil.rmtree(batch_dir)
                     runner_log(f"  Removed: {batch_dir.relative_to(work_path)}")
 
+    if stage:
+        _check_stage_deps(work_path, stage)
+
     try:
-        surface_discover.run(work_path, extra_prompt=collect_prompt)
-        if db_path:
-            import_stage(db_path, "discovered_surfaces", str(work_path / OUTPUT_PARENT / "discovered_surfaces"))
+        stages = [stage] if stage else ["recon", "flow", "vuln", "verify"]
 
-        surface_analyze.run(work_path, max_workers, extra_prompt=analyze_prompt, only_surfaces=force_list or None)
-        if db_path:
-            import_stage(db_path, "analyzed_surfaces", str(work_path / OUTPUT_PARENT / "analyzed_surfaces"))
-
-        vuln_analyze.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
-        if db_path:
-            import_stage(db_path, "vuln_findings", str(work_path / OUTPUT_PARENT / "vuln_findings"))
-
-        review_vuln.run(work_path, max_workers, extra_prompt=vuln_prompt, force_list=force_list)
-        if db_path:
-            import_stage(db_path, "vuln_reviews", str(work_path / OUTPUT_PARENT / "vuln_reviews"))
+        for s in stages:
+            if s == "recon":
+                _run_stage(surface_discover.run, db_path, "discovered_surfaces",
+                           runner_log, work_path, "discovered_surfaces",
+                           work_dir=work_path, extra_prompt=collect_prompt)
+            elif s == "flow":
+                _run_stage(surface_analyze.run, db_path, "analyzed_surfaces",
+                           runner_log, work_path, "analyzed_surfaces",
+                           work_dir=work_path, max_workers=max_workers,
+                           extra_prompt=analyze_prompt,
+                           only_surfaces=force_list or None)
+            elif s == "vuln":
+                _run_stage(vuln_analyze.run, db_path, "vuln_findings",
+                           runner_log, work_path, "vuln_findings",
+                           work_dir=work_path, max_workers=max_workers,
+                           extra_prompt=vuln_prompt, force_list=force_list)
+            elif s == "verify":
+                _run_stage(review_vuln.run, db_path, "vuln_reviews",
+                           runner_log, work_path, "vuln_reviews",
+                           work_dir=work_path, max_workers=max_workers,
+                           extra_prompt=vuln_prompt, force_list=force_list)
     except RuntimeError as e:
         if project and db_path:
             conn = sqlite3.connect(db_path)
