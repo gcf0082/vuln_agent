@@ -90,6 +90,8 @@
 
 `slug` 为文件名去掉 `.md` 后缀，如 `REST-api-users-list.md` 的 slug 为 `REST-api-users-list`。
 
+**如未发现任何攻击面，不得在 discovered_surfaces/ 下创建任何文件。**
+
 ## 排除记录
 
 扫描中遇到被排除的非目标文件（测试代码、构建脚本等），写入 {target_work_dir}/.vuln_agent_output/meta/excluded-paths.md：
