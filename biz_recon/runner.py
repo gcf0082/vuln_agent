@@ -65,13 +65,40 @@ _STAGE_REQUIRES = {
 }
 
 
-def _check_stage_deps(work_path: Path, stage: str) -> None:
-    """Check that a single stage's prerequisites exist."""
-    sub = _STAGE_REQUIRES.get(stage)
-    if sub and not (work_path / OUTPUT_PARENT / sub).exists():
-        print(f"Error: --stage {stage} requires {OUTPUT_PARENT}/{sub}/ to exist. "
-              f"Run 'recon' first or run full pipeline.", file=sys.stderr)
-        sys.exit(1)
+STAGE_ORDER = ["recon", "flow", "vuln", "verify"]
+
+
+def _resolve_stages(work_path: Path, stage: str, force_list: list[str] | None = None) -> list[str]:
+    """Return ordered stage list, auto-adding missing prerequisites."""
+    if not stage:
+        return list(STAGE_ORDER)
+
+    result = []
+    for s in STAGE_ORDER:
+        if s == stage:
+            result.append(s)
+            break
+
+        output_dir = work_path / OUTPUT_PARENT / _STAGE_DIRS[s]
+
+        if s == "recon":
+            need = not (output_dir.exists() and bool(list(output_dir.glob("*.md"))))
+
+        elif force_list:
+            if s == "flow":
+                existing = {f.name for f in output_dir.glob("*.md")} if output_dir.exists() else set()
+                need = not all(n in existing for n in force_list)
+            else:
+                existing = [f.name for f in output_dir.glob("*.md")] if output_dir.exists() else []
+                stems = [n.replace(".md", "") for n in force_list]
+                need = not all(any(s in name for name in existing) for s in stems)
+        else:
+            need = not (output_dir.exists() and bool(list(output_dir.glob("*.md"))))
+
+        if need:
+            result.append(s)
+
+    return result
 
 
 def _prepare_stage(work_path: Path, stage: str, overwrite: bool, runner_log) -> None:
@@ -198,11 +225,10 @@ def main(work_dir: str | None = None,
                         shutil.rmtree(batch_dir)
                         runner_log(f"  Removed: {batch_dir.relative_to(work_path)}")
 
-    if stage:
-        _check_stage_deps(work_path, stage)
-
     try:
-        stages = [stage] if stage else ["recon", "flow", "vuln", "verify"]
+        stages = _resolve_stages(work_path, stage, force_list if raw_list else None)
+        if stage and len(stages) > 1:
+            runner_log(f"  Auto-added dep stages: {[s for s in stages if s != stage]}")
 
         for s in stages:
             if (overwrite or stage) and not force_list:
@@ -211,7 +237,7 @@ def main(work_dir: str | None = None,
                 _run_stage(surface_discover.run, db_path, "discovered_surfaces",
                            runner_log, work_path, "discovered_surfaces",
                            work_dir=work_path, extra_prompt=recon_prompt,
-                           force=bool(stage))
+                                            force=(stage == "recon"))
             elif s == "flow":
                 _run_stage(surface_analyze.run, db_path, "analyzed_surfaces",
                            runner_log, work_path, "analyzed_surfaces",
