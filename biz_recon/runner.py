@@ -216,25 +216,28 @@ def main(work_dir: str | None = None,
         runner_log(f"  Auto-added dep stages: {[s for s in stages if s != stage]}")
 
     for s in stages:
-        if (overwrite or stage) and not force_list:
-            _prepare_stage(work_path, s, overwrite, runner_log)
-        if s == "recon":
-            _run_stage(surface_discover.run, "recon", runner_log,
-                       work_dir=work_path, extra_prompt=recon_prompt,
-                       force=(stage == "recon"))
-        elif s == "flow":
-            _run_stage(surface_analyze.run, "flow", runner_log,
-                       work_dir=work_path, max_workers=max_workers,
-                       extra_prompt=flow_prompt,
-                       only_surfaces=force_list or None)
-        elif s == "vuln":
-            _run_stage(vuln_analyze.run, "vuln", runner_log,
-                       work_dir=work_path, max_workers=max_workers,
-                       extra_prompt=vuln_prompt, force_list=force_list)
-        elif s == "verify":
-            _run_stage(review_vuln.run, "verify", runner_log,
-                       work_dir=work_path, max_workers=max_workers,
-                       extra_prompt=verify_prompt, force_list=force_list)
+        try:
+            if (overwrite or stage) and not force_list:
+                _prepare_stage(work_path, s, overwrite, runner_log)
+            if s == "recon":
+                _run_stage(surface_discover.run, "recon", runner_log,
+                           work_dir=work_path, extra_prompt=recon_prompt,
+                           force=(stage == "recon"))
+            elif s == "flow":
+                _run_stage(surface_analyze.run, "flow", runner_log,
+                           work_dir=work_path, max_workers=max_workers,
+                           extra_prompt=flow_prompt,
+                           only_surfaces=force_list or None)
+            elif s == "vuln":
+                _run_stage(vuln_analyze.run, "vuln", runner_log,
+                           work_dir=work_path, max_workers=max_workers,
+                           extra_prompt=vuln_prompt, force_list=force_list)
+            elif s == "verify":
+                _run_stage(review_vuln.run, "verify", runner_log,
+                           work_dir=work_path, max_workers=max_workers,
+                           extra_prompt=verify_prompt, force_list=force_list)
+        except RuntimeError as e:
+            runner_log(f"  ✗ {_STAGE_NAMES.get(s, s)} 失败: {e}")
 
     runner_log()
     runner_log("=" * 50)
