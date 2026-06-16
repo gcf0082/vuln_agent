@@ -165,8 +165,20 @@ def main(work_dir: str | None = None,
         force_list = sorted(set(force_list))
         runner_log(f"  Force surfaces ({len(force_list)}): {force_list}")
 
-        # Delete existing products for these surfaces (per-file, not all)
-        for dirname in ("analyzed_surfaces", "vuln_findings", "vuln_reviews"):
+        # Determine which dirs to clean based on --stage (only delete what's needed)
+        if stage == "recon":
+            force_dirs: tuple[str, ...] = ()
+            clean_batches = False
+        elif stage:
+            force_dirs = {"flow": ("analyzed_surfaces",),
+                          "vuln": ("vuln_findings",),
+                          "verify": ("vuln_reviews",)}[stage]
+            clean_batches = stage == "flow"
+        else:
+            force_dirs = ("analyzed_surfaces", "vuln_findings", "vuln_reviews")
+            clean_batches = True
+
+        for dirname in force_dirs:
             d = work_path / OUTPUT_PARENT / dirname
             for name in force_list:
                 stem = name.replace(".md", "")
@@ -176,15 +188,15 @@ def main(work_dir: str | None = None,
                         f.unlink()
                         runner_log(f"  Removed: {d.name}/{f.name}")
 
-        # Also clean up batch intermediates
-        meta_batches = work_path / OUTPUT_PARENT / "meta" / "batches"
-        if meta_batches.exists():
-            for name in force_list:
-                stem = name.replace(".md", "")
-                batch_dir = meta_batches / stem
-                if batch_dir.exists():
-                    shutil.rmtree(batch_dir)
-                    runner_log(f"  Removed: {batch_dir.relative_to(work_path)}")
+        if clean_batches:
+            meta_batches = work_path / OUTPUT_PARENT / "meta" / "batches"
+            if meta_batches.exists():
+                for name in force_list:
+                    stem = name.replace(".md", "")
+                    batch_dir = meta_batches / stem
+                    if batch_dir.exists():
+                        shutil.rmtree(batch_dir)
+                        runner_log(f"  Removed: {batch_dir.relative_to(work_path)}")
 
     if stage:
         _check_stage_deps(work_path, stage)
