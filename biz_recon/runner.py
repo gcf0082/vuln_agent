@@ -47,6 +47,17 @@ _STAGE_NAMES = {
     "verify": "二次审查",
 }
 
+_STAGE_DIRS = {
+    "recon":  "discovered_surfaces",
+    "flow":   "analyzed_surfaces",
+    "vuln":   "vuln_findings",
+    "verify": "vuln_reviews",
+}
+
+_STAGE_MARKERS = {
+    "recon": ".surface_discover_done",
+}
+
 _STAGE_REQUIRES = {
     "flow":   "discovered_surfaces",
     "vuln":   "analyzed_surfaces",
@@ -61,6 +72,25 @@ def _check_stage_deps(work_path: Path, stage: str) -> None:
         print(f"Error: --stage {stage} requires {OUTPUT_PARENT}/{sub}/ to exist. "
               f"Run 'recon' first or run full pipeline.", file=sys.stderr)
         sys.exit(1)
+
+
+def _prepare_stage(work_path: Path, stage: str, overwrite: bool, runner_log) -> None:
+    """Prepare stage output directory before execution.
+
+    overwrite=True:  delete entire output directory (fresh start).
+    overwrite=False: only remove done-markers so stage doesn't skip (append mode).
+    """
+    if overwrite:
+        d = work_path / OUTPUT_PARENT / _STAGE_DIRS[stage]
+        if d.exists():
+            shutil.rmtree(d)
+            runner_log(f"  Removed: {OUTPUT_PARENT}/{_STAGE_DIRS[stage]}/")
+    marker = _STAGE_MARKERS.get(stage)
+    if marker:
+        m = work_path / OUTPUT_PARENT / marker
+        if m.exists():
+            m.unlink()
+            runner_log(f"  Removed marker: {marker}")
 
 
 def _run_stage(stage_func, db_path: str | None, stage_key: str,
@@ -82,7 +112,8 @@ def main(work_dir: str | None = None,
          force_surface: str = "",
          model: str = "",
          agent: str = "",
-         stage: str = ""):
+         stage: str = "",
+         overwrite: bool = False):
     work_path = Path(work_dir).resolve() if work_dir else \
                 (Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd())
     config = load_config()
@@ -163,6 +194,8 @@ def main(work_dir: str | None = None,
         stages = [stage] if stage else ["recon", "flow", "vuln", "verify"]
 
         for s in stages:
+            if overwrite or stage:
+                _prepare_stage(work_path, s, overwrite, runner_log)
             if s == "recon":
                 _run_stage(surface_discover.run, db_path, "discovered_surfaces",
                            runner_log, work_path, "discovered_surfaces",

@@ -93,6 +93,8 @@ def _parse_args() -> argparse.Namespace:
                         help="Project name for output tracking (auto-generated if omitted)")
     parser.add_argument("--stage", choices=["recon", "flow", "vuln", "verify"],
                         help="Run a single pipeline stage only: recon / flow / vuln / verify")
+    parser.add_argument("--overwrite", action="store_true",
+                        help="Delete existing stage output before running (with --stage)")
 
     # Show help when no arguments given
     if len(sys.argv) == 1 or sys.argv[1:] == ["--"]:
@@ -134,4 +136,5 @@ if __name__ == "__main__":
              force_surface=args.force_surface,
              model=args.model,
              agent=args.agent,
-             stage=args.stage)
+             stage=args.stage,
+             overwrite=args.overwrite)
