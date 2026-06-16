@@ -38,6 +38,7 @@ python3 run.py [work_dir] [选项]
 | `--agent AGENT` | LLM 代理程序名称（`nga` 或 `opencode`），默认自动检测 |
 | `--force-surface FILE` | 强制重新分析指定攻击面（逗号分隔，支持 `*` 通配），会清除已有产物 |
 | `--stage {recon,flow,vuln,verify}` | 只运行单个阶段 |
+| `--overwrite` | 与 `--stage` 搭配，删除该阶段已有产物后重新执行 |
 | `--test` | 测试 LLM 连通性（询问模型自身名称），不执行管道 |
 
 ### 示例
@@ -76,6 +77,12 @@ python3 run.py /target --stage recon    # 仅暴露面识别
 python3 run.py /target --stage flow     # 仅业务流分析
 python3 run.py /target --stage vuln     # 仅漏洞分析
 python3 run.py /target --stage verify   # 仅二次审查
+
+# 覆盖重跑单个阶段（删除已有产物）
+python3 run.py /target --stage recon --overwrite    # 重新收集暴露面
+python3 run.py /target --stage flow --overwrite     # 重新分析业务流
+python3 run.py /target --stage vuln --overwrite     # 重新漏洞分析
+python3 run.py /target --stage verify --overwrite   # 重新二次审查
 ```
 
 ## 输出产物
