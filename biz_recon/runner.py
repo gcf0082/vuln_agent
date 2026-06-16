@@ -5,13 +5,11 @@
 import fnmatch
 import os
 import shutil
-import sqlite3
 import sys
 from pathlib import Path
 
 from . import surface_discover, surface_analyze, vuln_analyze, review_vuln
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, find_surface_files, find_vuln_files
-from db import import_stage
 
 
 def load_config() -> dict:
@@ -118,17 +116,13 @@ def _prepare_stage(work_path: Path, stage: str, overwrite: bool, runner_log) -> 
             runner_log(f"  Cleared: {OUTPUT_PARENT}/{_STAGE_DIRS[stage]}/")
 
 
-def _run_stage(stage_func, db_path: str | None, stage_key: str,
-               runner_log, work_path: Path, stage_result_key: str, **kwargs):
-    """Run a single stage, import to DB if in project mode."""
+def _run_stage(stage_func, stage_key, runner_log, **kwargs):
+    """Run a single stage."""
     stage_func(**kwargs)
-    # if db_path:
-    #     import_stage(db_path, stage_key, str(work_path / OUTPUT_PARENT / stage_result_key))
     runner_log(f"  ✓ {_STAGE_NAMES.get(stage_key, stage_key)}")
 
 
 def main(work_dir: str | None = None,
-         project: str = "",
          recon_prompt: str = "",
          flow_prompt: str = "",
          vuln_prompt: str = "",
@@ -143,16 +137,7 @@ def main(work_dir: str | None = None,
                 (Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd())
     config = load_config()
     max_workers = config.get("max_workers", 3)
-    # Project mode setup
-    if project:
-        from db import get_project_path
-        proj_path = get_project_path(project)
-        os.environ["OPENCODE_WORK_DIR"] = str(proj_path)
-        db_path = str(proj_path / "results.db")
-        setup_logging(Path.cwd(), log_base=proj_path)
-    else:
-        db_path = None
-        setup_logging(Path.cwd())
+    setup_logging()
     runner_log = setup_stage_log("runner")
     runner_log(f"Work directory: {work_path}")
     runner_log(f"Max workers:    {max_workers}")
@@ -234,41 +219,22 @@ def main(work_dir: str | None = None,
         if (overwrite or stage) and not force_list:
             _prepare_stage(work_path, s, overwrite, runner_log)
         if s == "recon":
-            _run_stage(surface_discover.run, db_path, "discovered_surfaces",
-                       runner_log, work_path, "discovered_surfaces",
+            _run_stage(surface_discover.run, "recon", runner_log,
                        work_dir=work_path, extra_prompt=recon_prompt,
-                             force=(stage == "recon"))
+                       force=(stage == "recon"))
         elif s == "flow":
-            _run_stage(surface_analyze.run, db_path, "analyzed_surfaces",
-                       runner_log, work_path, "analyzed_surfaces",
+            _run_stage(surface_analyze.run, "flow", runner_log,
                        work_dir=work_path, max_workers=max_workers,
                        extra_prompt=flow_prompt,
                        only_surfaces=force_list or None)
         elif s == "vuln":
-            _run_stage(vuln_analyze.run, db_path, "vuln_findings",
-                       runner_log, work_path, "vuln_findings",
+            _run_stage(vuln_analyze.run, "vuln", runner_log,
                        work_dir=work_path, max_workers=max_workers,
                        extra_prompt=vuln_prompt, force_list=force_list)
         elif s == "verify":
-            _run_stage(review_vuln.run, db_path, "vuln_reviews",
-                       runner_log, work_path, "vuln_reviews",
+            _run_stage(review_vuln.run, "verify", runner_log,
                        work_dir=work_path, max_workers=max_workers,
                        extra_prompt=verify_prompt, force_list=force_list)
-    # except RuntimeError as e:
-    #     if project and db_path:
-    #         conn = sqlite3.connect(db_path)
-    #         conn.execute("UPDATE projects SET status=? WHERE name=?", ("error", project))
-    #         conn.commit()
-    #         conn.close()
-    #     runner_log(f"Pipeline aborted: {e}")
-    #     sys.exit(1)
-
-    # After success
-    # if project and db_path:
-    #     conn = sqlite3.connect(db_path)
-    #     conn.execute("UPDATE projects SET status=? WHERE name=?", ("done", project))
-    #     conn.commit()
-    #     conn.close()
 
     runner_log()
     runner_log("=" * 50)
