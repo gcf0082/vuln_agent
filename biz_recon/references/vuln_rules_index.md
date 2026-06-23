@@ -13,7 +13,7 @@
 | 代码特征 | 软件包签名校验 | package-signature-bypass.md |
 | 代码特征 | 数字签名校验 | digital-signature.md |
 | 代码特征 | 解压压缩包 | zip-bomb.md |
-| 其他 | 本地提权分析 | local-privilege-escalation.md |
+| 上下文 | root 运行的脚本/命令存在疑似提权风险操作 | local-privilege-escalation.md |
 | 代码特征 | 执行命令参数可控 | cmd-param-injection.md |
 | 代码特征 | 使用正则表达式 | redos-check.md |
 | 代码特征 | 解密并赋值变量 | decrypt-memory-cleanup.md |
