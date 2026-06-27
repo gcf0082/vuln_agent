@@ -123,7 +123,7 @@ def read_surface_list(work_dir: Path) -> list[SurfaceItem]:
         return items
 
     for f in sorted(collect_dir.glob("*.md")):
-        text = f.read_text()
+        text = f.read_text(encoding="utf-8")
         lines = text.splitlines()
 
         entry = {
