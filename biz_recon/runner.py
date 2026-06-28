@@ -8,7 +8,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from . import surface_discover, surface_analyze, vuln_analyze, review_vuln
+from . import surface_discover, surface_analyze, vuln_planner, vuln_analyze, review_vuln
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, find_surface_files, find_vuln_files
 
 
@@ -38,65 +38,129 @@ def load_config() -> dict:
     return config
 
 
-_STAGE_NAMES = {
-    "recon":  "暴露面识别",
-    "flow":   "业务流分析",
-    "vuln":   "漏洞分析",
-    "verify": "二次审查",
+# ── Stage Registry ──
+
+_STAGE_REGISTRY = {
+    "recon": {
+        "module": surface_discover,
+        "name": "暴露面识别",
+        "dir": "discovered_surfaces",
+        "requires": [],
+        "config_key": None,
+    },
+    "flow": {
+        "module": surface_analyze,
+        "name": "业务流分析",
+        "dir": "analyzed_surfaces",
+        "requires": ["discovered_surfaces"],
+        "config_key": None,
+    },
+    "plan": {
+        "module": vuln_planner,
+        "name": "漏洞分析规划",
+        "dir": "vuln_plans",
+        "requires": ["analyzed_surfaces"],
+        "config_key": "vuln_planning",
+    },
+    "vuln": {
+        "module": vuln_analyze,
+        "name": "漏洞分析",
+        "dir": "vuln_findings",
+        "requires": ["analyzed_surfaces"],
+        "config_key": None,
+    },
+    "verify": {
+        "module": review_vuln,
+        "name": "二次审查",
+        "dir": "vuln_reviews",
+        "requires": ["vuln_findings"],
+        "config_key": None,
+    },
 }
 
-_STAGE_DIRS = {
-    "recon":  "discovered_surfaces",
-    "flow":   "analyzed_surfaces",
-    "vuln":   "vuln_findings",
-    "verify": "vuln_reviews",
-}
+_STAGE_NAMES = {k: v["name"] for k, v in _STAGE_REGISTRY.items()}
+_STAGE_DIRS = {k: v["dir"] for k, v in _STAGE_REGISTRY.items()}
 
-_STAGE_MARKERS = {
-    "recon": ".surface_discover_done",
-}
-
-_STAGE_REQUIRES = {
-    "flow":   "discovered_surfaces",
-    "vuln":   "analyzed_surfaces",
-    "verify": "vuln_findings",
-}
+STAGE_ORDER = _STAGE_NAMES  # insertion-order dict → ordered
 
 
-STAGE_ORDER = ["recon", "flow", "vuln", "verify"]
+def _resolve_stages(work_path: Path, stage: str, force_list: list[str] | None = None,
+                    config: dict | None = None) -> list[str]:
+    """Return ordered stage list, auto-adding missing prerequisites.
 
+    Stages with a config_key set to false in config are skipped,
+    unless explicitly requested via --stage.
+    """
+    if config is None:
+        config = {}
 
-def _resolve_stages(work_path: Path, stage: str, force_list: list[str] | None = None) -> list[str]:
-    """Return ordered stage list, auto-adding missing prerequisites."""
+    all_stages = [s for s in _STAGE_REGISTRY]
+
     if not stage:
-        return list(STAGE_ORDER)
+        stages = list(all_stages)
+    else:
+        stages = []
+        for s in all_stages:
+            if s == stage:
+                stages.append(s)
+                break
 
-    result = []
-    for s in STAGE_ORDER:
-        if s == stage:
-            result.append(s)
-            break
+            entry = _STAGE_REGISTRY[s]
+            output_dir = work_path / OUTPUT_PARENT / entry["dir"]
 
-        output_dir = work_path / OUTPUT_PARENT / _STAGE_DIRS[s]
-
-        if s == "recon":
-            need = not (output_dir.exists() and bool(list(output_dir.glob("*.md"))))
-
-        elif force_list:
-            if s == "flow":
-                existing = {f.name for f in output_dir.glob("*.md")} if output_dir.exists() else set()
-                need = not all(n in existing for n in force_list)
+            if s == "recon":
+                need = not (output_dir.exists() and bool(list(output_dir.rglob("*.md"))))
+            elif force_list:
+                if s == "flow":
+                    existing = {f.name for f in output_dir.glob("*.md")} if output_dir.exists() else set()
+                    need = not all(n in existing for n in force_list)
+                elif s == "plan":
+                    stems = [n.replace(".md", "") for n in force_list]
+                    need = not all((output_dir / stem).exists() for stem in stems)
+                else:
+                    existing = [f.name for f in output_dir.glob("*.md")] if output_dir.exists() else []
+                    stems = [n.replace(".md", "") for n in force_list]
+                    need = not all(any(s in name for name in existing) for s in stems)
             else:
-                existing = [f.name for f in output_dir.glob("*.md")] if output_dir.exists() else []
-                stems = [n.replace(".md", "") for n in force_list]
-                need = not all(any(s in name for name in existing) for s in stems)
+                need = not (output_dir.exists() and bool(list(output_dir.rglob("*.md"))))
+
+            if need:
+                stages.append(s)
+
+    # Filter disabled stages (config_key=false) unless explicitly requested
+    return [s for s in stages
+            if s == stage or _stage_enabled(s, config)]
+
+
+def _force_clean_stage(work_path: Path, stage_key: str, force_list: list[str],
+                        runner_log) -> None:
+    """Remove existing outputs for force-listed surfaces in a given stage."""
+    dirname = _STAGE_REGISTRY[stage_key]["dir"]
+    d = work_path / OUTPUT_PARENT / dirname
+    for name in force_list:
+        stem = name.replace(".md", "")
+        if stage_key == "plan":
+            subdir = d / stem
+            if subdir.exists():
+                shutil.rmtree(subdir)
+                runner_log(f"  Removed: {d.name}/{stem}/")
         else:
-            need = not (output_dir.exists() and bool(list(output_dir.glob("*.md"))))
+            pattern = f"{stem}*" if stage_key == "flow" else f"*{stem}*"
+            for f in d.glob(pattern):
+                if f.is_file():
+                    f.unlink()
+                    runner_log(f"  Removed: {d.name}/{f.name}")
 
-        if need:
-            result.append(s)
 
-    return result
+def _stage_enabled(stage_key: str, config: dict) -> bool:
+    """Check if a stage is enabled in config."""
+    entry = _STAGE_REGISTRY.get(stage_key)
+    if not entry:
+        return True
+    key = entry.get("config_key")
+    if key is None:
+        return True
+    return config.get(key, True)
 
 
 def _prepare_stage(work_path: Path, stage: str, overwrite: bool, runner_log) -> None:
@@ -177,28 +241,19 @@ def main(work_dir: str | None = None,
         force_list = sorted(set(force_list))
         runner_log(f"  Force surfaces ({len(force_list)}): {force_list}")
 
-        # Determine which dirs to clean based on --stage (only delete what's needed)
+        # Clean existing outputs for forced surfaces
         if stage == "recon":
-            force_dirs: tuple[str, ...] = ()
+            clean_stages: list[str] = []
             clean_batches = False
         elif stage:
-            force_dirs = {"flow": ("analyzed_surfaces",),
-                          "vuln": ("vuln_findings",),
-                          "verify": ("vuln_reviews",)}[stage]
+            clean_stages = [stage]
             clean_batches = stage == "flow"
         else:
-            force_dirs = ("analyzed_surfaces", "vuln_findings", "vuln_reviews")
+            clean_stages = ["flow", "plan", "vuln", "verify"]
             clean_batches = True
 
-        for dirname in force_dirs:
-            d = work_path / OUTPUT_PARENT / dirname
-            for name in force_list:
-                stem = name.replace(".md", "")
-                pattern = f"{stem}*" if dirname == "analyzed_surfaces" else f"*{stem}*"
-                for f in d.glob(pattern):
-                    if f.is_file():
-                        f.unlink()
-                        runner_log(f"  Removed: {d.name}/{f.name}")
+        for s_key in clean_stages:
+            _force_clean_stage(work_path, s_key, force_list, runner_log)
 
         if clean_batches:
             meta_batches = work_path / OUTPUT_PARENT / "meta" / "batches"
@@ -211,31 +266,38 @@ def main(work_dir: str | None = None,
                         runner_log(f"  Removed: {batch_dir.relative_to(work_path)}")
 
     # try:
-    stages = _resolve_stages(work_path, stage, force_list if raw_list else None)
+    stages = _resolve_stages(work_path, stage, force_list if raw_list else None,
+                              config=config)
     if stage and len(stages) > 1:
         runner_log(f"  Auto-added dep stages: {[s for s in stages if s != stage]}")
+
+    _STAGE_DISPATCH = {
+        "recon":  (surface_discover.run,
+                   {"work_dir": work_path, "extra_prompt": recon_prompt,
+                    "force": stage == "recon"}),
+        "flow":   (surface_analyze.run,
+                   {"work_dir": work_path, "max_workers": max_workers,
+                    "extra_prompt": flow_prompt,
+                    "only_surfaces": force_list or None}),
+        "plan":   (vuln_planner.run,
+                   {"work_dir": work_path, "max_workers": max_workers,
+                    "extra_prompt": vuln_prompt}),
+        "vuln":   (vuln_analyze.run,
+                   {"work_dir": work_path, "max_workers": max_workers,
+                    "extra_prompt": vuln_prompt,
+                    "force_list": force_list}),
+        "verify": (review_vuln.run,
+                   {"work_dir": work_path, "max_workers": max_workers,
+                    "extra_prompt": verify_prompt,
+                    "force_list": force_list}),
+    }
 
     for s in stages:
         try:
             if (overwrite or stage) and not force_list:
                 _prepare_stage(work_path, s, overwrite, runner_log)
-            if s == "recon":
-                _run_stage(surface_discover.run, "recon", runner_log,
-                           work_dir=work_path, extra_prompt=recon_prompt,
-                           force=(stage == "recon"))
-            elif s == "flow":
-                _run_stage(surface_analyze.run, "flow", runner_log,
-                           work_dir=work_path, max_workers=max_workers,
-                           extra_prompt=flow_prompt,
-                           only_surfaces=force_list or None)
-            elif s == "vuln":
-                _run_stage(vuln_analyze.run, "vuln", runner_log,
-                           work_dir=work_path, max_workers=max_workers,
-                           extra_prompt=vuln_prompt, force_list=force_list)
-            elif s == "verify":
-                _run_stage(review_vuln.run, "verify", runner_log,
-                           work_dir=work_path, max_workers=max_workers,
-                           extra_prompt=verify_prompt, force_list=force_list)
+            func, kwargs = _STAGE_DISPATCH.get(s)
+            _run_stage(func, s, runner_log, **kwargs)
         except RuntimeError as e:
             runner_log(f"  ✗ {_STAGE_NAMES.get(s, s)} 失败: {e}")
 

@@ -97,7 +97,7 @@ def log(msg: str = ""):
 
 
 def ensure_dirs(work_dir: Path):
-    for d in ["discovered_surfaces", "analyzed_surfaces", "vuln_findings", "vuln_reviews", "meta/error"]:
+    for d in ["discovered_surfaces", "analyzed_surfaces", "vuln_plans", "vuln_findings", "vuln_reviews", "meta/error"]:
         (work_dir / OUTPUT_PARENT / d).mkdir(parents=True, exist_ok=True)
 
 

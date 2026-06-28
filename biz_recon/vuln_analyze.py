@@ -17,6 +17,25 @@ def _surface_has_vuln_output(surface_stem: str, vuln_dir: Path) -> bool:
     return any(pattern.match(f.name) for f in vuln_dir.iterdir())
 
 
+def _resolve_prompt_name_and_plan(surface_stem: str, plans_dir: Path) -> tuple[str, str]:
+    """Determine which prompt template to use based on planner output.
+
+    Returns (prompt_name, plan_content).
+    If no plan file found, defaults to standard analysis.
+    """
+    plan_dir = plans_dir / surface_stem
+
+    high_risk_file = plan_dir / "high-risk.md"
+    if high_risk_file.exists():
+        return "analyze-vulnerability-deep.txt", high_risk_file.read_text(encoding="utf-8")
+
+    standard_file = plan_dir / "standard.md"
+    if standard_file.exists():
+        return "analyze-vulnerability.txt", standard_file.read_text(encoding="utf-8")
+
+    return "analyze-vulnerability.txt", ""
+
+
 def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
         force_list: list[str] | None = None):
@@ -37,6 +56,7 @@ def run(work_dir: Path, max_workers: int = 3,
         return find_vuln_files(work_dir)
 
     vuln_dir = work_dir / OUTPUT_PARENT / "vuln_findings"
+    plans_dir = work_dir / OUTPUT_PARENT / "vuln_plans"
 
     if force_list:
         stems = [n.replace(".md", "") for n in force_list]
@@ -61,12 +81,18 @@ def run(work_dir: Path, max_workers: int = 3,
     def analyze_one(sf_path):
         ao_log = setup_stage_log("vuln_analyze", sf_path.name)
         ao_log(f"  ▶ {sf_path.name}")
+
+        prompt_name, plan_content = _resolve_prompt_name_and_plan(sf_path.stem, plans_dir)
+        deep = prompt_name == "analyze-vulnerability-deep.txt"
+        ao_log(f"  Depth: {'deep' if deep else 'standard'}")
+
         local_vars = {**vars,
             "surface_file": sf_path.name,
             "surface_stem": sf_path.stem,
             "extra_prompt": extras,
+            "analysis_plan": plan_content,
         }
-        prompt = read_prompt("analyze-vulnerability.txt", local_vars)
+        prompt = read_prompt(prompt_name, local_vars)
 
         from .workspace import set_prompt_log_path
         set_prompt_log_path("vuln_analyze", sf_path.name)

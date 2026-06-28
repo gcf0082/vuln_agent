@@ -20,5 +20,8 @@ vuln_re_analysis: false
 # Whether to allow access to sibling directories when tracing code
 allow_sibling_access: true
 
+# Whether to run vulnerability analysis planning (analyzes surfaces and classifies risk level before deep analysis)
+vuln_planning: true
+
 # Max concurrent threads for parallel analysis stages
 max_workers: 3
