@@ -20,6 +20,28 @@ python3 run.py /path/to/target
 python3 run.py
 ```
 
+## 工具使用建议
+
+执行完整管道前，建议先用 `--test` 测试 LLM 连通性：
+
+```bash
+python3 run.py --test
+python3 run.py --test --model w3/MiniMax-M2.7
+```
+
+确认输出为模型自身名称后再执行完整分析。
+
+逐阶段推进建议：
+
+```bash
+# 先跑暴露面识别，确认结果符合预期
+python3 run.py /target --stage recon --overwrite
+
+# 逐步推进
+python3 run.py /target --stage flow --overwrite
+python3 run.py /target --stage vuln --overwrite
+```
+
 ## 命令行参数
 
 ```bash
@@ -34,7 +56,7 @@ python3 run.py [work_dir] [选项]
 | `--vuln-prompt TEXT` | 漏洞分析阶段追加提示词 |
 | `--verify-prompt TEXT` | 二次审查阶段追加提示词 |
 | `--thinking` | 显示 LLM 思考过程 |
-| `--model MODEL` | 指定模型名称（如 `gpt-4`、`claude-sonnet-4`） |
+| `--model MODEL` | 指定模型名称 |
 | `--agent AGENT` | LLM 代理程序名称（`nga` 或 `opencode`），默认自动检测 |
 | `--force-surface FILE` | 强制重新分析指定攻击面（逗号分隔，支持 `*` 通配），会清除已有产物 |
 | `--stage {recon,flow,vuln,verify}` | 只运行单个阶段 |
@@ -45,7 +67,7 @@ python3 run.py [work_dir] [选项]
 
 ```bash
 # 指定模型运行完整管道
-python3 run.py /target --model gpt-4
+python3 run.py /target --model w3/MiniMax-M2.7
 
 # 暴露面识别阶段追加提示
 python3 run.py /target --recon-prompt "重点关注登录后接口"
@@ -61,7 +83,7 @@ python3 run.py /target --verify-prompt "重点验证命令注入结论"
 
 # 测试 LLM 连通性
 python3 run.py --test
-python3 run.py --test --model gpt-4 --agent nga
+python3 run.py --test --model w3/MiniMax-M2.7
 
 # 指定代理程序
 python3 run.py /target --agent opencode
@@ -121,4 +143,12 @@ logs/
 ```
 
 各阶段日志文件按 `{时间戳}_{阶段}_{文件名}` 命名，并行执行时为每个分析目标独立生成日志文件，避免多线程日志交错。
+
+## 后续规划
+
+- 多语言解析引擎（Tree-sitter 集成）
+- 支持 C/C++/Go/Python 等更多语言
+- 增量分析（仅分析变更代码）
+- 结果聚合与去重
+- CI/CD 集成模式
 
