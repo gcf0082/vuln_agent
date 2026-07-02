@@ -29,6 +29,12 @@ python3 run.py
    python3 run.py --test --model w3/MiniMax-M2.7
    ```
 
+   确认输出为模型自身名称后，直接执行完整分析：
+
+   ```bash
+   python3 run.py /path/to/target
+   ```
+
 2. **善用断点续跑** — 各阶段产物持久化在 `.vuln_agent_output/` 下，已完成的阶段不会重复执行。例如暴露面识别完成后退出，再次运行 `python3 run.py /target` 会自动跳过 `recon` 从 `flow` 继续。需重跑某阶段时用 `--stage` + `--overwrite`。
 
 3. **提高暴露面识别精度** — `--recon-prompt` 可根据产品类型调整扫描焦点，减少无关噪声。默认扫描会收集所有类型入口（REST/MQ/CLI/脚本等），但不同产品的暴露面差异很大：
