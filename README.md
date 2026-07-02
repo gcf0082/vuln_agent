@@ -42,6 +42,16 @@ python3 run.py /target --stage flow --overwrite
 python3 run.py /target --stage vuln --overwrite
 ```
 
+各阶段产物持久化保存在 `.vuln_agent_output/` 下，已完成的阶段不会重复执行。例如暴露面识别完成后退出，再次运行 `python3 run.py /target` 会自动跳过 `recon` 从 `flow` 继续。需重跑某阶段时使用 `--stage` + `--overwrite`。
+
+`--recon-prompt` 用于补充产品特有的暴露面特征，让识别更精准。默认扫描会收集所有类型入口（REST/MQ/CLI/脚本等），但不同产品的暴露面差异很大：
+
+- 纯 REST 后端 → 只需采集 Controller 接口，不应收集脚本
+- 数据处理管道 → 应重点关注 MQ 消费者和文件监听
+- CLI 工具 → 只应收集命令行入口
+
+通过 `--recon-prompt` 指定范围（如 `"只采集 REST 接口"`），能显著减少噪声，提高后续分析效率。
+
 ## 命令行参数
 
 ```bash
