@@ -112,7 +112,6 @@ python3 run.py /target --stage verify --overwrite   # 重新二次审查
 ├── analyzed_surfaces/     # Stage 2 (surface_analyze): 攻击面深度分析（含流程图、数据流追踪）
 ├── vuln_findings/         # Stage 3 (vuln_analyze): 漏洞结论（VULN-/DISMISSED-/CLEAN-/SUSPECTED-）
 ├── vuln_reviews/          # Stage 4 (review_vuln): 二次审查结论（VULN-/NOVULN-/SUSPECTED-）
-└── meta/                  # 排除路径记录、中间分析产物
 ```
 
 ## 示例产物
@@ -125,27 +124,4 @@ python3 run.py /target --stage verify --overwrite   # 重新二次审查
 - [Stage 4 二次审查](docs/vuln_review/VULN-VULN-iface-REST-ping-1-1.md)
 
 
-## 日志
-
-```
-logs/
-├── prompts/               # 每次 LLM 调用的完整提示词，按时间戳命名
-│   └── 20260601_120030_123_prompt.txt
-├── 20260601_120030_runner.log       # 管道级运行日志
-├── 20260601_120030_collect.log      # Stage 1 暴露面收集
-├── 20260601_120030_analyze.log      # Stage 2 攻击面分析
-├── 20260601_120030_taskplan.log     # Stage 2.5 任务规划
-├── 20260601_120030_vuln.log         # Stage 3 漏洞分析
-└── 20260601_120030_review.log       # Stage 4 二次审查
-```
-
-各阶段日志文件按 `{时间戳}_{阶段}_{文件名}` 命名，并行执行时为每个分析目标独立生成日志文件，避免多线程日志交错。
-
-## 后续规划
-
-- 多语言解析引擎（Tree-sitter 集成）
-- 支持 C/C++/Go/Python 等更多语言
-- 增量分析（仅分析变更代码）
-- 结果聚合与去重
-- CI/CD 集成模式
 
