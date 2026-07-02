@@ -17,4 +17,4 @@ export OPENCODE_DISABLE_DEFAULT_PLUGINS=true
 export OPENCODE_DISABLE_AUTOUPDATE=true
 
 # 透传命令行参数，打开交互式会话
-exec $LLM_AGENT "$@"
+exec $LLM_AGENT --pure "$@"
