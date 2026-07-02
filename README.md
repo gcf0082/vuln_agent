@@ -31,17 +31,6 @@ python3 run.py --test --model w3/MiniMax-M2.7
 
 确认输出为模型自身名称后再执行完整分析。
 
-逐阶段推进建议：
-
-```bash
-# 先跑暴露面识别，确认结果符合预期
-python3 run.py /target --stage recon --overwrite
-
-# 逐步推进
-python3 run.py /target --stage flow --overwrite
-python3 run.py /target --stage vuln --overwrite
-```
-
 各阶段产物持久化保存在 `.vuln_agent_output/` 下，已完成的阶段不会重复执行。例如暴露面识别完成后退出，再次运行 `python3 run.py /target` 会自动跳过 `recon` 从 `flow` 继续。需重跑某阶段时使用 `--stage` + `--overwrite`。
 
 `--recon-prompt` 用于补充产品特有的暴露面特征，让识别更精准。默认扫描会收集所有类型入口（REST/MQ/CLI/脚本等），但不同产品的暴露面差异很大：
