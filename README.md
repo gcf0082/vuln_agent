@@ -70,7 +70,7 @@ python3 run.py [work_dir] [选项]
 python3 run.py /target --model w3/MiniMax-M2.7
 
 # 暴露面识别阶段追加提示
-python3 run.py /target --recon-prompt "重点关注登录后接口"
+python3 run.py /target --recon-prompt "只采集REST接口，不要采集脚本"
 
 # 业务流分析阶段追加提示
 python3 run.py /target --flow-prompt "重点分析参数校验逻辑"
