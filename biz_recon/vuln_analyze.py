@@ -17,6 +17,25 @@ def _surface_has_vuln_output(surface_stem: str, vuln_dir: Path) -> bool:
     return any(pattern.match(f.name) for f in vuln_dir.iterdir())
 
 
+def _read_high_risk_plan(plans_dir: Path, surface_stem: str) -> str:
+    """Read high-risk plan files and return combined content for exclusion.
+
+    Returns empty string if no high-risk plan files exist.
+    """
+    plan_dir = plans_dir / surface_stem
+    high_risk_files = sorted(plan_dir.glob("high-risk-*.md"))
+    if not high_risk_files:
+        return ""
+    plan_content = "\n\n---\n\n".join(
+        f.read_text(encoding="utf-8") for f in high_risk_files
+    )
+    return (
+        "## 已在高危分析中覆盖的项\n\n"
+        f"{plan_content}\n\n"
+        "**跳过说明**：上列分析点已在深度追踪中覆盖并产出结论文件，请跳过，不要重复分析。\n"
+    )
+
+
 def _resolve_prompt_name_and_plan(surface_stem: str, plans_dir: Path) -> tuple[str, str]:
     """Determine which prompt template to use based on planner output.
 
@@ -25,9 +44,12 @@ def _resolve_prompt_name_and_plan(surface_stem: str, plans_dir: Path) -> tuple[s
     """
     plan_dir = plans_dir / surface_stem
 
-    high_risk_file = plan_dir / "high-risk.md"
-    if high_risk_file.exists():
-        return "analyze-vulnerability-deep.txt", high_risk_file.read_text(encoding="utf-8")
+    high_risk_files = sorted(plan_dir.glob("high-risk-*.md"))
+    if high_risk_files:
+        plan_content = "\n\n---\n\n".join(
+            f.read_text(encoding="utf-8") for f in high_risk_files
+        )
+        return "analyze-vulnerability-deep.txt", plan_content
 
     standard_file = plan_dir / "standard.md"
     if standard_file.exists():
@@ -78,31 +100,55 @@ def run(work_dir: Path, max_workers: int = 3,
     extras = f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else ""
     failures: list[str] = []
 
-    def analyze_one(sf_path):
+    def _run_one(sf_path, prompt_name, extra_vars, log_suffix=""):
         ao_log = setup_stage_log("vuln_analyze", sf_path.name)
-        ao_log(f"  ▶ {sf_path.name}")
-
-        prompt_name, plan_content = _resolve_prompt_name_and_plan(sf_path.stem, plans_dir)
-        deep = prompt_name == "analyze-vulnerability-deep.txt"
-        ao_log(f"  Depth: {'deep' if deep else 'standard'}")
+        label = f"{sf_path.name}{log_suffix}"
+        ao_log(f"  ▶ {label}")
 
         local_vars = {**vars,
             "surface_file": sf_path.name,
             "surface_stem": sf_path.stem,
             "extra_prompt": extras,
-            "analysis_plan": plan_content,
+            **extra_vars,
         }
         prompt = read_prompt(prompt_name, local_vars)
 
         from .workspace import set_prompt_log_path
-        set_prompt_log_path("vuln_analyze", sf_path.name)
+        set_prompt_log_path("vuln_analyze", label)
         client = OpenCodeClient()
         result = client.run(prompt)
         if result.exit_code != 0:
-            ao_log(f"  ✗ {sf_path.name}")
+            ao_log(f"  ✗ {label}")
             return False
-        ao_log(f"  ✓ {sf_path.name}")
+        ao_log(f"  ✓ {label}")
         return True
+
+    def analyze_one(sf_path):
+        prompt_name, plan_content = _resolve_prompt_name_and_plan(sf_path.stem, plans_dir)
+        deep = prompt_name == "analyze-vulnerability-deep.txt"
+
+        if not deep:
+            # standard analysis only (no high-risk plan)
+            ok = _run_one(sf_path, prompt_name, {
+                "analysis_plan": plan_content,
+                "excluded_plan": "",
+            })
+        else:
+            # pass 1: deep analysis for high-risk items
+            ok = _run_one(sf_path, "analyze-vulnerability-deep.txt", {
+                "analysis_plan": plan_content,
+                "excluded_plan": "",
+            }, " [deep]")
+            if not ok:
+                return False
+            # pass 2: standard analysis for remaining items, skipping high-risk
+            excluded = _read_high_risk_plan(plans_dir, sf_path.stem)
+            ok = _run_one(sf_path, "analyze-vulnerability.txt", {
+                "analysis_plan": "",
+                "excluded_plan": excluded,
+            }, " [standard]")
+
+        return ok
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
         for sf_path, ok in zip(surface_files, pool.map(analyze_one, surface_files)):

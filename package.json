@@ -1,6 +1,28 @@
 {
+  "name": "vuln_agent",
+  "version": "1.0.0",
+  "description": "基于 LLM 的多阶段源码分析工具，从源码发现攻击面、追踪数据流、识别潜在漏洞并二次验证。",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gcf0082/vuln_agent.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/gcf0082/vuln_agent/issues"
+  },
+  "homepage": "https://github.com/gcf0082/vuln_agent#readme",
   "dependencies": {
-    "@anthropic-ai/claude-code": "^2.1.141",
-    "puppeteer": "^25.1.0"
+    "pptxgenjs": "^4.0.1"
   }
 }
