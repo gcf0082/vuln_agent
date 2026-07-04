@@ -89,7 +89,7 @@ def run(work_dir: Path, max_workers: int = 3,
             return find_vuln_files(work_dir)
         va_log(f"  Force re-analyzing {len(surface_files)} surface(s): {[f.name for f in surface_files]}")
     elif min_level != "standard":
-        # risk-first mode: re-analyze all surfaces (per-level filtering in analyze_one)
+        # --min-level mode: re-analyze all surfaces (per-level filtering in analyze_one)
         pass
     else:
         need_analysis = [f for f in surface_files if not _surface_has_vuln_output(f.stem, vuln_dir)]
@@ -133,7 +133,7 @@ def run(work_dir: Path, max_workers: int = 3,
         lvl = _plan_file_level(pf)
         if risk_first:
             return lvl == min_level_num
-        return lvl >= min_level_num
+        return lvl <= min_level_num
 
     def analyze_one(sf_path):
         plan_dir = plans_dir / sf_path.stem
