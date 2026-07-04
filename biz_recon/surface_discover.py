@@ -10,7 +10,8 @@ from .workspace import OUTPUT_PARENT, ensure_dirs, build_vars, log
 DONE_MARKER = ".surface_discover_done"
 
 
-def run(work_dir: Path, extra_prompt: str = "", force: bool = False):
+def run(work_dir: Path, extra_prompt: str = "", force: bool = False,
+        thinking: bool = False):
     from .workspace import setup_stage_log
     sd_log = setup_stage_log("surface_discover")
     sd_log("\n=== Stage 1: Surface Discovery ===")
@@ -37,7 +38,7 @@ def run(work_dir: Path, extra_prompt: str = "", force: bool = False):
     from .workspace import set_prompt_log_path
     set_prompt_log_path("surface_discover")
     client = OpenCodeClient()
-    result = client.run(prompt)
+    result = client.run(prompt, verbose=thinking)
     sd_log(f"  exit={result.exit_code}")
     if result.exit_code != 0:
         raise RuntimeError(f"Surface discovery failed (exit={result.exit_code})")

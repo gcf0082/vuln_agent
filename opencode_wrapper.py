@@ -210,7 +210,7 @@ class OpenCodeClient:
             proc.stdin.write(prompt.encode("utf-8"))
             proc.stdin.close()
 
-            # Read and print stdout chunk by chunk (real-time streaming)
+            # Read stdout chunk by chunk (only print when verbose)
             output_chunks: list[str] = []
             assert proc.stdout is not None
             while True:
@@ -218,7 +218,8 @@ class OpenCodeClient:
                 if not chunk:
                     break
                 decoded = chunk.decode("utf-8", errors="replace")
-                print(decoded, end="", flush=True)
+                if verbose:
+                    print(decoded, end="", flush=True)
                 output_chunks.append(decoded)
 
             full_text = "".join(output_chunks).strip()
@@ -256,7 +257,7 @@ class OpenCodeClient:
                 env=env,
             )
 
-            # Read and print stdout chunk by chunk (real-time streaming)
+            # Read stdout chunk by chunk (only print when verbose)
             output_chunks: list[str] = []
             assert proc.stdout is not None
             while True:
@@ -264,7 +265,8 @@ class OpenCodeClient:
                 if not chunk:
                     break
                 decoded = chunk.decode("utf-8", errors="replace")
-                print(decoded, end="", flush=True)
+                if verbose:
+                    print(decoded, end="", flush=True)
                 output_chunks.append(decoded)
 
             full_text = "".join(output_chunks).strip()

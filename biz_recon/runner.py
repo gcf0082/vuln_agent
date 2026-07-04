@@ -302,22 +302,26 @@ def main(work_dir: str | None = None,
     _STAGE_DISPATCH = {
         "recon":  (surface_discover.run,
                    {"work_dir": work_path, "extra_prompt": recon_prompt,
-                    "force": stage == "recon"}),
+                    "force": stage == "recon", "thinking": thinking}),
         "flow":   (surface_analyze.run,
                    {"work_dir": work_path, "max_workers": max_workers,
                     "extra_prompt": flow_prompt,
-                    "only_surfaces": force_list or None}),
+                    "only_surfaces": force_list or None,
+                    "thinking": thinking}),
         "plan":   (vuln_planner.run,
                    {"work_dir": work_path, "max_workers": max_workers,
-                    "extra_prompt": vuln_prompt}),
+                    "extra_prompt": vuln_prompt,
+                    "thinking": thinking}),
         "vuln":   (vuln_analyze.run,
                    {"work_dir": work_path, "max_workers": max_workers,
                     "extra_prompt": vuln_prompt,
-                    "force_list": force_list}),
+                    "force_list": force_list,
+                    "thinking": thinking}),
         "verify": (review_vuln.run,
                    {"work_dir": work_path, "max_workers": max_workers,
                     "extra_prompt": verify_prompt,
-                    "force_list": force_list}),
+                    "force_list": force_list,
+                    "thinking": thinking}),
     }
 
     failed_stages: list[str] = []
@@ -325,11 +329,12 @@ def main(work_dir: str | None = None,
     # Determine whether to use priority batching for vuln+verify
     plans_dir = work_path / OUTPUT_PARENT / "vuln_plans"
     analysis_dir = work_path / OUTPUT_PARENT / "analyzed_surfaces"
+    plan_in_stages = "plan" in stages
     use_priority_batch = (
         not force_list
         and "vuln" in stages
         and "verify" in stages
-        and plans_dir.exists()
+        and (plans_dir.exists() or plan_in_stages)
     )
 
     # Stage loop (recon, flow, plan; skip vuln+verify if using priority batching)
@@ -346,7 +351,7 @@ def main(work_dir: str | None = None,
             runner_log(f"  ✗ {_STAGE_NAMES.get(s, s)} 失败: {e}")
 
     # Priority-batched vuln+verify: per-surface analysis → immediate review
-    if use_priority_batch:
+    if use_priority_batch and plans_dir.exists():
         import concurrent.futures as cf
         priority_groups = _group_surfaces_by_priority(analysis_dir, plans_dir)
         for label, stems in priority_groups:
@@ -357,17 +362,27 @@ def main(work_dir: str | None = None,
                 vuln_analyze.run(
                     work_dir=work_path, max_workers=1,
                     extra_prompt=vuln_prompt, only_stems=[stem],
-                    context=ctx,
+                    context=ctx, thinking=thinking,
                 )
                 review_vuln.run(
                     work_dir=work_path, max_workers=1,
                     extra_prompt=verify_prompt, only_stems=[stem],
-                    context=ctx,
+                    context=ctx, thinking=thinking,
                 )
 
             with cf.ThreadPoolExecutor(max_workers=max_workers) as pool:
                 for _ in pool.map(process_one, stems):
                     pass
+    elif use_priority_batch and not plans_dir.exists():
+        # plan failed or produced no plans → fallback to normal dispatch
+        for s in ("vuln", "verify"):
+            if s in stages:
+                try:
+                    func, kwargs = _STAGE_DISPATCH.get(s)
+                    _run_stage(func, s, runner_log, **kwargs)
+                except Exception as e:
+                    failed_stages.append(s)
+                    runner_log(f"  ✗ {_STAGE_NAMES.get(s, s)} 失败: {e}")
     runner_log()
     runner_log("=" * 50)
     runner_log("Pipeline complete.")

@@ -97,7 +97,8 @@ def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
         force_list: list[str] | None = None,
         only_stems: list[str] | None = None,
-        context: str = ""):
+        context: str = "",
+        thinking: bool = False):
     from .workspace import ensure_dirs, setup_stage_log
     from . import surface_discover
     va_log = setup_stage_log("vuln_analyze")
@@ -161,7 +162,7 @@ def run(work_dir: Path, max_workers: int = 3,
         from .workspace import set_prompt_log_path
         set_prompt_log_path("vuln_analyze", label)
         client = OpenCodeClient()
-        result = client.run(prompt)
+        result = client.run(prompt, verbose=thinking)
         if result.exit_code != 0:
             ao_log(f"  ✗ {label}")
             return False

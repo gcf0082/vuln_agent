@@ -31,7 +31,8 @@ def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
         force_list: list[str] | None = None,
         only_stems: list[str] | None = None,
-        context: str = ""):
+        context: str = "",
+        thinking: bool = False):
     from .workspace import setup_stage_log
     rv_log = setup_stage_log("review_vuln")
     ctx = f" [{context}]" if context else ""
@@ -90,7 +91,7 @@ def run(work_dir: Path, max_workers: int = 3,
         from .workspace import set_prompt_log_path
         set_prompt_log_path("review_vuln", vf_path.name)
         client = OpenCodeClient()
-        result = client.run(prompt)
+        result = client.run(prompt, verbose=thinking)
         if result.exit_code != 0:
             ra_log(f"  ✗ {vf_path.name}")
             return False

@@ -9,7 +9,8 @@ from .workspace import OUTPUT_PARENT, build_vars, log
 
 
 def run(work_dir: Path, max_workers: int = 3,
-        extra_prompt: str = ""):
+        extra_prompt: str = "",
+        thinking: bool = False):
     from .workspace import setup_stage_log
     pl_log = setup_stage_log("vuln_planner")
     pl_log(f"\n=== Stage 2.5: Vulnerability Analysis Planning ===")
@@ -50,7 +51,7 @@ def run(work_dir: Path, max_workers: int = 3,
         from .workspace import set_prompt_log_path
         set_prompt_log_path("vuln_planner", sf_path.name)
         client = OpenCodeClient()
-        result = client.run(prompt)
+        result = client.run(prompt, verbose=thinking)
         if result.exit_code != 0:
             pl_ao_log(f"  ✗ {sf_path.name}")
             return False

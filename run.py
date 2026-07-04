@@ -34,7 +34,7 @@ def _test_llm(model: str = "", agent: str = ""):
         "回答格式：在最后一行单独输出 `OK` 二字。"
     )
     print("Testing LLM connectivity...", flush=True)
-    result = client.run(prompt)
+    result = client.run(prompt, verbose=True)
 
     if result.exit_code != 0:
         print(f"\n✗ Connection failed (exit={result.exit_code})")

@@ -10,7 +10,8 @@ from .workspace import OUTPUT_PARENT, build_vars, read_surface_list, log
 
 def run(work_dir: Path, max_workers: int = 3,
         only_surfaces: list[str] | None = None,
-        extra_prompt: str = ""):
+        extra_prompt: str = "",
+        thinking: bool = False):
     from .workspace import setup_stage_log
     sa_log = setup_stage_log("surface_analyze")
     sa_log(f"\n=== Stage 2: Surface Analysis ===")
@@ -49,7 +50,7 @@ def run(work_dir: Path, max_workers: int = 3,
         from .workspace import set_prompt_log_path
         set_prompt_log_path("surface_analyze", item.filename)
         client = OpenCodeClient()
-        result = client.run(prompt)
+        result = client.run(prompt, verbose=thinking)
         if result.exit_code != 0:
             ao_log(f"  ✗ {item.filename}")
             return False
