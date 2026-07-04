@@ -140,7 +140,7 @@ def _phase2_one(work_dir: Path, surface_file: str,
                      only_stems=[surface_file.replace(".md", "")],
                      thinking=thinking,
                      min_level="high", risk_first=True,
-                     prefix=prefix)
+                     prefix=prefix, force=False)
     review_vuln.run(work_dir, max_workers=1,
                     extra_prompt=verify_prompt,
                     only_stems=[surface_file.replace(".md", "")],
@@ -159,7 +159,7 @@ def _phase3_one(work_dir: Path, surface_file: str,
                          only_stems=[stem],
                          thinking=thinking,
                          min_level=level, risk_first=True,
-                         prefix=prefix)
+                         prefix=prefix, force=True)
         review_vuln.run(work_dir, max_workers=1,
                         extra_prompt=verify_prompt,
                         only_stems=[stem],

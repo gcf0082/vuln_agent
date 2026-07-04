@@ -55,7 +55,8 @@ def run(work_dir: Path, max_workers: int = 3,
         thinking: bool = False,
         min_level: str = "standard",
         risk_first: bool = False,
-        prefix: str = ""):
+        prefix: str = "",
+        force: bool = False):
     from .workspace import ensure_dirs, setup_stage_log
     from . import surface_discover
     va_log = setup_stage_log("vuln_analyze", prefix=prefix)
@@ -85,9 +86,7 @@ def run(work_dir: Path, max_workers: int = 3,
         if not surface_files:
             va_log(f"{prefix} No matching surfaces for force-list: {force_list}")
             return find_vuln_files(work_dir)
-    elif min_level != "standard":
-        pass
-    else:
+    elif not force:
         need_analysis = [f for f in surface_files if not _surface_has_vuln_output(f.stem, vuln_dir)]
         if not need_analysis:
             return find_vuln_files(work_dir)
