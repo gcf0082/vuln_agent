@@ -17,45 +17,80 @@ def _surface_has_vuln_output(surface_stem: str, vuln_dir: Path) -> bool:
     return any(pattern.match(f.name) for f in vuln_dir.iterdir())
 
 
-def _read_high_risk_plan(plans_dir: Path, surface_stem: str) -> str:
-    """Read high-risk plan files and return combined content for exclusion.
-
-    Returns empty string if no high-risk plan files exist.
-    """
+def _read_deep_risk_plan(plans_dir: Path, surface_stem: str) -> str:
+    """Read high-risk and medium-risk plan files for exclusion in standard pass."""
     plan_dir = plans_dir / surface_stem
-    high_risk_files = sorted(plan_dir.glob("high-risk-*.md"))
-    if not high_risk_files:
-        return ""
-    plan_content = "\n\n---\n\n".join(
-        f.read_text(encoding="utf-8") for f in high_risk_files
+    files = sorted(
+        list(plan_dir.glob("high-risk-*.md")) +
+        list(plan_dir.glob("medium-risk-*.md"))
     )
+    if not files:
+        return ""
+    content = "\n\n---\n\n".join(f.read_text(encoding="utf-8") for f in files)
     return (
-        "## 已在高危分析中覆盖的项\n\n"
-        f"{plan_content}\n\n"
+        "## 已在深度分析中覆盖的项\n\n"
+        f"{content}\n\n"
         "**跳过说明**：上列分析点已在深度追踪中覆盖并产出结论文件，请跳过，不要重复分析。\n"
     )
+
+
+def _read_plan(plans_dir: Path, surface_stem: str, pattern: str) -> str:
+    """Read plan files matching a glob pattern and return combined content."""
+    plan_dir = plans_dir / surface_stem
+    files = sorted(plan_dir.glob(pattern))
+    if not files:
+        return ""
+    return "\n\n---\n\n".join(f.read_text(encoding="utf-8") for f in files)
 
 
 def _resolve_prompt_name_and_plan(surface_stem: str, plans_dir: Path) -> tuple[str, str]:
     """Determine which prompt template to use based on planner output.
 
     Returns (prompt_name, plan_content).
-    If no plan file found, defaults to standard analysis.
+    - high-risk-*.md or medium-risk-*.md exist → deep analysis
+    - low-risk-*.md or standard.md exist → standard analysis
+    - otherwise → default standard analysis
     """
     plan_dir = plans_dir / surface_stem
+    if not plan_dir.exists():
+        return "analyze-vulnerability.txt", ""
 
-    high_risk_files = sorted(plan_dir.glob("high-risk-*.md"))
-    if high_risk_files:
+    deep_files = sorted(
+        list(plan_dir.glob("high-risk-*.md")) +
+        list(plan_dir.glob("medium-risk-*.md"))
+    )
+    if deep_files:
         plan_content = "\n\n---\n\n".join(
-            f.read_text(encoding="utf-8") for f in high_risk_files
+            f.read_text(encoding="utf-8") for f in deep_files
         )
         return "analyze-vulnerability-deep.txt", plan_content
+
+    low_risk_files = sorted(plan_dir.glob("low-risk-*.md"))
+    if low_risk_files:
+        plan_content = "\n\n---\n\n".join(
+            f.read_text(encoding="utf-8") for f in low_risk_files
+        )
+        return "analyze-vulnerability.txt", plan_content
 
     standard_file = plan_dir / "standard.md"
     if standard_file.exists():
         return "analyze-vulnerability.txt", standard_file.read_text(encoding="utf-8")
 
     return "analyze-vulnerability.txt", ""
+
+
+def _surface_priority(surface_stem: str, plans_dir: Path) -> int:
+    """Return priority level: 0=high, 1=medium, 2=low, 3=standard."""
+    plan_dir = plans_dir / surface_stem
+    if not plan_dir.exists():
+        return 3
+    if list(plan_dir.glob("high-risk-*.md")):
+        return 0
+    if list(plan_dir.glob("medium-risk-*.md")):
+        return 1
+    if list(plan_dir.glob("low-risk-*.md")):
+        return 2
+    return 3
 
 
 def run(work_dir: Path, max_workers: int = 3,
@@ -123,26 +158,29 @@ def run(work_dir: Path, max_workers: int = 3,
         ao_log(f"  ✓ {label}")
         return True
 
+    # Sort by priority: high → medium → low → standard
+    surface_files.sort(key=lambda f: _surface_priority(f.stem, plans_dir))
+
     def analyze_one(sf_path):
         prompt_name, plan_content = _resolve_prompt_name_and_plan(sf_path.stem, plans_dir)
         deep = prompt_name == "analyze-vulnerability-deep.txt"
 
         if not deep:
-            # standard analysis only (no high-risk plan)
+            # standard analysis only
             ok = _run_one(sf_path, prompt_name, {
                 "analysis_plan": plan_content,
                 "excluded_plan": "",
             })
         else:
-            # pass 1: deep analysis for high-risk items
+            # pass 1: deep analysis for high-risk and medium-risk items
             ok = _run_one(sf_path, "analyze-vulnerability-deep.txt", {
                 "analysis_plan": plan_content,
                 "excluded_plan": "",
             }, " [deep]")
             if not ok:
                 return False
-            # pass 2: standard analysis for remaining items, skipping high-risk
-            excluded = _read_high_risk_plan(plans_dir, sf_path.stem)
+            # pass 2: standard analysis for remaining items, skipping deep-covered items
+            excluded = _read_deep_risk_plan(plans_dir, sf_path.stem)
             ok = _run_one(sf_path, "analyze-vulnerability.txt", {
                 "analysis_plan": "",
                 "excluded_plan": excluded,
