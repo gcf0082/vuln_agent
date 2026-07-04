@@ -87,7 +87,8 @@ def run(work_dirs: list[Path],
 
         # ── Phase 3: Medium → Low → Standard vuln+review ──
         phase3_levels = _levels_for_min(min_level)
-        if phase3_levels:
+        phase3_marker = work_dirs[0] / OUTPUT_PARENT / ".phase3_done"
+        if phase3_levels and not phase3_marker.exists():
             log(f"Phase 3: {', '.join(l.upper() for l in phase3_levels)} vuln+review")
             phase3_futures = []
 
@@ -100,7 +101,11 @@ def run(work_dirs: list[Path],
             for f in cf.as_completed(phase3_futures):
                 f.result()
 
+            phase3_marker.parent.mkdir(parents=True, exist_ok=True)
+            phase3_marker.touch()
             log("Phase 3 complete")
+        elif phase3_marker.exists():
+            log("Phase 3 already completed (delete .phase3_done to redo)")
 
     # Summary
     total_surfaces = sum(len(find_surface_files(d)) for d in work_dirs)
