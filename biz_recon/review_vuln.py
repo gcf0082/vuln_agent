@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Stage 4: review_vuln — challenge-review each vuln finding, parallel."""
+"""review_vuln — challenge-review each vuln finding, parallel (per-surface, not a global stage)."""
 
 import concurrent.futures
 import re
@@ -36,7 +36,7 @@ def run(work_dir: Path, max_workers: int = 3,
     from .workspace import setup_stage_log
     rv_log = setup_stage_log("review_vuln")
     ctx = f" [{context}]" if context else ""
-    rv_log(f"\n=== Stage 4: Vulnerability Review{ctx} ===")
+    rv_log(f"\n=== Vulnerability Review{ctx} ===")
 
     review_dir = work_dir / OUTPUT_PARENT / "vuln_reviews"
     review_dir.mkdir(parents=True, exist_ok=True)
