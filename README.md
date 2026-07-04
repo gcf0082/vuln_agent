@@ -64,6 +64,7 @@ python3 run.py [work_dir] [选项]
 | `--force-surface FILE` | 强制重新分析指定攻击面（逗号分隔，支持 `*` 通配），会清除已有产物 |
 | `--stage {recon,flow,vuln,verify}` | 只运行单个阶段 |
 | `--overwrite` | 与 `--stage` 搭配，删除该阶段已有产物后重新执行 |
+| `--multi` | 多目标模式：将 `work_dir` 作为父目录，对其下每个子目录独立执行完整管道 |
 | `--test` | 测试 LLM 连通性（询问模型自身名称），不执行管道 |
 
 ### 示例
@@ -108,6 +109,15 @@ python3 run.py /target --stage recon --overwrite    # 重新收集暴露面
 python3 run.py /target --stage flow --overwrite     # 重新分析业务流
 python3 run.py /target --stage vuln --overwrite     # 重新漏洞分析
 python3 run.py /target --stage verify --overwrite   # 重新二次审查
+
+# 多目标分析：父目录下的每个子目录独立执行完整管道
+python3 run.py /parent --multi
+
+# 多目标 + 指定模型
+python3 run.py /parent --multi --model w3/MiniMax-M2.7
+
+# 多目标 + 只跑某个阶段
+python3 run.py /parent --multi --stage recon
 ```
 
 ## 输出产物

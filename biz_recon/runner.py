@@ -292,13 +292,15 @@ def main(work_dir: str | None = None,
                     "force_list": force_list}),
     }
 
+    failed_stages: list[str] = []
     for s in stages:
         try:
             if (overwrite or stage) and not force_list:
                 _prepare_stage(work_path, s, overwrite, runner_log)
             func, kwargs = _STAGE_DISPATCH.get(s)
             _run_stage(func, s, runner_log, **kwargs)
-        except RuntimeError as e:
+        except Exception as e:
+            failed_stages.append(s)
             runner_log(f"  ✗ {_STAGE_NAMES.get(s, s)} 失败: {e}")
 
     runner_log()
@@ -308,6 +310,13 @@ def main(work_dir: str | None = None,
     vulns = find_vuln_files(work_path)
     runner_log(f"  Surface products: {len(surfaces)}")
     runner_log(f"  Vuln products:    {len(vulns)}")
+
+    return {
+        "stages": stages,
+        "failed_stages": failed_stages,
+        "surfaces": len(surfaces),
+        "vulns": len(vulns),
+    }
 
 
 if __name__ == "__main__":

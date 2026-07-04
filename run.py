@@ -18,7 +18,7 @@ if sys.platform.startswith('win'):
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 sys.path.insert(0, str(Path(__file__).parent))
-from biz_recon.runner import main
+from biz_recon import runner
 from opencode_wrapper import OpenCodeClient
 
 
@@ -76,6 +76,8 @@ def _parse_args() -> argparse.Namespace:
                         help="Run a single pipeline stage only: recon / flow / vuln / verify")
     parser.add_argument("--overwrite", action="store_true",
                         help="Delete existing stage output before running (with --stage)")
+    parser.add_argument("--multi", action="store_true",
+                        help="Treat work_dir as parent containing multiple projects; analyze each subdirectory independently")
 
     # Show help when no arguments given
     if len(sys.argv) == 1 or sys.argv[1:] == ["--"]:
@@ -89,15 +91,31 @@ if __name__ == "__main__":
     args = _parse_args()
     if args.test:
         _test_llm(model=args.model, agent=args.agent)
+    elif args.multi:
+        if args.force_surface:
+            print("Warning: --force-surface is ignored in --multi mode")
+        from biz_recon.multi_runner import run as run_multi
+        run_multi(
+            parent_dir=args.work_dir or os.getcwd(),
+            recon_prompt=args.recon_prompt,
+            flow_prompt=args.flow_prompt,
+            vuln_prompt=args.vuln_prompt,
+            verify_prompt=args.verify_prompt,
+            thinking=args.thinking,
+            model=args.model,
+            agent=args.agent,
+            stage=args.stage,
+            overwrite=args.overwrite,
+        )
     else:
-        main(work_dir=args.work_dir,
-             recon_prompt=args.recon_prompt,
-             flow_prompt=args.flow_prompt,
-             vuln_prompt=args.vuln_prompt,
-             verify_prompt=args.verify_prompt,
-             thinking=args.thinking,
-             force_surface=args.force_surface,
-             model=args.model,
-             agent=args.agent,
-             stage=args.stage,
-             overwrite=args.overwrite)
+        runner.main(work_dir=args.work_dir,
+                    recon_prompt=args.recon_prompt,
+                    flow_prompt=args.flow_prompt,
+                    vuln_prompt=args.vuln_prompt,
+                    verify_prompt=args.verify_prompt,
+                    thinking=args.thinking,
+                    force_surface=args.force_surface,
+                    model=args.model,
+                    agent=args.agent,
+                    stage=args.stage,
+                    overwrite=args.overwrite)
