@@ -223,7 +223,8 @@ def main(work_dir: str | None = None,
          model: str = "",
          agent: str = "",
          stage: str = "",
-         overwrite: bool = False):
+         overwrite: bool = False,
+         min_level: str = "standard"):
     work_path = Path(work_dir).resolve() if work_dir else \
                 (Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd())
     config = load_config()
@@ -315,7 +316,8 @@ def main(work_dir: str | None = None,
                    {"work_dir": work_path, "max_workers": max_workers,
                     "extra_prompt": vuln_prompt,
                     "force_list": force_list,
-                    "thinking": thinking}),
+                    "thinking": thinking,
+                    "min_level": min_level}),
         "verify": (review_vuln.run,
                    {"work_dir": work_path, "max_workers": max_workers,
                     "extra_prompt": verify_prompt,
@@ -365,6 +367,7 @@ def main(work_dir: str | None = None,
                     work_dir=work_path, max_workers=1,
                     extra_prompt=vuln_prompt, only_stems=[stem],
                     context=ctx, thinking=thinking,
+                    min_level=min_level,
                 )
                 review_vuln.run(
                     work_dir=work_path, max_workers=1,

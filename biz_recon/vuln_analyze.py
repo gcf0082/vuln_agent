@@ -34,12 +34,27 @@ def _surface_priority(surface_stem: str, plans_dir: Path) -> int:
     return 3
 
 
+_LEVEL_MAP = {"high": 0, "medium": 1, "low": 2, "standard": 3}
+
+
+def _plan_file_level(pf: Path) -> int:
+    stem = pf.stem
+    if stem.startswith("high-risk"):
+        return 0
+    if stem.startswith("medium-risk"):
+        return 1
+    if stem.startswith("low-risk"):
+        return 2
+    return 3
+
+
 def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
         force_list: list[str] | None = None,
         only_stems: list[str] | None = None,
         context: str = "",
-        thinking: bool = False):
+        thinking: bool = False,
+        min_level: str = "standard"):
     from .workspace import ensure_dirs, setup_stage_log
     from . import surface_discover
     va_log = setup_stage_log("vuln_analyze")
@@ -108,6 +123,8 @@ def run(work_dir: Path, max_workers: int = 3,
     # Sort by priority: high → medium → low → standard
     surface_files.sort(key=lambda f: _surface_priority(f.stem, plans_dir))
 
+    min_level_num = _LEVEL_MAP.get(min_level, 3)
+
     def analyze_one(sf_path):
         plan_dir = plans_dir / sf_path.stem
         if not plan_dir.exists():
@@ -116,6 +133,8 @@ def run(work_dir: Path, max_workers: int = 3,
             })
 
         for pf in sorted(plan_dir.glob("*.md")):
+            if _plan_file_level(pf) < min_level_num:
+                continue
             plan_content = pf.read_text(encoding="utf-8")
             is_deep = pf.stem.startswith("high-risk") or pf.stem.startswith("medium-risk")
             prompt_name = "analyze-vulnerability-deep.txt" if is_deep else "analyze-vulnerability.txt"

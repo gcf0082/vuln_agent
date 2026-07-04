@@ -45,7 +45,8 @@ def run(parent_dir: str,
         model: str = "",
         agent: str = "",
         stage: str = "",
-        overwrite: bool = False):
+        overwrite: bool = False,
+        min_level: str = "standard"):
     parent = Path(parent_dir).resolve()
     if not parent.is_dir():
         print(f"Error: not a directory: {parent}")
@@ -84,6 +85,7 @@ def run(parent_dir: str,
                 agent=agent,
                 stage=stage,
                 overwrite=overwrite,
+                min_level=min_level,
             )
             if stats.get("failed_stages"):
                 print(f"  ✗ Failed stages: {', '.join(stats['failed_stages'])}")
