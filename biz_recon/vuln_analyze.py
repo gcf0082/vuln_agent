@@ -88,6 +88,12 @@ def run(work_dir: Path, max_workers: int = 3,
             va_log(f"  No matching surfaces for force-list: {force_list}")
             return find_vuln_files(work_dir)
         va_log(f"  Force re-analyzing {len(surface_files)} surface(s): {[f.name for f in surface_files]}")
+        # Clear analyzed markers for forced surfaces
+        import shutil
+        for stem in stems:
+            ad = plans_dir.parent / ".analyzed_plans" / stem
+            if ad.exists():
+                shutil.rmtree(ad)
     elif min_level != "standard":
         # --min-level mode: re-analyze all surfaces (per-level filtering in analyze_one)
         pass
@@ -142,8 +148,12 @@ def run(work_dir: Path, max_workers: int = 3,
                 "analysis_plan": "", "excluded_plan": "",
             })
 
+        analyzed_dir = plans_dir.parent / ".analyzed_plans" / sf_path.stem
         for pf in sorted(plan_dir.glob("*.md")):
             if not _level_match(pf):
+                continue
+            marker = analyzed_dir / pf.name
+            if marker.exists():
                 continue
             plan_content = pf.read_text(encoding="utf-8")
             is_deep = pf.stem.startswith("high-risk") or pf.stem.startswith("medium-risk")
@@ -154,6 +164,8 @@ def run(work_dir: Path, max_workers: int = 3,
             }, log_suffix=f" [{pf.name}]")
             if not ok:
                 return False
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            marker.touch()
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
