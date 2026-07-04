@@ -35,9 +35,6 @@ def run(work_dir: Path, max_workers: int = 3,
         thinking: bool = False):
     from .workspace import setup_stage_log
     rv_log = setup_stage_log("review_vuln")
-    ctx = f" [{context}]" if context else ""
-    rv_log(f"\n=== Vulnerability Review{ctx} ===")
-
     review_dir = work_dir / OUTPUT_PARENT / "vuln_reviews"
     review_dir.mkdir(parents=True, exist_ok=True)
 
@@ -75,7 +72,7 @@ def run(work_dir: Path, max_workers: int = 3,
 
     def reanalyze_one(vf_path):
         ra_log = setup_stage_log("review_vuln", vf_path.name)
-        ra_log(f"  ▶ {vf_path.name}")
+        ra_log(f"  漏洞复核 {vf_path.name}")
         # Derive the corresponding analysis filename from the vuln filename
         # e.g. VULN-iface-REST-api-users-list-1.md → iface-REST-api-users-list.md
         analysis_name = re.sub(r'^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-', '', vf_path.stem)
@@ -95,7 +92,7 @@ def run(work_dir: Path, max_workers: int = 3,
         if result.exit_code != 0:
             ra_log(f"  ✗ {vf_path.name}")
             return False
-        ra_log(f"  ✓ {vf_path.name}")
+        ra_log(f"  漏洞复核完成 {vf_path.name}")
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:

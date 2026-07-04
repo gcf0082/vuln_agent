@@ -102,8 +102,6 @@ def run(work_dir: Path, max_workers: int = 3,
     from .workspace import ensure_dirs, setup_stage_log
     from . import surface_discover
     va_log = setup_stage_log("vuln_analyze")
-    ctx = f" [{context}]" if context else ""
-    va_log(f"\n=== Stage 3: Vulnerability Analysis{ctx} ===")
     ensure_dirs(work_dir)
 
     analysis_dir = work_dir / OUTPUT_PARENT / "analyzed_surfaces"
@@ -149,7 +147,7 @@ def run(work_dir: Path, max_workers: int = 3,
     def _run_one(sf_path, prompt_name, extra_vars, log_suffix=""):
         ao_log = setup_stage_log("vuln_analyze", sf_path.name)
         label = f"{sf_path.name}{log_suffix}"
-        ao_log(f"  ▶ {label}")
+        ao_log(f"  漏洞分析 {label}")
 
         local_vars = {**vars,
             "surface_file": sf_path.name,
@@ -166,7 +164,7 @@ def run(work_dir: Path, max_workers: int = 3,
         if result.exit_code != 0:
             ao_log(f"  ✗ {label}")
             return False
-        ao_log(f"  ✓ {label}")
+        ao_log(f"  漏洞分析完成 {label}")
         return True
 
     # Sort by priority: high → medium → low → standard

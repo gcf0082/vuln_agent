@@ -358,20 +358,17 @@ def main(work_dir: str | None = None,
             runner_log(f"\n  === [{label.upper()}] {len(stems)} surfaces ===")
 
             def process_one(stem):
-                runner_log(f"\n  ═══ {stem} ═══")
                 ctx = f"{label.upper()} — {stem}"
                 vuln_analyze.run(
                     work_dir=work_path, max_workers=1,
                     extra_prompt=vuln_prompt, only_stems=[stem],
                     context=ctx, thinking=thinking,
                 )
-                runner_log(f"  → [REVIEW] {stem}")
                 review_vuln.run(
                     work_dir=work_path, max_workers=1,
                     extra_prompt=verify_prompt, only_stems=[stem],
                     context=ctx, thinking=thinking,
                 )
-                runner_log(f"  ✓ [REVIEW DONE] {stem}")
 
             with cf.ThreadPoolExecutor(max_workers=max_workers) as pool:
                 for _ in pool.map(process_one, stems):
