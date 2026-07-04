@@ -80,9 +80,9 @@ def run(parent_dir: str,
             _run_one(subdir, stage="plan")
 
         for level in ["high", "medium", "low", "standard"]:
-            print(f"\n--- {level.upper()} priority ---")
-            for i, subdir in enumerate(subdirs):
-                print(f"\n--- [{i + 1}/{len(subdirs)}] {subdir.name} ---")
+            print(f"\n--- {level.upper()} priority (across all subdirs) ---")
+            for subdir in subdirs:
+                print(f"\n  [{subdir.name}]")
                 _run_one(subdir, stage="vuln", min_level=level)
                 _run_one(subdir, stage="verify")
     else:
