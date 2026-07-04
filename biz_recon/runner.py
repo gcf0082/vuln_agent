@@ -343,6 +343,8 @@ def main(work_dir: str | None = None,
         try:
             if (overwrite or stage) and not force_list:
                 _prepare_stage(work_path, s, overwrite, runner_log)
+            if s == "vuln" and not use_priority_batch:
+                runner_log("\n=== 阶段4: 漏洞分析 ===")
             func, kwargs = _STAGE_DISPATCH.get(s)
             _run_stage(func, s, runner_log, **kwargs)
         except Exception as e:
@@ -351,6 +353,7 @@ def main(work_dir: str | None = None,
 
     # Priority-batched vuln+verify: per-surface analysis → immediate review
     if use_priority_batch and plans_dir.exists():
+        runner_log("\n=== 阶段4: 漏洞分析 ===")
         import concurrent.futures as cf
         priority_groups = _group_surfaces_by_priority(analysis_dir, plans_dir)
         for label, stems in priority_groups:
@@ -373,7 +376,7 @@ def main(work_dir: str | None = None,
                 for _ in pool.map(process_one, stems):
                     pass
     elif use_priority_batch and not plans_dir.exists():
-        # plan failed or produced no plans → fallback to normal dispatch
+        runner_log("\n=== 阶段4: 漏洞分析 ===")
         for s in ("vuln", "verify"):
             if s in stages:
                 try:

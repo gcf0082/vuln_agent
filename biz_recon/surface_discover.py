@@ -14,7 +14,7 @@ def run(work_dir: Path, extra_prompt: str = "", force: bool = False,
         thinking: bool = False):
     from .workspace import setup_stage_log
     sd_log = setup_stage_log("surface_discover")
-    sd_log("\n=== Surface Discovery ===")
+    sd_log("\n=== 阶段1: 暴露面识别 ===")
 
     marker = work_dir / OUTPUT_PARENT / DONE_MARKER
     if not force and marker.exists():

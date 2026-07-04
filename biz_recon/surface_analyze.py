@@ -14,7 +14,7 @@ def run(work_dir: Path, max_workers: int = 3,
         thinking: bool = False):
     from .workspace import setup_stage_log
     sa_log = setup_stage_log("surface_analyze")
-    sa_log("\n=== Surface Analysis ===")
+    sa_log("\n=== 阶段2: 业务流分析 ===")
 
     items = read_surface_list(work_dir)
     if not items:

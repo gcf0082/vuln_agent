@@ -13,7 +13,7 @@ def run(work_dir: Path, max_workers: int = 3,
         thinking: bool = False):
     from .workspace import setup_stage_log
     pl_log = setup_stage_log("vuln_planner")
-    pl_log("\n=== Vulnerability Analysis Planning ===")
+    pl_log("\n=== 阶段3: 漏洞分析规划 ===")
 
     analysis_dir = work_dir / OUTPUT_PARENT / "analyzed_surfaces"
     if not analysis_dir.exists():
