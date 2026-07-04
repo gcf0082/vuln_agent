@@ -86,17 +86,7 @@ _STAGE_DIRS = {k: v["dir"] for k, v in _STAGE_REGISTRY.items()}
 STAGE_ORDER = _STAGE_NAMES  # insertion-order dict → ordered
 
 
-def _has_priority_plans(plans_dir: Path) -> bool:
-    """Check if any surface has a priority plan file (high/medium/low)."""
-    if not plans_dir.exists():
-        return False
-    for plan_subdir in plans_dir.iterdir():
-        if not plan_subdir.is_dir():
-            continue
-        for pat in ("high-risk-*.md", "medium-risk-*.md", "low-risk-*.md"):
-            if list(plan_subdir.glob(pat)):
-                return True
-    return False
+
 
 
 def _group_surfaces_by_priority(analysis_dir: Path, plans_dir: Path) -> list[tuple[str, list[str]]]:
@@ -339,7 +329,7 @@ def main(work_dir: str | None = None,
         not force_list
         and "vuln" in stages
         and "verify" in stages
-        and _has_priority_plans(plans_dir)
+        and plans_dir.exists()
     )
 
     # Stage loop (recon, flow, plan; skip vuln+verify if using priority batching)

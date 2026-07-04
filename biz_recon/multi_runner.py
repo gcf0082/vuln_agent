@@ -9,10 +9,8 @@ from . import runner
 from .workspace import OUTPUT_PARENT
 
 SKIP_DIRS = frozenset({
-    ".git", "node_modules", "__pycache__", ".venv", "venv",
-    "dist", "build", "target", ".idea", ".vscode",
-    ".gradle", ".mvn", ".cache", ".tox", ".pytest_cache",
-    "env", ".env", ".gitkeep",
+    "node_modules", "__pycache__", "venv",
+    "dist", "build", "target",
 })
 
 
