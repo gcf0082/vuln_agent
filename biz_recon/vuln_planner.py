@@ -10,20 +10,26 @@ from .workspace import OUTPUT_PARENT, build_vars, log
 
 def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
-        thinking: bool = False):
+        thinking: bool = False,
+        only_stems: list[str] | None = None,
+        prefix: str = ""):
     from .workspace import setup_stage_log
-    pl_log = setup_stage_log("vuln_planner")
-    pl_log("\n=== 阶段3: 漏洞分析规划 ===")
+    pl_log = setup_stage_log("vuln_planner", prefix=prefix)
 
     analysis_dir = work_dir / OUTPUT_PARENT / "analyzed_surfaces"
     if not analysis_dir.exists():
-        pl_log("  No analyzed surfaces directory found. Run surface analysis first.")
+        pl_log(f"{prefix} No analyzed surfaces directory found.")
         return
 
     surface_files = sorted(analysis_dir.glob("*.md"))
     if not surface_files:
-        pl_log("  No analyzed surface files found. Run surface analysis first.")
+        pl_log(f"{prefix} No analyzed surface files found.")
         return
+
+    if only_stems:
+        surface_files = [f for f in surface_files if f.stem in only_stems]
+        if not surface_files:
+            return
 
     plans_dir = work_dir / OUTPUT_PARENT / "vuln_plans"
     plans_dir.mkdir(parents=True, exist_ok=True)
@@ -33,13 +39,13 @@ def run(work_dir: Path, max_workers: int = 3,
     failures: list[str] = []
 
     def plan_one(sf_path):
-        pl_ao_log = setup_stage_log("vuln_planner", sf_path.name)
+        pl_ao_log = setup_stage_log("vuln_planner", sf_path.name, prefix=prefix)
         plan_dir = plans_dir / sf_path.stem
         if plan_dir.exists():
-            pl_ao_log(f"  规划分析跳过 {sf_path.name}")
+            pl_ao_log(f"{prefix} 规划分析跳过 {sf_path.name}")
             return True
 
-        pl_ao_log(f"  规划分析 {sf_path.name}")
+        pl_ao_log(f"{prefix} 规划分析 {sf_path.name}")
         local_vars = {**vars,
             "surface_file": sf_path.name,
             "surface_stem": sf_path.stem,
@@ -52,9 +58,9 @@ def run(work_dir: Path, max_workers: int = 3,
         client = OpenCodeClient()
         result = client.run(prompt, verbose=thinking)
         if result.exit_code != 0:
-            pl_ao_log(f"  ✗ {sf_path.name}")
+            pl_ao_log(f"{prefix} ✗ {sf_path.name}")
             return False
-        pl_ao_log(f"  规划分析完成 {sf_path.name}")
+        pl_ao_log(f"{prefix} 规划分析完成 {sf_path.name}")
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
@@ -63,6 +69,6 @@ def run(work_dir: Path, max_workers: int = 3,
                 failures.append(sf_path.name)
 
     if failures:
-        msg = f"  FAILURES ({len(failures)}): {', '.join(failures)}"
+        msg = f"{prefix} FAILURES ({len(failures)}): {', '.join(failures)}"
         pl_log(msg)
         print(msg, flush=True)

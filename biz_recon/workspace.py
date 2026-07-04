@@ -58,7 +58,7 @@ def set_prompt_log_path(stage: str, target: str = ""):
     os.environ["LLM_PROMPT_LOG_PATH"] = str(path)
 
 
-def setup_stage_log(stage: str, target: str = ""):
+def setup_stage_log(stage: str, target: str = "", prefix: str = ""):
     """Create a per-target file logger for stage processing."""
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -78,9 +78,10 @@ def setup_stage_log(stage: str, target: str = ""):
 
     def stage_log(msg: str = ""):
         if msg:
-            stage_logger.info(msg)
+            full = f"{prefix} {msg}" if prefix else msg
+            stage_logger.info(full)
             if _logger:
-                _logger.info(msg)
+                _logger.info(full)
         else:
             print()
 

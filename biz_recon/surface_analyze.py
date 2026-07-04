@@ -11,20 +11,20 @@ from .workspace import OUTPUT_PARENT, build_vars, read_surface_list, log
 def run(work_dir: Path, max_workers: int = 3,
         only_surfaces: list[str] | None = None,
         extra_prompt: str = "",
-        thinking: bool = False):
+        thinking: bool = False,
+        prefix: str = ""):
     from .workspace import setup_stage_log
-    sa_log = setup_stage_log("surface_analyze")
-    sa_log("\n=== 阶段2: 业务流分析 ===")
+    sa_log = setup_stage_log("surface_analyze", prefix=prefix)
 
     items = read_surface_list(work_dir)
     if not items:
-        sa_log("  No surface items found.")
+        sa_log(f"{prefix} No surface items found.")
         return items
 
     if only_surfaces is not None:
         filtered = [item for item in items if item.filename in only_surfaces]
         if not filtered:
-            sa_log("  No surfaces matched the --only filter. Nothing to analyze.")
+            sa_log(f"{prefix} No surfaces matched the --only filter.")
             return filtered
         items = filtered
 
@@ -32,13 +32,13 @@ def run(work_dir: Path, max_workers: int = 3,
     failures: list[str] = []
 
     def analyze_one(item):
-        ao_log = setup_stage_log("surface_analyze", item.filename)
+        ao_log = setup_stage_log("surface_analyze", item.filename, prefix=prefix)
         output_path = work_dir / OUTPUT_PARENT / "analyzed_surfaces" / item.filename
         if output_path.exists():
-            ao_log(f"  业务流分析跳过 {item.filename}")
+            ao_log(f"{prefix} 业务流分析跳过 {item.filename}")
             return True
 
-        ao_log(f"  业务流分析 {item.filename}")
+        ao_log(f"{prefix} 业务流分析 {item.filename}")
         local_vars = {**vars,
             "surface_file": item.filename,
             "extra_prompt": f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else "",
@@ -50,9 +50,9 @@ def run(work_dir: Path, max_workers: int = 3,
         client = OpenCodeClient()
         result = client.run(prompt, verbose=thinking)
         if result.exit_code != 0:
-            ao_log(f"  ✗ {item.filename}")
+            ao_log(f"{prefix} ✗ {item.filename}")
             return False
-        ao_log(f"  业务流分析完成 {item.filename}")
+        ao_log(f"{prefix} 业务流分析完成 {item.filename}")
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
@@ -61,7 +61,7 @@ def run(work_dir: Path, max_workers: int = 3,
                 failures.append(item.filename)
 
     if failures:
-        msg = f"  FAILURES ({len(failures)}): {', '.join(failures)}"
+        msg = f"{prefix} FAILURES ({len(failures)}): {', '.join(failures)}"
         sa_log(msg)
         print(msg, flush=True)
 

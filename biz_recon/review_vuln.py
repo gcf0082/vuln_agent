@@ -31,32 +31,29 @@ def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
         force_list: list[str] | None = None,
         only_stems: list[str] | None = None,
-        context: str = "",
-        thinking: bool = False):
+        thinking: bool = False,
+        prefix: str = ""):
     from .workspace import setup_stage_log
-    rv_log = setup_stage_log("review_vuln")
+    rv_log = setup_stage_log("review_vuln", prefix=prefix)
     review_dir = work_dir / OUTPUT_PARENT / "vuln_reviews"
     review_dir.mkdir(parents=True, exist_ok=True)
 
     vuln_files = sorted((work_dir / OUTPUT_PARENT / "vuln_findings").glob("*.md"))
     if not vuln_files:
-        rv_log("  No vulnerability files found.")
+        rv_log(f"{prefix} No vulnerability files found.")
         return []
 
-    # Filter by only_stems (for priority batching)
     if only_stems:
         vuln_files = [f for f in vuln_files if _extract_surface_stem(f.stem) in only_stems]
         if not vuln_files:
-            rv_log("  No vulnerability files match the current priority batch.")
             return sorted(review_dir.glob("*"))
 
     if force_list:
         stems = [n.replace(".md", "") for n in force_list]
         vuln_files = [f for f in vuln_files if any(s in f.name for s in stems)]
         if not vuln_files:
-            rv_log("  No matching vulnerability files found for force-list.")
+            rv_log(f"{prefix} No matching vulnerability files found for force-list.")
             return []
-        rv_log(f"  Force re-analyzing {len(vuln_files)} file(s): {[f.name for f in vuln_files]}")
     else:
         need_review = [f for f in vuln_files if not _vuln_has_review(f.stem, review_dir)]
         if not need_review:
@@ -67,10 +64,8 @@ def run(work_dir: Path, max_workers: int = 3,
     failures: list[str] = []
 
     def reanalyze_one(vf_path):
-        ra_log = setup_stage_log("review_vuln", vf_path.name)
-        ra_log(f"  漏洞复核 {vf_path.name}")
-        # Derive the corresponding analysis filename from the vuln filename
-        # e.g. VULN-iface-REST-api-users-list-1.md → iface-REST-api-users-list.md
+        ra_log = setup_stage_log("review_vuln", vf_path.name, prefix=prefix)
+        ra_log(f"{prefix} 漏洞复核 {vf_path.name}")
         analysis_name = re.sub(r'^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-', '', vf_path.stem)
         analysis_name = re.sub(r'-\d+$', '', analysis_name) + '.md'
         local_vars = {**vars,
@@ -86,9 +81,9 @@ def run(work_dir: Path, max_workers: int = 3,
         client = OpenCodeClient()
         result = client.run(prompt, verbose=thinking)
         if result.exit_code != 0:
-            ra_log(f"  ✗ {vf_path.name}")
+            ra_log(f"{prefix} ✗ {vf_path.name}")
             return False
-        ra_log(f"  漏洞复核完成 {vf_path.name}")
+        ra_log(f"{prefix} 漏洞复核完成 {vf_path.name}")
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
@@ -97,7 +92,7 @@ def run(work_dir: Path, max_workers: int = 3,
                 failures.append(vf_path.name)
 
     if failures:
-        msg = f"  FAILURES ({len(failures)}): {', '.join(failures)}"
+        msg = f"{prefix} FAILURES ({len(failures)}): {', '.join(failures)}"
         rv_log(msg)
         print(msg, flush=True)
 
