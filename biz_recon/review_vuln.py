@@ -17,9 +17,20 @@ def _vuln_has_review(vuln_stem: str, review_dir: Path) -> bool:
     return any(pattern.match(f.name) for f in review_dir.glob("*.md"))
 
 
+def _extract_surface_stem(vuln_stem: str) -> str:
+    """Extract surface stem from a vulnerability filename stem.
+    
+    e.g. VULN-iface-REST-ping-1 → iface-REST-ping
+    """
+    stem = re.sub(r'^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-', '', vuln_stem)
+    stem = re.sub(r'-\d+$', '', stem)
+    return stem
+
+
 def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
-        force_list: list[str] | None = None):
+        force_list: list[str] | None = None,
+        only_stems: list[str] | None = None):
     from .workspace import setup_stage_log
     rv_log = setup_stage_log("review_vuln")
     rv_log(f"\n=== Stage 4: Vulnerability Review ===")
@@ -31,6 +42,13 @@ def run(work_dir: Path, max_workers: int = 3,
     if not vuln_files:
         rv_log("  No vulnerability files found.")
         return []
+
+    # Filter by only_stems (for priority batching)
+    if only_stems:
+        vuln_files = [f for f in vuln_files if _extract_surface_stem(f.stem) in only_stems]
+        if not vuln_files:
+            rv_log("  No vulnerability files match the current priority batch.")
+            return sorted(review_dir.glob("*"))
 
     if force_list:
         stems = [n.replace(".md", "") for n in force_list]

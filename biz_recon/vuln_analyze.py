@@ -95,7 +95,8 @@ def _surface_priority(surface_stem: str, plans_dir: Path) -> int:
 
 def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
-        force_list: list[str] | None = None):
+        force_list: list[str] | None = None,
+        only_stems: list[str] | None = None):
     from .workspace import ensure_dirs, setup_stage_log
     from . import surface_discover
     va_log = setup_stage_log("vuln_analyze")
@@ -114,6 +115,13 @@ def run(work_dir: Path, max_workers: int = 3,
 
     vuln_dir = work_dir / OUTPUT_PARENT / "vuln_findings"
     plans_dir = work_dir / OUTPUT_PARENT / "vuln_plans"
+
+    # Filter by only_stems (for priority batching)
+    if only_stems:
+        surface_files = [f for f in surface_files if f.stem in only_stems]
+        if not surface_files:
+            va_log("  No surfaces match the current priority batch.")
+            return find_vuln_files(work_dir)
 
     if force_list:
         stems = [n.replace(".md", "") for n in force_list]

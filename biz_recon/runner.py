@@ -78,10 +78,48 @@ _STAGE_REGISTRY = {
     },
 }
 
+_PRIORITY_LABELS = ["high", "medium", "low", "standard"]
+
 _STAGE_NAMES = {k: v["name"] for k, v in _STAGE_REGISTRY.items()}
 _STAGE_DIRS = {k: v["dir"] for k, v in _STAGE_REGISTRY.items()}
 
 STAGE_ORDER = _STAGE_NAMES  # insertion-order dict → ordered
+
+
+def _has_priority_plans(plans_dir: Path) -> bool:
+    """Check if any surface has a priority plan file (high/medium/low)."""
+    if not plans_dir.exists():
+        return False
+    for plan_subdir in plans_dir.iterdir():
+        if not plan_subdir.is_dir():
+            continue
+        for pat in ("high-risk-*.md", "medium-risk-*.md", "low-risk-*.md"):
+            if list(plan_subdir.glob(pat)):
+                return True
+    return False
+
+
+def _group_surfaces_by_priority(analysis_dir: Path, plans_dir: Path) -> list[tuple[str, list[str]]]:
+    """Group surface stems by their max priority level.
+    
+    Returns [(label, [stems]), ...] ordered high → medium → low → standard,
+    skipping empty groups.
+    """
+    groups: dict[str, list[str]] = {l: [] for l in _PRIORITY_LABELS}
+    for sf in sorted(analysis_dir.glob("*.md")):
+        plan_dir = plans_dir / sf.stem
+        if plan_dir.exists():
+            if list(plan_dir.glob("high-risk-*.md")):
+                groups["high"].append(sf.stem)
+            elif list(plan_dir.glob("medium-risk-*.md")):
+                groups["medium"].append(sf.stem)
+            elif list(plan_dir.glob("low-risk-*.md")):
+                groups["low"].append(sf.stem)
+            else:
+                groups["standard"].append(sf.stem)
+        else:
+            groups["standard"].append(sf.stem)
+    return [(l, groups[l]) for l in _PRIORITY_LABELS if groups[l]]
 
 
 def _resolve_stages(work_path: Path, stage: str, force_list: list[str] | None = None,
@@ -293,7 +331,21 @@ def main(work_dir: str | None = None,
     }
 
     failed_stages: list[str] = []
+
+    # Determine whether to use priority batching for vuln+verify
+    plans_dir = work_path / OUTPUT_PARENT / "vuln_plans"
+    analysis_dir = work_path / OUTPUT_PARENT / "analyzed_surfaces"
+    use_priority_batch = (
+        not force_list
+        and "vuln" in stages
+        and "verify" in stages
+        and _has_priority_plans(plans_dir)
+    )
+
+    # Stage loop (recon, flow, plan; skip vuln+verify if using priority batching)
     for s in stages:
+        if use_priority_batch and s in ("vuln", "verify"):
+            continue
         try:
             if (overwrite or stage) and not force_list:
                 _prepare_stage(work_path, s, overwrite, runner_log)
@@ -303,6 +355,29 @@ def main(work_dir: str | None = None,
             failed_stages.append(s)
             runner_log(f"  ✗ {_STAGE_NAMES.get(s, s)} 失败: {e}")
 
+    # Priority-batched vuln+verify
+    if use_priority_batch:
+        priority_groups = _group_surfaces_by_priority(analysis_dir, plans_dir)
+        for label, stems in priority_groups:
+            runner_log(f"\n  === Priority: {label.upper()} ({len(stems)} surfaces) ===")
+            try:
+                vuln_analyze.run(
+                    work_dir=work_path, max_workers=max_workers,
+                    extra_prompt=vuln_prompt, only_stems=stems,
+                )
+                runner_log(f"  ✓ vuln [{label}]")
+            except Exception as e:
+                failed_stages.append("vuln")
+                runner_log(f"  ✗ vuln [{label}] 失败: {e}")
+            try:
+                review_vuln.run(
+                    work_dir=work_path, max_workers=max_workers,
+                    extra_prompt=verify_prompt, only_stems=stems,
+                )
+                runner_log(f"  ✓ verify [{label}]")
+            except Exception as e:
+                failed_stages.append("verify")
+                runner_log(f"  ✗ verify [{label}] 失败: {e}")
     runner_log()
     runner_log("=" * 50)
     runner_log("Pipeline complete.")
