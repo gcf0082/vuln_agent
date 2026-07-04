@@ -355,29 +355,29 @@ def main(work_dir: str | None = None,
             failed_stages.append(s)
             runner_log(f"  ✗ {_STAGE_NAMES.get(s, s)} 失败: {e}")
 
-    # Priority-batched vuln+verify
+    # Priority-batched vuln+verify: per-surface analysis → immediate review
     if use_priority_batch:
+        import concurrent.futures as cf
         priority_groups = _group_surfaces_by_priority(analysis_dir, plans_dir)
         for label, stems in priority_groups:
-            runner_log(f"\n  === Priority: {label.upper()} ({len(stems)} surfaces) ===")
-            try:
+            runner_log(f"\n  === [{label.upper()}] {len(stems)} surfaces ===")
+
+            def process_one(stem):
+                ctx = label.upper()
                 vuln_analyze.run(
-                    work_dir=work_path, max_workers=max_workers,
-                    extra_prompt=vuln_prompt, only_stems=stems,
+                    work_dir=work_path, max_workers=1,
+                    extra_prompt=vuln_prompt, only_stems=[stem],
+                    context=ctx,
                 )
-                runner_log(f"  ✓ vuln [{label}]")
-            except Exception as e:
-                failed_stages.append("vuln")
-                runner_log(f"  ✗ vuln [{label}] 失败: {e}")
-            try:
                 review_vuln.run(
-                    work_dir=work_path, max_workers=max_workers,
-                    extra_prompt=verify_prompt, only_stems=stems,
+                    work_dir=work_path, max_workers=1,
+                    extra_prompt=verify_prompt, only_stems=[stem],
+                    context=ctx,
                 )
-                runner_log(f"  ✓ verify [{label}]")
-            except Exception as e:
-                failed_stages.append("verify")
-                runner_log(f"  ✗ verify [{label}] 失败: {e}")
+
+            with cf.ThreadPoolExecutor(max_workers=max_workers) as pool:
+                for _ in pool.map(process_one, stems):
+                    pass
     runner_log()
     runner_log("=" * 50)
     runner_log("Pipeline complete.")

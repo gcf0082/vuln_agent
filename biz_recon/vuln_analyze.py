@@ -96,11 +96,13 @@ def _surface_priority(surface_stem: str, plans_dir: Path) -> int:
 def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
         force_list: list[str] | None = None,
-        only_stems: list[str] | None = None):
+        only_stems: list[str] | None = None,
+        context: str = ""):
     from .workspace import ensure_dirs, setup_stage_log
     from . import surface_discover
     va_log = setup_stage_log("vuln_analyze")
-    va_log(f"\n=== Stage 3: Vulnerability Analysis ===")
+    ctx = f" [{context}]" if context else ""
+    va_log(f"\n=== Stage 3: Vulnerability Analysis{ctx} ===")
     ensure_dirs(work_dir)
 
     analysis_dir = work_dir / OUTPUT_PARENT / "analyzed_surfaces"

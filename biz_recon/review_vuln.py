@@ -30,10 +30,12 @@ def _extract_surface_stem(vuln_stem: str) -> str:
 def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
         force_list: list[str] | None = None,
-        only_stems: list[str] | None = None):
+        only_stems: list[str] | None = None,
+        context: str = ""):
     from .workspace import setup_stage_log
     rv_log = setup_stage_log("review_vuln")
-    rv_log(f"\n=== Stage 4: Vulnerability Review ===")
+    ctx = f" [{context}]" if context else ""
+    rv_log(f"\n=== Stage 4: Vulnerability Review{ctx} ===")
 
     review_dir = work_dir / OUTPUT_PARENT / "vuln_reviews"
     review_dir.mkdir(parents=True, exist_ok=True)
