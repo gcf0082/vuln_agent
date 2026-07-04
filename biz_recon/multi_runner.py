@@ -46,7 +46,8 @@ def run(parent_dir: str,
         agent: str = "",
         stage: str = "",
         overwrite: bool = False,
-        min_level: str = "standard"):
+        min_level: str = "standard",
+        risk_first: bool = False):
     parent = Path(parent_dir).resolve()
     if not parent.is_dir():
         print(f"Error: not a directory: {parent}")
@@ -63,16 +64,11 @@ def run(parent_dir: str,
         print(f"  Stage: {stage}")
     print(f"{'=' * 50}")
 
-    for i, subdir in enumerate(subdirs):
+    def _run_one(subdir, **kw):
         name = subdir.name
-        print(f"\n--- [{i + 1}/{len(subdirs)}] {name} ---")
-
         parent_arch = parent / OUTPUT_PARENT / name
         subdir_out = subdir / OUTPUT_PARENT
-
-        # Restore previous output from parent archive for resume
         _move(parent_arch, subdir_out)
-
         try:
             stats = runner.main(
                 work_dir=str(subdir),
@@ -83,18 +79,35 @@ def run(parent_dir: str,
                 thinking=thinking,
                 model=model,
                 agent=agent,
-                stage=stage,
                 overwrite=overwrite,
-                min_level=min_level,
+                risk_first=risk_first,
+                **kw,
             )
             if stats.get("failed_stages"):
                 print(f"  ✗ Failed stages: {', '.join(stats['failed_stages'])}")
         except Exception as e:
             print(f"  ✗ Error: {e}")
-
-        # Archive to parent directory
         _move(subdir_out, parent_arch)
-        print(f"  ✓ Output archived to .vuln_agent_output/{name}/")
+        return subdir_out
+
+    if risk_first:
+        # Phase 1: recon + flow + plan for all subdirs
+        print(f"\n--- Phase 1: recon + flow + plan ---")
+        for i, subdir in enumerate(subdirs):
+            print(f"\n--- [{i + 1}/{len(subdirs)}] {subdir.name} ---")
+            _run_one(subdir, stage="plan")
+
+        # Phase 2: per priority level across all subdirs
+        for level in ["high", "medium", "low", "standard"]:
+            print(f"\n--- {level.upper()} priority ---")
+            for i, subdir in enumerate(subdirs):
+                print(f"\n--- [{i + 1}/{len(subdirs)}] {subdir.name} ---")
+                _run_one(subdir, stage="vuln", min_level=level)
+                _run_one(subdir, stage="verify")
+    else:
+        for i, subdir in enumerate(subdirs):
+            print(f"\n--- [{i + 1}/{len(subdirs)}] {subdir.name} ---")
+            _run_one(subdir, stage=stage, min_level=min_level)
 
     print(f"\n{'=' * 50}")
     print("Multi-target analysis complete.")

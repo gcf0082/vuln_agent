@@ -54,7 +54,8 @@ def run(work_dir: Path, max_workers: int = 3,
         only_stems: list[str] | None = None,
         context: str = "",
         thinking: bool = False,
-        min_level: str = "standard"):
+        min_level: str = "standard",
+        risk_first: bool = False):
     from .workspace import ensure_dirs, setup_stage_log
     from . import surface_discover
     va_log = setup_stage_log("vuln_analyze")
@@ -87,6 +88,9 @@ def run(work_dir: Path, max_workers: int = 3,
             va_log(f"  No matching surfaces for force-list: {force_list}")
             return find_vuln_files(work_dir)
         va_log(f"  Force re-analyzing {len(surface_files)} surface(s): {[f.name for f in surface_files]}")
+    elif min_level != "standard":
+        # risk-first mode: re-analyze all surfaces (per-level filtering in analyze_one)
+        pass
     else:
         need_analysis = [f for f in surface_files if not _surface_has_vuln_output(f.stem, vuln_dir)]
         if not need_analysis:
@@ -125,6 +129,12 @@ def run(work_dir: Path, max_workers: int = 3,
 
     min_level_num = _LEVEL_MAP.get(min_level, 3)
 
+    def _level_match(pf: Path) -> bool:
+        lvl = _plan_file_level(pf)
+        if risk_first:
+            return lvl == min_level_num
+        return lvl >= min_level_num
+
     def analyze_one(sf_path):
         plan_dir = plans_dir / sf_path.stem
         if not plan_dir.exists():
@@ -133,7 +143,7 @@ def run(work_dir: Path, max_workers: int = 3,
             })
 
         for pf in sorted(plan_dir.glob("*.md")):
-            if _plan_file_level(pf) < min_level_num:
+            if not _level_match(pf):
                 continue
             plan_content = pf.read_text(encoding="utf-8")
             is_deep = pf.stem.startswith("high-risk") or pf.stem.startswith("medium-risk")

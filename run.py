@@ -78,6 +78,8 @@ def _parse_args() -> argparse.Namespace:
                         help="Delete existing stage output before running (with --stage)")
     parser.add_argument("--multi", action="store_true",
                         help="Treat work_dir as parent containing multiple projects; analyze each subdirectory independently")
+    parser.add_argument("--risk-first", action="store_true",
+                        help="With --multi: analyze all subdirs' high-risk first, then medium, then low, then standard")
     parser.add_argument("--min-level", choices=["high", "medium", "low", "standard"],
                         default="standard",
                         help="Minimum vulnerability level to analyze (default: standard)")
@@ -110,6 +112,7 @@ if __name__ == "__main__":
             stage=args.stage,
             overwrite=args.overwrite,
             min_level=args.min_level,
+            risk_first=args.risk_first,
         )
     else:
         runner.main(work_dir=args.work_dir,
