@@ -58,14 +58,10 @@ def run(work_dir: Path, max_workers: int = 3,
             return []
         rv_log(f"  Force re-analyzing {len(vuln_files)} file(s): {[f.name for f in vuln_files]}")
     else:
-        # Per-vuln-file skip: only review files without existing review results
         need_review = [f for f in vuln_files if not _vuln_has_review(f.stem, review_dir)]
-        skipped = len(vuln_files) - len(need_review)
         if not need_review:
-            rv_log(f"  All {len(vuln_files)} vuln files already have review results.")
             return sorted(review_dir.glob("*"))
         vuln_files = need_review
-        rv_log(f"  Re-analyzing {len(vuln_files)} vuln files ({skipped} already reviewed, workers={max_workers})...")
 
     vars = build_vars(work_dir)
     failures: list[str] = []

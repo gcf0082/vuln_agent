@@ -13,7 +13,7 @@ def run(work_dir: Path, max_workers: int = 3,
         thinking: bool = False):
     from .workspace import setup_stage_log
     pl_log = setup_stage_log("vuln_planner")
-    pl_log(f"\n=== Stage 2.5: Vulnerability Analysis Planning ===")
+    pl_log("\n=== Vulnerability Analysis Planning ===")
 
     analysis_dir = work_dir / OUTPUT_PARENT / "analyzed_surfaces"
     if not analysis_dir.exists():
@@ -28,7 +28,6 @@ def run(work_dir: Path, max_workers: int = 3,
     plans_dir = work_dir / OUTPUT_PARENT / "vuln_plans"
     plans_dir.mkdir(parents=True, exist_ok=True)
 
-    pl_log(f"  {len(surface_files)} surfaces, planning in parallel (workers={max_workers})...")
     vars = build_vars(work_dir)
     extras = f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else ""
     failures: list[str] = []
@@ -37,10 +36,10 @@ def run(work_dir: Path, max_workers: int = 3,
         pl_ao_log = setup_stage_log("vuln_planner", sf_path.name)
         plan_dir = plans_dir / sf_path.stem
         if plan_dir.exists():
-            pl_ao_log(f"  ⏭ {sf_path.name} (plan exists)")
+            pl_ao_log(f"  规划分析跳过 {sf_path.name}")
             return True
 
-        pl_ao_log(f"  ▶ {sf_path.name}")
+        pl_ao_log(f"  规划分析 {sf_path.name}")
         local_vars = {**vars,
             "surface_file": sf_path.name,
             "surface_stem": sf_path.stem,
@@ -55,7 +54,7 @@ def run(work_dir: Path, max_workers: int = 3,
         if result.exit_code != 0:
             pl_ao_log(f"  ✗ {sf_path.name}")
             return False
-        pl_ao_log(f"  ✓ {sf_path.name}")
+        pl_ao_log(f"  规划分析完成 {sf_path.name}")
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:

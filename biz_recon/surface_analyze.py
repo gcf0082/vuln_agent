@@ -14,7 +14,7 @@ def run(work_dir: Path, max_workers: int = 3,
         thinking: bool = False):
     from .workspace import setup_stage_log
     sa_log = setup_stage_log("surface_analyze")
-    sa_log(f"\n=== Stage 2: Surface Analysis ===")
+    sa_log("\n=== Surface Analysis ===")
 
     items = read_surface_list(work_dir)
     if not items:
@@ -26,10 +26,8 @@ def run(work_dir: Path, max_workers: int = 3,
         if not filtered:
             sa_log("  No surfaces matched the --only filter. Nothing to analyze.")
             return filtered
-        sa_log(f"  Filtered: {len(items)} → {len(filtered)} items (--only match)")
         items = filtered
 
-    sa_log(f"  {len(items)} items, analyzing in parallel (workers={max_workers})...")
     vars = build_vars(work_dir)
     failures: list[str] = []
 
@@ -37,10 +35,10 @@ def run(work_dir: Path, max_workers: int = 3,
         ao_log = setup_stage_log("surface_analyze", item.filename)
         output_path = work_dir / OUTPUT_PARENT / "analyzed_surfaces" / item.filename
         if output_path.exists():
-            ao_log(f"  ⏭ {item.filename}")
+            ao_log(f"  业务流分析跳过 {item.filename}")
             return True
 
-        ao_log(f"  ▶ {item.filename}")
+        ao_log(f"  业务流分析 {item.filename}")
         local_vars = {**vars,
             "surface_file": item.filename,
             "extra_prompt": f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else "",
@@ -54,7 +52,7 @@ def run(work_dir: Path, max_workers: int = 3,
         if result.exit_code != 0:
             ao_log(f"  ✗ {item.filename}")
             return False
-        ao_log(f"  ✓ {item.filename}")
+        ao_log(f"  业务流分析完成 {item.filename}")
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:

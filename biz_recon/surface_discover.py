@@ -14,11 +14,11 @@ def run(work_dir: Path, extra_prompt: str = "", force: bool = False,
         thinking: bool = False):
     from .workspace import setup_stage_log
     sd_log = setup_stage_log("surface_discover")
-    sd_log("\n=== Stage 1: Surface Discovery ===")
+    sd_log("\n=== Surface Discovery ===")
 
     marker = work_dir / OUTPUT_PARENT / DONE_MARKER
     if not force and marker.exists():
-        sd_log("  SKIP: already completed (delete .surface_discover_done to redo)")
+        sd_log("  暴露面识别跳过 (already completed)")
         return
 
     ensure_dirs(work_dir)
@@ -37,11 +37,12 @@ def run(work_dir: Path, extra_prompt: str = "", force: bool = False,
 
     from .workspace import set_prompt_log_path
     set_prompt_log_path("surface_discover")
+    sd_log("  暴露面识别")
     client = OpenCodeClient()
     result = client.run(prompt, verbose=thinking)
-    sd_log(f"  exit={result.exit_code}")
     if result.exit_code != 0:
         raise RuntimeError(f"Surface discovery failed (exit={result.exit_code})")
+    sd_log("  暴露面识别完成")
 
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.touch()

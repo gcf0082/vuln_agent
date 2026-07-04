@@ -211,7 +211,6 @@ def _prepare_stage(work_path: Path, stage: str, overwrite: bool, runner_log) -> 
 def _run_stage(stage_func, stage_key, runner_log, **kwargs):
     """Run a single stage."""
     stage_func(**kwargs)
-    runner_log(f"  ✓ {_STAGE_NAMES.get(stage_key, stage_key)}")
 
 
 def main(work_dir: str | None = None,

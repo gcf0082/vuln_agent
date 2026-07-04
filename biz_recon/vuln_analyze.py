@@ -133,12 +133,9 @@ def run(work_dir: Path, max_workers: int = 3,
         va_log(f"  Force re-analyzing {len(surface_files)} surface(s): {[f.name for f in surface_files]}")
     else:
         need_analysis = [f for f in surface_files if not _surface_has_vuln_output(f.stem, vuln_dir)]
-        skipped = len(surface_files) - len(need_analysis)
         if not need_analysis:
-            va_log(f"  All {len(surface_files)} surfaces already have vulnerability analysis results.")
             return find_vuln_files(work_dir)
         surface_files = need_analysis
-        va_log(f"  Analyzing {len(surface_files)} surfaces ({skipped} already have results, workers={max_workers})...")
 
     vars = build_vars(work_dir)
     extras = f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else ""
