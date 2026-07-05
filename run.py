@@ -59,9 +59,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--flow-prompt", default="",
                         help="Extra prompt appended to the flow stage (surface analysis)")
     parser.add_argument("--vuln-prompt", default="",
-                        help="Extra prompt appended to the vuln stage (vulnerability analysis)")
-    parser.add_argument("--verify-prompt", default="",
-                        help="Extra prompt appended to the verify stage (vulnerability review)")
+                        help="Extra prompt appended to the vuln stage (vulnerability analysis + review)")
     parser.add_argument("--thinking", action="store_true",
                         help="Show LLM thinking process")
     parser.add_argument("--force-surface", default="",
@@ -72,8 +70,8 @@ def _parse_args() -> argparse.Namespace:
                         help="Model name to use (e.g. gpt-4, claude-sonnet-4)")
     parser.add_argument("--agent", default="",
                         help="LLM agent binary (nga or opencode)")
-    parser.add_argument("--stage", choices=["recon", "flow", "vuln", "verify"],
-                        help="Run a single pipeline stage only: recon / flow / vuln / verify")
+    parser.add_argument("--stage", choices=["recon", "flow", "vuln"],
+                        help="Run a single pipeline stage only: recon / flow / vuln")
     parser.add_argument("--overwrite", action="store_true",
                         help="Delete existing stage output before running (with --stage)")
     parser.add_argument("--multi", action="store_true",
@@ -99,7 +97,6 @@ if __name__ == "__main__":
                     recon_prompt=args.recon_prompt,
                     flow_prompt=args.flow_prompt,
                     vuln_prompt=args.vuln_prompt,
-                    verify_prompt=args.verify_prompt,
                     thinking=args.thinking,
                     force_surface=args.force_surface,
                     model=args.model,

@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from . import pipeline
-from . import surface_discover, surface_analyze, vuln_analyze, review_vuln
+from . import surface_discover, surface_analyze, vuln_analyze
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log
 
 SKIP_DIRS = frozenset({
@@ -59,7 +59,6 @@ def main(work_dir: str | None = None,
          recon_prompt: str = "",
          flow_prompt: str = "",
          vuln_prompt: str = "",
-         verify_prompt: str = "",
          thinking: bool = False,
          force_surface: str = "",
          model: str = "",
@@ -85,8 +84,6 @@ def main(work_dir: str | None = None,
         runner_log(f"  Flow extra:    {flow_prompt[:120]}")
     if vuln_prompt:
         runner_log(f"  Vuln extra:    {vuln_prompt[:120]}")
-    if verify_prompt:
-        runner_log(f"  Verify extra:  {verify_prompt[:120]}")
     if thinking:
         os.environ["OPENCODE_THINKING"] = "true"
         runner_log("  Thinking:      show process")
@@ -118,8 +115,8 @@ def main(work_dir: str | None = None,
                 surface_analyze.run(d, max_workers=max_workers, extra_prompt=flow_prompt, thinking=thinking)
             elif stage == "vuln":
                 vuln_analyze.run(d, max_workers=max_workers, extra_prompt=vuln_prompt, thinking=thinking, min_level=min_level)
-            elif stage == "verify":
-                review_vuln.run(d, max_workers=max_workers, extra_prompt=verify_prompt, thinking=thinking)
+                from . import review_vuln
+                review_vuln.run(d, max_workers=max_workers, extra_prompt=vuln_prompt, thinking=thinking)
     else:
         pipeline.run(
             work_dirs=work_dirs,
@@ -128,7 +125,6 @@ def main(work_dir: str | None = None,
             recon_prompt=recon_prompt,
             flow_prompt=flow_prompt,
             vuln_prompt=vuln_prompt,
-            verify_prompt=verify_prompt,
             thinking=thinking,
             model=model,
             agent=agent,
