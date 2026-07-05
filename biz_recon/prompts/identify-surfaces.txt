@@ -5,31 +5,59 @@
 {extra_prompt}
 ## 八荣八耻
 {include:recon-principles.md}
-## 项目分析与任务派发
+## 智能分层浏览（三阶段）
 
-**第一步：智能分析项目结构。** 快速浏览 {target_work_dir} 的目录结构、文件规模、技术栈特征，评估代码体量（文件数、代码行数），形成项目概览。
+从根目录 {target_work_dir} 开始，逐层浏览，不要一次性读完所有文件。
 
-**第二步：制定派发策略。** 根据项目体量决定识别方式：
+### 阶段 1：逐层浏览，智能跳过
 
-- **小项目**（代码量小、目录浅）：单次完整识别即可
-- **中等项目**：按顶层模块/子系统划分批次，分批识别
-- **大项目**（代码量大、目录深、模块多）：按子目录派发子任务，每个子任务独立识别该子目录的攻击面，最后汇总
+从根目录开始，用 `ls` 逐层查看目录内容。根据目录名决定是否深入：
 
-**派发原则**：
+**跳过（不深入）的目录**：
+- `node_modules/`、`.git/`、`__pycache__/`、`venv/`、`.venv/`
+- `target/`、`build/`、`dist/`、`out/`、`bin/`、`obj/`
+- `test/`、`tests/`、`__test__/`、`spec/`、`__tests__/`
+- `vendor/`、`third_party/`、`lib/`（仅第三方库时跳过）
+- `docs/`、`doc/`、`static/`、`public/`、`assets/`、`images/`、`css/`、`js/`（前端静态资源）
+- `config/`、`conf/`、`migration/`、`migrations/`、`sql/`、`db/`（仅配置/数据库时跳过）
+- `docker/`、`.docker/`、`helm/`、`k8s/`、`deploy/`、`ci/`、`.github/`
 
-- 派发粒度按子目录/模块划分，各子任务的扫描范围**不重叠**
-- 优先识别"高价值"子目录（如 `controller/`、`api/`、`handler/`、`listener/` 等），再扫其他
-- 各子任务产出统一格式的 surface 文件，写入 {target_work_dir}/.vuln_agent_output/discovered_surfaces/
-- 子任务数过多时可聚合（如先按顶层 5 个大目录派发，每个大目录内部再按需细分）
+**优先深入（高价值）的目录**：
+- `controller/`、`controllers/`、`api/`、`apis/`、`routes/`、`router/`、`endpoint/`
+- `handler/`、`handlers/`、`listener/`、`listeners/`、`consumer/`、`consumers/`
+- `cmd/`、`cli/`、`command/`、`commands/`、`console/`
+- `script/`、`scripts/`、`bin/`（可执行脚本）
+- `service/`、`services/`（含业务逻辑的 service）
+- `action/`、`actions/`、`task/`、`tasks/`、`job/`、`jobs/`
+- `web/`、`websocket/`、`grpc/`、`graphql/`、`mq/`
 
-**智能判断依据**（辅助评估派发策略）：
+**判断依据**：仅根据目录名和文件名推测，不要深入读取文件内容。文件名模式参考：
+- `*Controller.java`、`*Controller.py`、`*Controller.ts`、`*Controller.go`
+- `*Handler.java`、`*Handler.py`、`*Handler.ts`
+- `*Route.ts`、`*Route.py`、`*Route.go`
+- `*Servlet.java`、`*Filter.java`、`*Interceptor.java`
+- `*Service.java`（如果含入口方法）
+- `main.go`、`main.py`、`app.js`、`index.ts`、`cli.py`、`cmd.go`
+- `*.sh`、`*.bat`、`*.ps1`（可执行脚本）
+- `*Application.java`（Spring Boot 启动类，排除）
 
-- 项目使用的技术栈（Spring Boot / Django / Express / Gin 等框架特征）
-- 目录命名规律（是否按业务模块组织、是否按功能层组织）
-- 入口文件位置（main 启动类、路由配置等）
-- 配置文件中的模块划分线索
+### 阶段 2：推测潜在攻击面
 
-**记录执行计划**（可选）：将派发策略简要记录到 {target_work_dir}/.vuln_agent_output/meta/collect-plan.md，便于后续审查追溯。
+根据阶段 1 浏览到的文件名和路径，**推测**哪些文件可能是攻击面：
+
+- 接口类：Controller、Handler、Route、Servlet、Listener、Consumer、WebSocket、gRPC
+- 非接口类：main 入口、CLI 命令、独立脚本、任务处理
+
+记录推测结果，准备验证。
+
+### 阶段 3：验证
+
+只读取阶段 2 推测出的文件代码，确认是否为真正的攻击面：
+- 确认有外部可访问的入口（HTTP 路由、MQ 监听、main 函数等）
+- 确认有外部输入或用户可控数据
+- 确认后生成 surface 文件
+
+**不要读取未推测的文件代码，不要无谓扩大读取范围。**
 
 ## 识别范围
 
