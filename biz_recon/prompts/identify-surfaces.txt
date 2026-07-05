@@ -38,7 +38,7 @@
 - `test/`、`tests/`、`__test__/`、`spec/`、`__tests__/`
 - `vendor/`、`third_party/`、`lib/`（仅第三方库时跳过）
 - `docs/`、`doc/`、`static/`、`public/`、`assets/`、`images/`、`css/`、`js/`（前端静态资源）
-- `config/`、`conf/`、`migration/`、`migrations/`、`sql/`、`db/`（仅配置/数据库时跳过）
+- `config/`、`conf/`、`migration/`、`migrations/`（仅配置时跳过）
 - `docker/`、`.docker/`、`helm/`、`k8s/`、`deploy/`、`ci/`、`.github/`
 
 **优先检查目录**：
@@ -48,7 +48,7 @@
 - `script/`、`scripts/`、`bin/`（可执行脚本）
 - `service/`、`services/`（含业务逻辑的 service）
 - `action/`、`actions/`、`task/`、`tasks/`、`job/`、`jobs/`
-- `web/`、`websocket/`、`grpc/`、`graphql/`、`mq/`
+- `websocket/`、`grpc/`、`graphql/`、`mq/`
 
 ### 第二步：多任务派发
 
@@ -103,7 +103,7 @@
 
 收集所有攻击面（接口 + 非接口）：
 
-- **接口**：web（REST / JAX-RS / Servlet / GraphQL）、外部 MQ 消费者、gRPC、WebSocket / SSE — 识别 REST API 暴露面时可使用 `rest-api-extractor` skill 辅助分析
+- **接口**：REST API、外部 MQ 消费者、gRPC、WebSocket / SSE — 识别 REST API 暴露面时可使用 `rest-api-extractor` skill 辅助分析
 - **非接口**：独立可执行脚本、独立工具（含 main 入口的可执行程序）、接收外部输入的任务/消息处理、CLI 命令入口
 
 每条目必须提取精确的**来源信息**（完整文件路径:行号、函数名），路径必须是完整的绝对或相对项目根路径，供后续分析步骤直接使用。**REST 接口必须找到实际的 Controller 入口代码位置（文件路径:行号:函数名），而非路由配置或接口文档来源。****"独立工具"**指有 main 函数作为入口的可独立执行的程序，不是编译产物分析也不是工具类/工具函数。
