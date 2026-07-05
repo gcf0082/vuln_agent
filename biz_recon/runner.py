@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from . import pipeline
+from . import surface_discover, surface_analyze, vuln_analyze, review_vuln
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log
 
 SKIP_DIRS = frozenset({
@@ -108,20 +109,32 @@ def main(work_dir: str | None = None,
     else:
         work_dirs = [work_path]
 
-    pipeline.run(
-        work_dirs=work_dirs,
-        max_workers=max_workers,
-        vuln_workers=vuln_workers,
-        recon_prompt=recon_prompt,
-        flow_prompt=flow_prompt,
-        vuln_prompt=vuln_prompt,
-        verify_prompt=verify_prompt,
-        thinking=thinking,
-        model=model,
-        agent=agent,
-        min_level=min_level,
-        overwrite=overwrite,
-    )
+    if stage:
+        runner_log(f"Single stage: {stage}")
+        for d in work_dirs:
+            if stage == "recon":
+                surface_discover.run(d, extra_prompt=recon_prompt, force=overwrite, thinking=thinking)
+            elif stage == "flow":
+                surface_analyze.run(d, max_workers=max_workers, extra_prompt=flow_prompt, thinking=thinking)
+            elif stage == "vuln":
+                vuln_analyze.run(d, max_workers=max_workers, extra_prompt=vuln_prompt, thinking=thinking, min_level=min_level)
+            elif stage == "verify":
+                review_vuln.run(d, max_workers=max_workers, extra_prompt=verify_prompt, thinking=thinking)
+    else:
+        pipeline.run(
+            work_dirs=work_dirs,
+            max_workers=max_workers,
+            vuln_workers=vuln_workers,
+            recon_prompt=recon_prompt,
+            flow_prompt=flow_prompt,
+            vuln_prompt=vuln_prompt,
+            verify_prompt=verify_prompt,
+            thinking=thinking,
+            model=model,
+            agent=agent,
+            min_level=min_level,
+            overwrite=overwrite,
+        )
 
     return {"surfaces": 0, "vulns": 0}
 
