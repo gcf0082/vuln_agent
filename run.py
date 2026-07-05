@@ -78,9 +78,9 @@ def _parse_args() -> argparse.Namespace:
                         help="Delete existing stage output before running (with --stage)")
     parser.add_argument("--multi", action="store_true",
                         help="Treat work_dir as parent containing multiple projects; analyze each subdirectory independently")
-    parser.add_argument("--min-level", choices=["high", "medium", "low", "standard"],
-                        default="standard",
-                        help="Minimum vulnerability level to analyze (default: standard)")
+    parser.add_argument("--min-level", choices=["high", "medium", "low"],
+                        default="low",
+                        help="Minimum vulnerability level to analyze (default: low)")
 
     # Show help when no arguments given
     if len(sys.argv) == 1 or sys.argv[1:] == ["--"]:

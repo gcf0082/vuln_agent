@@ -4,7 +4,7 @@
 Flow:
   Phase 1: Discovery (per directory, concurrent)
   Phase 2: Per-surface: analyze → plan → high-risk vuln+review (concurrent)
-  Phase 3: Per-surface: medium → low → standard vuln+review (concurrent)
+  Phase 3: Per-surface: medium → low vuln+review (concurrent)
 """
 
 import concurrent.futures as cf
@@ -14,14 +14,20 @@ from pathlib import Path
 from . import surface_discover, surface_analyze, vuln_planner, vuln_analyze, review_vuln
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, read_surface_list, find_surface_files, find_vuln_files
 
-_LEVEL_MAP = {"high": 0, "medium": 1, "low": 2, "standard": 3}
+_LEVEL_MAP = {"high": 0, "medium": 1, "low": 2}
 
 
 def _levels_for_min(min_level: str) -> list[str]:
-    """Return levels to analyze in Phase 3 based on --min-level."""
-    all_levels = ["medium", "low", "standard"]
-    min_num = _LEVEL_MAP.get(min_level, 3)
-    return [l for l in all_levels if _LEVEL_MAP[l] >= min_num]
+    """Return levels to analyze in Phase 3 based on --min-level.
+    
+    Phase 2 always does high. Phase 3 does levels <= min_level (excluding high).
+    --min-level high → Phase 3: none
+    --min-level medium → Phase 3: medium
+    --min-level low → Phase 3: medium, low
+    """
+    all_levels = ["medium", "low"]
+    min_num = _LEVEL_MAP.get(min_level, 2)
+    return [l for l in all_levels if _LEVEL_MAP[l] <= min_num]
 
 
 def run(work_dirs: list[Path],
@@ -33,7 +39,7 @@ def run(work_dirs: list[Path],
         thinking: bool = False,
         model: str = "",
         agent: str = "",
-        min_level: str = "standard",
+        min_level: str = "low",
         overwrite: bool = False):
     setup_logging()
     log = setup_stage_log("pipeline")
@@ -157,7 +163,7 @@ def _phase3_one(work_dir: Path, surface_file: str,
                 levels: list[str],
                 vuln_prompt: str, verify_prompt: str,
                 thinking: bool, prefix: str):
-    """Medium → low → standard vuln+review for one surface."""
+    """Medium → low vuln+review for one surface."""
     stem = surface_file.replace(".md", "")
     for level in levels:
         vuln_analyze.run(work_dir, max_workers=1,

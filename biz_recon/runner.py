@@ -65,7 +65,7 @@ def main(work_dir: str | None = None,
          agent: str = "",
          stage: str = "",
          overwrite: bool = False,
-         min_level: str = "standard",
+         min_level: str = "low",
          multi: bool = False):
     work_path = Path(work_dir).resolve() if work_dir else \
                 (Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd())
@@ -93,7 +93,7 @@ def main(work_dir: str | None = None,
     if model:
         os.environ["LLM_MODEL"] = model
         runner_log(f"  Model:         {model}")
-    if min_level != "standard":
+    if min_level != "low":
         runner_log(f"  Min level:     {min_level}")
     runner_log("=" * 50)
 

@@ -21,20 +21,18 @@ def _surface_has_vuln_output(surface_stem: str, vuln_dir: Path) -> bool:
 
 
 def _surface_priority(surface_stem: str, plans_dir: Path) -> int:
-    """Return priority level: 0=high, 1=medium, 2=low, 3=standard."""
+    """Return priority level: 0=high, 1=medium, 2=low."""
     plan_dir = plans_dir / surface_stem
     if not plan_dir.exists():
-        return 3
+        return 2
     if list(plan_dir.glob("high-risk-*.md")):
         return 0
     if list(plan_dir.glob("medium-risk-*.md")):
         return 1
-    if list(plan_dir.glob("low-risk-*.md")):
-        return 2
-    return 3
+    return 2
 
 
-_LEVEL_MAP = {"high": 0, "medium": 1, "low": 2, "standard": 3}
+_LEVEL_MAP = {"high": 0, "medium": 1, "low": 2}
 
 
 def _plan_file_level(pf: Path) -> int:
@@ -45,7 +43,7 @@ def _plan_file_level(pf: Path) -> int:
         return 1
     if stem.startswith("low-risk"):
         return 2
-    return 3
+    return 2
 
 
 def run(work_dir: Path, max_workers: int = 3,
@@ -53,7 +51,7 @@ def run(work_dir: Path, max_workers: int = 3,
         force_list: list[str] | None = None,
         only_stems: list[str] | None = None,
         thinking: bool = False,
-        min_level: str = "standard",
+        min_level: str = "low",
         risk_first: bool = False,
         prefix: str = "",
         force: bool = False):
