@@ -71,11 +71,13 @@ def main(work_dir: str | None = None,
                 (Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd())
     config = load_config()
     max_workers = config.get("max_workers", 5)
+    vuln_workers = config.get("vuln_workers", 5)
 
     setup_logging()
     runner_log = setup_stage_log("runner")
     runner_log(f"Work directory: {work_path}")
     runner_log(f"Max workers:    {max_workers}")
+    runner_log(f"Vuln workers:   {vuln_workers}")
     if recon_prompt:
         runner_log(f"  Recon extra:   {recon_prompt[:120]}")
     if flow_prompt:
@@ -109,6 +111,7 @@ def main(work_dir: str | None = None,
     pipeline.run(
         work_dirs=work_dirs,
         max_workers=max_workers,
+        vuln_workers=vuln_workers,
         recon_prompt=recon_prompt,
         flow_prompt=flow_prompt,
         vuln_prompt=vuln_prompt,

@@ -32,6 +32,7 @@ def _levels_for_min(min_level: str) -> list[str]:
 
 def run(work_dirs: list[Path],
         max_workers: int = 5,
+        vuln_workers: int = 5,
         recon_prompt: str = "",
         flow_prompt: str = "",
         vuln_prompt: str = "",
@@ -51,7 +52,7 @@ def run(work_dirs: list[Path],
     if thinking:
         os.environ["OPENCODE_THINKING"] = "true"
 
-    log(f"Targets: {len(work_dirs)} directory(s), workers={max_workers}, min_level={min_level}")
+    log(f"Targets: {len(work_dirs)} directory(s), workers={max_workers}, vuln_workers={vuln_workers}, min_level={min_level}")
 
     with cf.ThreadPoolExecutor(max_workers=max_workers) as pool:
         # ── Phase 1: Discovery ──
@@ -76,22 +77,41 @@ def run(work_dirs: list[Path],
 
         log(f"Phase 1 complete: {len(all_surfaces)} surfaces across {len(work_dirs)} directory(s)")
 
-        # ── Phase 2: Analyze → Plan → High-risk vuln+review ──
-        log("Phase 2: Analysis → Planning → High-risk vuln+review")
-        phase2_futures = []
+        # ── Phase 2a: Analyze → Plan (main pool) ──
+        log("Phase 2a: Analysis → Planning")
+        phase2a_futures = []
 
         for d, sname in all_surfaces:
-            f = pool.submit(_phase2_one, d, sname,
-                            flow_prompt, vuln_prompt, verify_prompt,
-                            thinking, prefix=f"[{d.name}/{sname}]")
-            phase2_futures.append(f)
+            f = pool.submit(_phase2_analyze_plan, d, sname,
+                            flow_prompt, vuln_prompt, thinking,
+                            prefix=f"[{d.name}/{sname}]")
+            phase2a_futures.append(f)
 
-        for f in cf.as_completed(phase2_futures):
-            f.result()  # Raise if failed
+        for f in cf.as_completed(phase2a_futures):
+            f.result()
 
-        log("Phase 2 complete: all surfaces analyzed, planned, high-risk done")
+        log("Phase 2a complete: all surfaces analyzed and planned")
 
-        # ── Phase 3: Medium → Low → Standard vuln+review ──
+    # ── Phase 2b + Phase 3: Vuln analysis + review (vuln pool) ──
+    with cf.ThreadPoolExecutor(max_workers=vuln_workers) as vpool:
+        log("Phase 2b: High-risk vuln+review")
+        phase2b_futures = []
+
+        for d, sname in all_surfaces:
+            stem = sname.replace(".md", "")
+            plan_dir = d / OUTPUT_PARENT / "vuln_plans" / stem
+            if plan_dir.exists() and list(plan_dir.glob("high-risk-*.md")):
+                f = vpool.submit(_phase2_vuln_review, d, sname,
+                                 vuln_prompt, verify_prompt, thinking,
+                                 prefix=f"[{d.name}/{sname}]")
+                phase2b_futures.append(f)
+
+        for f in cf.as_completed(phase2b_futures):
+            f.result()
+
+        log("Phase 2b complete: high-risk vuln+review done")
+
+        # ── Phase 3: Medium → Low vuln+review ──
         phase3_levels = _levels_for_min(min_level)
         phase3_marker = work_dirs[0] / OUTPUT_PARENT / ".phase3_done"
         if phase3_levels and not phase3_marker.exists():
@@ -99,9 +119,9 @@ def run(work_dirs: list[Path],
             phase3_futures = []
 
             for d, sname in all_surfaces:
-                f = pool.submit(_phase3_one, d, sname, phase3_levels,
-                                vuln_prompt, verify_prompt, thinking,
-                                prefix=f"[{d.name}/{sname}]")
+                f = vpool.submit(_phase3_one, d, sname, phase3_levels,
+                                 vuln_prompt, verify_prompt, thinking,
+                                 prefix=f"[{d.name}/{sname}]")
                 phase3_futures.append(f)
 
             for f in cf.as_completed(phase3_futures):
@@ -128,10 +148,10 @@ def _discover_one(work_dir: Path, recon_prompt: str, overwrite: bool,
     return [item.filename for item in items]
 
 
-def _phase2_one(work_dir: Path, surface_file: str,
-                flow_prompt: str, vuln_prompt: str, verify_prompt: str,
-                thinking: bool, prefix: str):
-    """Analyze → plan → high-risk vuln+review for one surface."""
+def _phase2_analyze_plan(work_dir: Path, surface_file: str,
+                         flow_prompt: str, vuln_prompt: str,
+                         thinking: bool, prefix: str):
+    """Analyze → plan for one surface (runs in main pool)."""
     stem = surface_file.replace(".md", "")
     surface_analyze.run(work_dir, max_workers=1,
                         only_surfaces=[surface_file],
@@ -144,19 +164,22 @@ def _phase2_one(work_dir: Path, surface_file: str,
                      only_stems=[stem],
                      prefix=prefix)
 
-    # Only run high-risk vuln+review if high-risk plan files exist
-    plan_dir = work_dir / OUTPUT_PARENT / "vuln_plans" / stem
-    if plan_dir.exists() and list(plan_dir.glob("high-risk-*.md")):
-        vuln_analyze.run(work_dir, max_workers=1,
-                         extra_prompt=vuln_prompt,
-                         only_stems=[stem],
-                         thinking=thinking,
-                         min_level="high", risk_first=True,
-                         prefix=prefix, force=False)
-        review_vuln.run(work_dir, max_workers=1,
-                        extra_prompt=verify_prompt,
-                        only_stems=[stem],
-                        thinking=thinking, prefix=prefix)
+
+def _phase2_vuln_review(work_dir: Path, surface_file: str,
+                        vuln_prompt: str, verify_prompt: str,
+                        thinking: bool, prefix: str):
+    """High-risk vuln+review for one surface (runs in vuln pool)."""
+    stem = surface_file.replace(".md", "")
+    vuln_analyze.run(work_dir, max_workers=1,
+                     extra_prompt=vuln_prompt,
+                     only_stems=[stem],
+                     thinking=thinking,
+                     min_level="high", risk_first=True,
+                     prefix=prefix, force=False)
+    review_vuln.run(work_dir, max_workers=1,
+                    extra_prompt=verify_prompt,
+                    only_stems=[stem],
+                    thinking=thinking, prefix=prefix)
 
 
 def _phase3_one(work_dir: Path, surface_file: str,

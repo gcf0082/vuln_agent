@@ -25,3 +25,6 @@ vuln_planning: true
 
 # Max concurrent threads for parallel analysis stages
 max_workers: 3
+
+# Max concurrent threads for vulnerability analysis (separate pool)
+vuln_workers: 5
