@@ -126,30 +126,31 @@ def _phase2_one(work_dir: Path, surface_file: str,
                 flow_prompt: str, vuln_prompt: str, verify_prompt: str,
                 thinking: bool, prefix: str):
     """Analyze → plan → high-risk vuln+review for one surface."""
-    # Surface analysis
+    stem = surface_file.replace(".md", "")
     surface_analyze.run(work_dir, max_workers=1,
                         only_surfaces=[surface_file],
                         extra_prompt=flow_prompt,
                         thinking=thinking, prefix=prefix)
 
-    # Vuln planning
     vuln_planner.run(work_dir, max_workers=1,
                      extra_prompt=vuln_prompt,
                      thinking=thinking,
-                     only_stems=[surface_file.replace(".md", "")],
+                     only_stems=[stem],
                      prefix=prefix)
 
-    # High-risk vuln analysis + review (coupled)
-    vuln_analyze.run(work_dir, max_workers=1,
-                     extra_prompt=vuln_prompt,
-                     only_stems=[surface_file.replace(".md", "")],
-                     thinking=thinking,
-                     min_level="high", risk_first=True,
-                     prefix=prefix, force=False)
-    review_vuln.run(work_dir, max_workers=1,
-                    extra_prompt=verify_prompt,
-                    only_stems=[surface_file.replace(".md", "")],
-                    thinking=thinking, prefix=prefix)
+    # Only run high-risk vuln+review if high-risk plan files exist
+    plan_dir = work_dir / OUTPUT_PARENT / "vuln_plans" / stem
+    if plan_dir.exists() and list(plan_dir.glob("high-risk-*.md")):
+        vuln_analyze.run(work_dir, max_workers=1,
+                         extra_prompt=vuln_prompt,
+                         only_stems=[stem],
+                         thinking=thinking,
+                         min_level="high", risk_first=True,
+                         prefix=prefix, force=False)
+        review_vuln.run(work_dir, max_workers=1,
+                        extra_prompt=verify_prompt,
+                        only_stems=[stem],
+                        thinking=thinking, prefix=prefix)
 
 
 def _phase3_one(work_dir: Path, surface_file: str,

@@ -40,7 +40,6 @@ def run(work_dir: Path, max_workers: int = 3,
 
     vuln_files = sorted((work_dir / OUTPUT_PARENT / "vuln_findings").glob("*.md"))
     if not vuln_files:
-        rv_log(f"{prefix} No vulnerability files found.")
         return []
 
     if only_stems:
