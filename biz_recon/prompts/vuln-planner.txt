@@ -67,20 +67,20 @@
 
 ### 无任何分析点
 
-写入 `low-risk-1.md`：
+写入 `none-risk-1.md`：
 
 ```markdown
 # 分析计划 — {surface_stem}
 
-**优先级**：低
-**说明**：未发现需要标记的操作点，按常规流程分析即可。
+**结果**：无需分析
+**说明**：未发现需要标记的操作点。
 ```
 
 ## 重要规则
 
 - 每个文件只包含一个分析点
 - 存在 high-risk 分析点才写 `high-risk-{n}.md`，存在 medium-risk 才写 `medium-risk-{n}.md`，依此类推
-- 不存在任何分析点时写 `low-risk-1.md`
+- 不存在任何分析点时写 `none-risk-1.md`
 - 参考 `{tool_dir}/references/FALSE-rules.md`，命中自动忽略类别的 → 不标记
 - 参考 `{tool_dir}/references/vuln_rules_index.md`，匹配对应模式的 → 高优先级
 - 不要编造不存在的风险

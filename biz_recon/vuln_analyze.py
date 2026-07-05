@@ -9,12 +9,17 @@ from .prompt import read_prompt
 from .workspace import OUTPUT_PARENT, build_vars, find_vuln_files, log
 
 
-def _surface_has_vuln_output(surface_stem: str, vuln_dir: Path) -> bool:
+def _surface_has_vuln_output(surface_stem: str, vuln_dir: Path, plans_dir: Path | None = None) -> bool:
     """Check if a surface already has corresponding vulnerability analysis results."""
-    if not vuln_dir.exists():
-        return False
-    pattern = re.compile(rf'^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-{re.escape(surface_stem)}-\d+\.md$')
-    return any(pattern.match(f.name) for f in vuln_dir.iterdir())
+    if vuln_dir.exists():
+        pattern = re.compile(rf'^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-{re.escape(surface_stem)}-\d+\.md$')
+        if any(pattern.match(f.name) for f in vuln_dir.iterdir()):
+            return True
+    if plans_dir is not None:
+        plan_dir = plans_dir / surface_stem
+        if plan_dir.exists() and list(plan_dir.glob("none-risk-*.md")):
+            return True
+    return False
 
 
 
@@ -85,7 +90,7 @@ def run(work_dir: Path, max_workers: int = 3,
             va_log(f"{prefix} No matching surfaces for force-list: {force_list}")
             return find_vuln_files(work_dir)
     elif not force:
-        need_analysis = [f for f in surface_files if not _surface_has_vuln_output(f.stem, vuln_dir)]
+        need_analysis = [f for f in surface_files if not _surface_has_vuln_output(f.stem, vuln_dir, plans_dir)]
         if not need_analysis:
             return find_vuln_files(work_dir)
         surface_files = need_analysis
