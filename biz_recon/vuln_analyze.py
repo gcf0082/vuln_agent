@@ -97,7 +97,7 @@ def run(work_dir: Path, max_workers: int = 3,
     def _run_one(sf_path, prompt_name, extra_vars, log_suffix=""):
         ao_log = setup_stage_log("vuln_analyze", sf_path.name, prefix=prefix)
         label = f"{sf_path.name}{log_suffix}"
-        ao_log(f"{prefix} 漏洞分析 {label}")
+        ao_log(f"{prefix} → 漏洞分析 {label}")
 
         local_vars = {**vars,
             "surface_file": sf_path.name,
@@ -114,7 +114,7 @@ def run(work_dir: Path, max_workers: int = 3,
         if result.exit_code != 0:
             ao_log(f"{prefix} ✗ {label}")
             return False
-        ao_log(f"{prefix} 漏洞分析完成 {label}")
+        ao_log(f"{prefix} ✓ 漏洞分析完成 {label}")
         return True
 
     surface_files.sort(key=lambda f: _surface_priority(f.stem, plans_dir))

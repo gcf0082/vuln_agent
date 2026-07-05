@@ -64,7 +64,7 @@ def run(work_dir: Path, max_workers: int = 3,
 
     def reanalyze_one(vf_path):
         ra_log = setup_stage_log("review_vuln", vf_path.name, prefix=prefix)
-        ra_log(f"{prefix} 漏洞复核 {vf_path.name}")
+        ra_log(f"{prefix} → 漏洞复核 {vf_path.name}")
         analysis_name = re.sub(r'^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-', '', vf_path.stem)
         analysis_name = re.sub(r'-\d+$', '', analysis_name) + '.md'
         local_vars = {**vars,
@@ -82,7 +82,7 @@ def run(work_dir: Path, max_workers: int = 3,
         if result.exit_code != 0:
             ra_log(f"{prefix} ✗ {vf_path.name}")
             return False
-        ra_log(f"{prefix} 漏洞复核完成 {vf_path.name}")
+        ra_log(f"{prefix} ✓ 漏洞复核完成 {vf_path.name}")
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:

@@ -35,10 +35,10 @@ def run(work_dir: Path, max_workers: int = 3,
         ao_log = setup_stage_log("surface_analyze", item.filename, prefix=prefix)
         output_path = work_dir / OUTPUT_PARENT / "analyzed_surfaces" / item.filename
         if output_path.exists():
-            ao_log(f"{prefix} 业务流分析跳过 {item.filename}")
+            ao_log(f"{prefix} ⏭ 业务流分析跳过 {item.filename}")
             return True
 
-        ao_log(f"{prefix} 业务流分析 {item.filename}")
+        ao_log(f"{prefix} → 业务流分析 {item.filename}")
         local_vars = {**vars,
             "surface_file": item.filename,
             "extra_prompt": f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else "",
@@ -52,7 +52,7 @@ def run(work_dir: Path, max_workers: int = 3,
         if result.exit_code != 0:
             ao_log(f"{prefix} ✗ {item.filename}")
             return False
-        ao_log(f"{prefix} 业务流分析完成 {item.filename}")
+        ao_log(f"{prefix} ✓ 业务流分析完成 {item.filename}")
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
