@@ -114,8 +114,6 @@ def run(work_dir: Path, max_workers: int = 3,
         }
         prompt = read_prompt(prompt_name, local_vars)
 
-        from .workspace import set_prompt_log_path
-        set_prompt_log_path("vuln_analyze", label)
         client = OpenCodeClient()
         result = client.run(prompt, verbose=thinking)
         if result.exit_code != 0:

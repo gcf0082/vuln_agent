@@ -40,8 +40,6 @@ def run(work_dir: Path, extra_prompt: str = "", force: bool = False,
     vars["extra_prompt"] = extras
     prompt = read_prompt("identify-surfaces.txt", vars)
 
-    from .workspace import set_prompt_log_path
-    set_prompt_log_path("surface_discover")
     client = OpenCodeClient()
     result = client.run(prompt, verbose=thinking)
     if result.exit_code != 0:

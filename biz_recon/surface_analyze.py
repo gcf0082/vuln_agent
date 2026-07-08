@@ -45,8 +45,6 @@ def run(work_dir: Path, max_workers: int = 3,
         }
         prompt = read_prompt("analyze-surface.txt", local_vars)
 
-        from .workspace import set_prompt_log_path
-        set_prompt_log_path("surface_analyze", item.filename)
         client = OpenCodeClient()
         result = client.run(prompt, verbose=thinking)
         if result.exit_code != 0:

@@ -4,7 +4,6 @@
 import logging
 import os
 import re
-from datetime import datetime
 from pathlib import Path
 from .models import SurfaceItem
 
@@ -13,20 +12,15 @@ TOOL_DIR = Path(__file__).parent
 LOG_DIR = TOOL_DIR.parent / "var" / "logs"
 
 _logger: logging.Logger | None = None
-_prompt_logger: logging.Logger | None = None
 
 
 def setup_logging():
-    global _logger, _prompt_logger
+    global _logger
     LOG_DIR.mkdir(parents=True, exist_ok=True)
 
     _logger = logging.getLogger("pipeline")
     _logger.setLevel(logging.DEBUG)
     _logger.handlers.clear()
-
-    _prompt_logger = logging.getLogger("prompts")
-    _prompt_logger.setLevel(logging.DEBUG)
-    _prompt_logger.handlers.clear()
 
     fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 
@@ -44,23 +38,6 @@ def setup_logging():
     ch.setLevel(logging.INFO)
     ch.setFormatter(fmt)
     _logger.addHandler(ch)
-
-    pfh = logging.FileHandler(LOG_DIR / "prompts.log", encoding="utf-8")
-    pfh.setLevel(logging.DEBUG)
-    pfh.setFormatter(logging.Formatter("%(asctime)s\n%(message)s", datefmt="%H:%M:%S"))
-    _prompt_logger.addHandler(pfh)
-
-
-def set_prompt_log_path(stage: str, target: str = ""):
-    """Set LLM_PROMPT_LOG_PATH env var for llm-run.sh to consume."""
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
-    name = f"{ts}_{stage}"
-    if target:
-        name += f"_{target}"
-    name += "_prompt.txt"
-    path = LOG_DIR / "prompts" / name
-    path.parent.mkdir(parents=True, exist_ok=True)
-    os.environ["LLM_PROMPT_LOG_PATH"] = str(path)
 
 
 def setup_stage_log(stage: str, target: str = "", prefix: str = ""):
