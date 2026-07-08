@@ -64,17 +64,11 @@ def _resolve_includes(text: str) -> str:
 
 
 def log_prompt(name: str, text: str):
-    """Write the full prompt text to the ``prompts`` and ``pipeline`` loggers.
+    """Write the full prompt text to the pipeline logger (DEBUG level).
 
-    These loggers are configured by :func:`workspace.setup_logging` ---
-    calling ``logging.getLogger()`` here returns the same singleton
-    instances regardless of where they were configured.
+    This goes to pipeline_thinking.log only (not pipeline.log which is INFO only).
     """
-    prompt_logger = logging.getLogger("prompts")
     pipeline_logger = logging.getLogger("pipeline")
-
-    prompt_logger.info("╭─ PROMPT: %s (%d chars)", name, len(text))
-    prompt_logger.info(text)
     pipeline_logger.debug("╭─ PROMPT: %s (%d chars)", name, len(text))
     pipeline_logger.debug(text)
 
