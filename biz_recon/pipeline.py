@@ -77,61 +77,59 @@ def run(work_dirs: list[Path],
 
         log(f"Phase 1 complete: {len(all_surfaces)} surfaces across {len(work_dirs)} directory(s)")
 
-        # ── Phase 2a: Analyze → Plan (main pool) ──
-        log("Phase 2a: Analysis → Planning")
-        phase2a_futures = []
+        # ── Phase 2: Analyze → Plan → High-risk vuln+review ──
+        log("Phase 2: Analysis → Planning → High-risk vuln+review")
 
-        for d, sname in all_surfaces:
-            f = pool.submit(_phase2_analyze_plan, d, sname,
-                            flow_prompt, vuln_prompt, thinking,
-                            prefix=f"[{d.name}/{sname}]")
-            phase2a_futures.append(f)
-
-        for f in cf.as_completed(phase2a_futures):
-            f.result()
-
-        log("Phase 2a complete: all surfaces analyzed and planned")
-
-    # ── Phase 2b + Phase 3: Vuln analysis + review (vuln pool) ──
-    with cf.ThreadPoolExecutor(max_workers=vuln_workers) as vpool:
-        log("Phase 2b: High-risk vuln+review")
-        phase2b_futures = []
-
-        for d, sname in all_surfaces:
-            stem = sname.replace(".md", "")
-            plan_dir = d / OUTPUT_PARENT / "vuln_plans" / stem
-            if plan_dir.exists() and list(plan_dir.glob("high-risk-*.md")):
-                f = vpool.submit(_phase2_vuln_review, d, sname,
-                                 vuln_prompt, verify_prompt, thinking,
-                                 prefix=f"[{d.name}/{sname}]")
-                phase2b_futures.append(f)
-
-        for f in cf.as_completed(phase2b_futures):
-            f.result()
-
-        log("Phase 2b complete: high-risk vuln+review done")
-
-        # ── Phase 3: Medium → Low vuln+review ──
-        phase3_levels = _levels_for_min(min_level)
-        phase3_marker = work_dirs[0] / OUTPUT_PARENT / ".phase3_done"
-        if phase3_levels and not phase3_marker.exists():
-            log(f"Phase 3: {', '.join(l.upper() for l in phase3_levels)} vuln+review")
-            phase3_futures = []
-
+        with cf.ThreadPoolExecutor(max_workers=vuln_workers) as vpool:
+            phase2a_futures: dict[cf.Future, tuple[Path, str]] = {}
             for d, sname in all_surfaces:
-                f = vpool.submit(_phase3_one, d, sname, phase3_levels,
-                                 vuln_prompt, verify_prompt, thinking,
-                                 prefix=f"[{d.name}/{sname}]")
-                phase3_futures.append(f)
+                f = pool.submit(_phase2_analyze_plan, d, sname,
+                                flow_prompt, vuln_prompt, thinking,
+                                prefix=f"[{d.name}/{sname}]")
+                phase2a_futures[f] = (d, sname)
 
-            for f in cf.as_completed(phase3_futures):
-                f.result()
+            # As each analyze+plan completes, submit high-risk vuln+review immediately
+            vuln_futures: list[cf.Future] = []
+            for f in cf.as_completed(phase2a_futures):
+                d, sname = phase2a_futures[f]
+                f.result()  # propagate exceptions
 
-            phase3_marker.parent.mkdir(parents=True, exist_ok=True)
-            phase3_marker.touch()
-            log("Phase 3 complete")
-        elif phase3_marker.exists():
-            log("Phase 3 already completed (delete .phase3_done to redo)")
+                stem = sname.replace(".md", "")
+                plan_dir = d / OUTPUT_PARENT / "vuln_plans" / stem
+                if plan_dir.exists() and list(plan_dir.glob("high-risk-*.md")):
+                    vf = vpool.submit(_phase2_vuln_review, d, sname,
+                                      vuln_prompt, verify_prompt, thinking,
+                                      prefix=f"[{d.name}/{sname}]")
+                    vuln_futures.append(vf)
+
+            log("Phase 2a complete: all surfaces analyzed and planned")
+
+            for vf in cf.as_completed(vuln_futures):
+                vf.result()
+
+            log("Phase 2b complete: high-risk vuln+review done")
+
+            # ── Phase 3: Medium → Low vuln+review ──
+            phase3_levels = _levels_for_min(min_level)
+            phase3_marker = work_dirs[0] / OUTPUT_PARENT / ".phase3_done"
+            if phase3_levels and not phase3_marker.exists():
+                log(f"Phase 3: {', '.join(l.upper() for l in phase3_levels)} vuln+review")
+                phase3_futures = []
+
+                for d, sname in all_surfaces:
+                    f = vpool.submit(_phase3_one, d, sname, phase3_levels,
+                                     vuln_prompt, verify_prompt, thinking,
+                                     prefix=f"[{d.name}/{sname}]")
+                    phase3_futures.append(f)
+
+                for f in cf.as_completed(phase3_futures):
+                    f.result()
+
+                phase3_marker.parent.mkdir(parents=True, exist_ok=True)
+                phase3_marker.touch()
+                log("Phase 3 complete")
+            elif phase3_marker.exists():
+                log("Phase 3 already completed (delete .phase3_done to redo)")
 
     # Summary
     total_surfaces = sum(len(find_surface_files(d)) for d in work_dirs)
