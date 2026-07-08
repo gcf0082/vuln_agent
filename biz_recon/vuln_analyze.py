@@ -48,6 +48,8 @@ def _plan_file_level(pf: Path) -> int:
         return 1
     if stem.startswith("low-risk"):
         return 2
+    if stem.startswith("none-risk"):
+        return 99
     return 2
 
 
