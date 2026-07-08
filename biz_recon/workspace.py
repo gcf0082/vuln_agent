@@ -35,6 +35,11 @@ def setup_logging():
     fh.setFormatter(fmt)
     _logger.addHandler(fh)
 
+    fh_debug = logging.FileHandler(LOG_DIR / "pipeline_thinking.log", encoding="utf-8")
+    fh_debug.setLevel(logging.DEBUG)
+    fh_debug.setFormatter(fmt)
+    _logger.addHandler(fh_debug)
+
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
     ch.setFormatter(fmt)
