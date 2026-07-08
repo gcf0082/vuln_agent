@@ -136,18 +136,15 @@ def run(work_dir: Path, max_workers: int = 3,
         plan_dir = plans_dir / sf_path.stem
         if not plan_dir.exists():
             return _run_one(sf_path, "analyze-vulnerability.txt", {
-                "analysis_plan": "", "excluded_plan": "",
+                "analysis_plan": "",
             })
 
         for pf in sorted(plan_dir.glob("*.md")):
             if not _level_match(pf):
                 continue
             plan_content = pf.read_text(encoding="utf-8")
-            is_deep = pf.stem.startswith("high-risk") or pf.stem.startswith("medium-risk")
-            prompt_name = "analyze-vulnerability-deep.txt" if is_deep else "analyze-vulnerability.txt"
-            ok = _run_one(sf_path, prompt_name, {
+            ok = _run_one(sf_path, "analyze-vulnerability.txt", {
                 "analysis_plan": plan_content,
-                "excluded_plan": "",
             }, log_suffix=f" [{pf.name}]")
             if not ok:
                 return False

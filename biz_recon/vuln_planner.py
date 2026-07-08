@@ -42,10 +42,10 @@ def run(work_dir: Path, max_workers: int = 3,
         pl_ao_log = setup_stage_log("vuln_planner", sf_path.name, prefix=prefix)
         plan_dir = plans_dir / sf_path.stem
         if plan_dir.exists():
-            pl_ao_log(f"{prefix} ⏭ 规划分析跳过 {sf_path.name}")
+            pl_ao_log(f"{prefix} ⏭ 规划漏洞分析任务跳过 {sf_path.name}")
             return True
 
-        pl_ao_log(f"{prefix} → 规划分析 {sf_path.name}")
+        pl_ao_log(f"{prefix} → 规划漏洞分析任务 {sf_path.name}")
         local_vars = {**vars,
             "surface_file": sf_path.name,
             "surface_stem": sf_path.stem,
@@ -58,7 +58,7 @@ def run(work_dir: Path, max_workers: int = 3,
         if result.exit_code != 0:
             pl_ao_log(f"{prefix} ✗ {sf_path.name}")
             return False
-        pl_ao_log(f"{prefix} ✓ 规划分析完成 {sf_path.name}")
+        pl_ao_log(f"{prefix} ✓ 规划漏洞分析任务完成 {sf_path.name}")
         return True
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
