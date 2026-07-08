@@ -31,7 +31,7 @@ def setup_logging():
     fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 
     fh = logging.FileHandler(LOG_DIR / "pipeline.log", encoding="utf-8")
-    fh.setLevel(logging.DEBUG)
+    fh.setLevel(logging.INFO)
     fh.setFormatter(fmt)
     _logger.addHandler(fh)
 
@@ -59,22 +59,11 @@ def set_prompt_log_path(stage: str, target: str = ""):
 
 
 def setup_stage_log(stage: str, target: str = "", prefix: str = ""):
-    """Create a per-target file logger for stage processing."""
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    name = f"{ts}_{stage}"
-    if target:
-        name += f"_{target}"
-
-    fh = logging.FileHandler(LOG_DIR / f"{name}.log", encoding="utf-8")
-    fh.setLevel(logging.DEBUG)
-    fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S"))
-
-    stage_logger = logging.getLogger(f"_stage_{name}")
+    """Create a per-target stage logger that forwards to pipeline.log."""
+    stage_logger = logging.getLogger(f"_stage_{stage}_{target}")
     stage_logger.setLevel(logging.DEBUG)
     stage_logger.handlers.clear()
     stage_logger.propagate = False
-    stage_logger.addHandler(fh)
 
     def stage_log(msg: str = ""):
         if msg:
