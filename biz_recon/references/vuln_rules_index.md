@@ -17,4 +17,4 @@
 | 代码特征 | 执行命令参数可控 | cmd-param-injection.md |
 | 代码特征 | 使用正则表达式 | redos-check.md |
 | 代码特征 | 解密并赋值变量 | decrypt-memory-cleanup.md |
-| 代码特征 | 日志记录敏感信息（密码、Token、密钥、证书私钥、手机号、邮箱、Cookie等） | log-sensitive-info.md |
+| 代码特征 | 日志记录敏感信息（明文或加密的认证凭据、电话号码、邮箱地址） | log-sensitive-info.md |
