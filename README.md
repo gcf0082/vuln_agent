@@ -56,15 +56,15 @@ python3 run.py [work_dir] [选项]
 | `work_dir` | 目标代码目录（默认当前目录） |
 | `--recon-prompt TEXT` | 暴露面识别阶段追加提示词 |
 | `--flow-prompt TEXT` | 业务流分析阶段追加提示词 |
-| `--vuln-prompt TEXT` | 漏洞分析阶段追加提示词 |
-| `--verify-prompt TEXT` | 二次审查阶段追加提示词 |
+| `--vuln-prompt TEXT` | 漏洞分析阶段及后续复核阶段追加提示词 |
 | `--thinking` | 显示 LLM 思考过程 |
 | `--model MODEL` | 指定模型名称 |
 | `--agent AGENT` | LLM 代理程序名称（`nga` 或 `opencode`），默认自动检测 |
 | `--force-surface FILE` | 强制重新分析指定攻击面（逗号分隔，支持 `*` 通配），会清除已有产物 |
-| `--stage {recon,flow,vuln,verify}` | 只运行单个阶段 |
+| `--stage {recon,flow,vuln,postprocess}` | 只运行单个阶段 |
 | `--overwrite` | 与 `--stage` 搭配，删除该阶段已有产物后重新执行 |
 | `--multi` | 多目标模式：将 `work_dir` 作为父目录，对其下每个子目录独立执行完整管道 |
+| `--min-level {high,medium,low}` | 最低漏洞分析等级（默认 low，仅高优先级时设为 high 可加速） |
 | `--test` | 测试 LLM 连通性（询问模型自身名称），不执行管道 |
 
 ### 示例
@@ -82,9 +82,6 @@ python3 run.py /target --flow-prompt "重点分析参数校验逻辑"
 # 漏洞分析阶段追加提示
 python3 run.py /target --vuln-prompt "优先分析命令注入和路径穿越"
 
-# 二次审查阶段追加提示
-python3 run.py /target --verify-prompt "重点验证命令注入结论"
-
 # 测试 LLM 连通性
 python3 run.py --test
 python3 run.py --test --model w3/MiniMax-M2.7
@@ -99,16 +96,16 @@ python3 run.py /target --thinking
 python3 run.py /target --force-surface "iface-upload-*"
 
 # 只运行单个阶段
-python3 run.py /target --stage recon    # 仅暴露面识别
-python3 run.py /target --stage flow     # 仅业务流分析
-python3 run.py /target --stage vuln     # 仅漏洞分析
-python3 run.py /target --stage verify   # 仅二次审查
+python3 run.py /target --stage recon          # 仅暴露面识别
+python3 run.py /target --stage flow           # 仅业务流分析
+python3 run.py /target --stage vuln           # 仅漏洞分析+复核
+python3 run.py /target --stage postprocess    # 仅漏洞后置处理
 
 # 覆盖重跑单个阶段（删除已有产物）
-python3 run.py /target --stage recon --overwrite    # 重新收集暴露面
-python3 run.py /target --stage flow --overwrite     # 重新分析业务流
-python3 run.py /target --stage vuln --overwrite     # 重新漏洞分析
-python3 run.py /target --stage verify --overwrite   # 重新二次审查
+python3 run.py /target --stage recon --overwrite          # 重新收集暴露面
+python3 run.py /target --stage flow --overwrite           # 重新分析业务流
+python3 run.py /target --stage vuln --overwrite           # 重新漏洞分析+复核
+python3 run.py /target --stage postprocess --overwrite    # 重新后置处理
 
 # 多目标分析：父目录下的每个子目录独立执行完整管道
 python3 run.py /parent --multi
@@ -126,8 +123,32 @@ python3 run.py /parent --multi --stage recon
 .vuln_agent_output/
 ├── discovered_surfaces/   # Stage 1 (surface_discover): 攻击面记录，每文件一个条目
 ├── analyzed_surfaces/     # Stage 2 (surface_analyze): 攻击面深度分析（含流程图、数据流追踪）
+├── vuln_plans/            # Stage 2.5 (vuln_planner): 漏洞分析计划（按优先级分级）
 ├── vuln_findings/         # Stage 3 (vuln_analyze): 漏洞结论（VULN-/NOVULN-/SUSPECTED-）
-├── vuln_reviews/          # Stage 4 (review_vuln): 二次审查结论（VULN-/NOVULN-/SUSPECTED-）
+├── vuln_reviews/          # Stage 3.5 (review_vuln): 二次审查结论（VULN-/NOVULN-/SUSPECTED-）
+├── vuln_postprocess/      # Stage 4 (vuln_postprocess): 漏洞后置处理（用户自定义分析）
+```
+
+## 配置文件
+
+`config/analysis-config.yaml` 用于控制管道行为：
+
+```yaml
+# 并发控制
+max_workers: 3                   # 暴露面识别/分析阶段最大线程数
+vuln_workers: 5                  # 漏洞分析阶段最大线程数
+
+# 超时控制（分钟）
+timeout_surface_discover: 120    # 暴露面识别超时
+timeout_default: 60              # 其他阶段超时
+
+# 阶段开关
+decompile: false                 # 是否反编译 jar/war/class
+bytecode_analysis: false         # 是否分析字节码
+attack_surface_collection: true  # 是否收集攻击面
+vulnerability_analysis: true     # 是否进行漏洞分析
+vuln_re_analysis: false          # 是否对确认漏洞进行业务上下文复核
+vuln_planning: true              # 是否启用漏洞分析规划
 ```
 
 ## 示例产物
