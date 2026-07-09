@@ -46,6 +46,7 @@ ProcessBuilder pb = new ProcessBuilder("bash", "scripts/scan.sh", filename);
 - HTTP 外呼：TLS 校验？主机名校验？目标 URL 含用户输入？
 - 复杂逻辑（含外部请求）：如何处理？
 - SQL：参数化绑定（`#{}` / `?`）vs 字符串拼接（`${}` / `+ input`）
+- 内存分配/释放（C/C++）：分配方式（malloc/calloc/new）、释放位置、是否存在缓冲区溢出、释放后使用、双重释放、空指针解引用？
 - 临时文件：如何处理？
 - 加解密 / 签名：算法？密钥来源？
 - 认证/鉴权（仅当存在时）：简述做了怎样的认证鉴权？

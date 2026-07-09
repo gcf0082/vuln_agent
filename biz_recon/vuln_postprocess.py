@@ -38,11 +38,6 @@ def run(work_dir: Path, extra_prompt: str = "",
         pp_log(f"{prefix} No VULN/SUSPECTED review files found.")
         return
 
-    ext_content = ext_file.read_text(encoding="utf-8").strip()
-    user_prompt = ext_content
-    if extra_prompt:
-        user_prompt += f"\n\n{extra_prompt}"
-
     postprocess_dir = work_dir / OUTPUT_PARENT / "vuln_postprocess"
     postprocess_dir.mkdir(parents=True, exist_ok=True)
 
@@ -71,7 +66,7 @@ def run(work_dir: Path, extra_prompt: str = "",
             "review_stem": review_stem,
             "vuln_file": vuln_file,
             "analysis_file": analysis_file,
-            "extra_prompt": user_prompt,
+            "ext_prompt_path": str(ext_file),
         }
         prompt = read_prompt("postprocess-vulnerability.txt", local_vars)
 
