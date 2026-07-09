@@ -126,7 +126,7 @@ python3 run.py /parent --multi --stage recon
 .vuln_agent_output/
 ├── discovered_surfaces/   # Stage 1 (surface_discover): 攻击面记录，每文件一个条目
 ├── analyzed_surfaces/     # Stage 2 (surface_analyze): 攻击面深度分析（含流程图、数据流追踪）
-├── vuln_findings/         # Stage 3 (vuln_analyze): 漏洞结论（VULN-/DISMISSED-/CLEAN-/SUSPECTED-）
+├── vuln_findings/         # Stage 3 (vuln_analyze): 漏洞结论（VULN-/CLEAN-/SUSPECTED-）
 ├── vuln_reviews/          # Stage 4 (review_vuln): 二次审查结论（VULN-/NOVULN-/SUSPECTED-）
 ```
 

@@ -57,7 +57,7 @@ def run(work_dir: Path, extra_prompt: str = "",
         vuln_stem = re.sub(r'^(?:VULN|SUSPECTED)-', '', review_stem)
         vuln_file = vuln_stem + ".md"
 
-        analysis_stem = re.sub(r'^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-', '', vuln_stem)
+        analysis_stem = re.sub(r'^(?:VULN|CLEAN|SUSPECTED)-', '', vuln_stem)
         analysis_stem = re.sub(r'-\d+$', '', analysis_stem)
         analysis_file = analysis_stem + ".md"
 

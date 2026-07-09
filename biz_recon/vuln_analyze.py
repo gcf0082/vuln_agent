@@ -12,7 +12,7 @@ from .workspace import OUTPUT_PARENT, build_vars, find_vuln_files, log
 def _surface_has_vuln_output(surface_stem: str, vuln_dir: Path, plans_dir: Path | None = None) -> bool:
     """Check if a surface already has corresponding vulnerability analysis results."""
     if vuln_dir.exists():
-        pattern = re.compile(rf'^(?:VULN|DISMISSED|CLEAN|SUSPECTED)-{re.escape(surface_stem)}-\d+\.md$')
+        pattern = re.compile(rf'^(?:VULN|CLEAN|SUSPECTED)-{re.escape(surface_stem)}-\d+\.md$')
         if any(pattern.match(f.name) for f in vuln_dir.iterdir()):
             return True
     if plans_dir is not None:
