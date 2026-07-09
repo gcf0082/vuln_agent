@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import signal
 import sys
 import subprocess
 import tempfile
@@ -207,6 +208,7 @@ class OpenCodeClient:
                 stderr=subprocess.PIPE,
                 text=False,
                 env=env,
+                start_new_session=True,
             )
 
             try:
@@ -214,11 +216,15 @@ class OpenCodeClient:
                     input=prompt.encode("utf-8"), timeout=timeout
                 )
             except subprocess.TimeoutExpired:
-                proc.kill()
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
                 stdout_bytes, stderr_bytes = proc.communicate()
                 if verbose:
                     print(f"\n[TIMEOUT] Process killed after {timeout}s")
                 return OpenCodeResult(text="", exit_code=-1, timed_out=True)
+            except KeyboardInterrupt:
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                proc.communicate()
+                raise
 
             full_text = stdout_bytes.decode("utf-8", errors="replace").strip()
             stderr_text = stderr_bytes.decode("utf-8", errors="replace")
