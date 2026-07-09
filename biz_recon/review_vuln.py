@@ -22,7 +22,7 @@ def _extract_surface_stem(vuln_stem: str) -> str:
     
     e.g. VULN-iface-REST-ping-1 → iface-REST-ping
     """
-    stem = re.sub(r'^(?:VULN|CLEAN|SUSPECTED)-', '', vuln_stem)
+    stem = re.sub(r'^(?:VULN|NOVULN|SUSPECTED)-', '', vuln_stem)
     stem = re.sub(r'-\d+$', '', stem)
     return stem
 
@@ -65,7 +65,7 @@ def run(work_dir: Path, max_workers: int = 3,
     def reanalyze_one(vf_path):
         ra_log = setup_stage_log("review_vuln", vf_path.name, prefix=prefix)
         ra_log(f"{prefix} → 漏洞复核 {vf_path.name}")
-        analysis_name = re.sub(r'^(?:VULN|CLEAN|SUSPECTED)-', '', vf_path.stem)
+        analysis_name = re.sub(r'^(?:VULN|NOVULN|SUSPECTED)-', '', vf_path.stem)
         analysis_name = re.sub(r'-\d+$', '', analysis_name) + '.md'
         local_vars = {**vars,
             "vuln_file": vf_path.name,

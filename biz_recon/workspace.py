@@ -132,7 +132,7 @@ def find_surface_files(work_dir: Path) -> list[Path]:
 
 def find_vuln_files(work_dir: Path) -> list[Path]:
     results = []
-    for prefix in ("VULN", "CLEAN", "SUSPECTED"):
+    for prefix in ("VULN", "NOVULN", "SUSPECTED"):
         results.extend(sorted((work_dir / OUTPUT_PARENT / "vuln_findings").glob(f"{prefix}-*.md")))
     return results
 
