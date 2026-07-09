@@ -5,7 +5,7 @@ import concurrent.futures
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, log
+from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout
 
 
 def run(work_dir: Path, max_workers: int = 3,
