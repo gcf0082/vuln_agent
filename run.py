@@ -70,8 +70,8 @@ def _parse_args() -> argparse.Namespace:
                         help="Model name to use (e.g. gpt-4, claude-sonnet-4)")
     parser.add_argument("--agent", default="",
                         help="LLM agent binary (nga or opencode)")
-    parser.add_argument("--stage", choices=["recon", "flow", "vuln"],
-                        help="Run a single pipeline stage only: recon / flow / vuln")
+    parser.add_argument("--stage", choices=["recon", "flow", "vuln", "postprocess"],
+                        help="Run a single pipeline stage only: recon / flow / vuln / postprocess")
     parser.add_argument("--overwrite", action="store_true",
                         help="Delete existing stage output before running (with --stage)")
     parser.add_argument("--multi", action="store_true",

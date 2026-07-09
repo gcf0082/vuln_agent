@@ -13,7 +13,7 @@ import os
 import shutil
 from pathlib import Path
 
-from . import surface_discover, surface_analyze, vuln_planner, vuln_analyze, review_vuln
+from . import surface_discover, surface_analyze, vuln_planner, vuln_analyze, review_vuln, vuln_postprocess
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, read_surface_list, find_surface_files, find_vuln_files
 
 _LEVEL_MAP = {"high": 0, "medium": 1, "low": 2}
@@ -181,6 +181,15 @@ def run(work_dirs: list[Path],
                 log("Phase 3 complete")
             elif phase3_marker.exists():
                 log("Phase 3 already completed (delete .phase3_done to redo)")
+
+        # ── Phase 4: Post-processing (user-defined, only if ext file exists) ──
+        ext_file = Path(__file__).parent.parent / "prompts-ext" / "postprocess-prompt.md"
+        if ext_file.exists():
+            log("Phase 4: Post-processing (user-defined)")
+            for d in work_dirs:
+                vuln_postprocess.run(d, thinking=thinking, prefix=f"[{d.name}]")
+        else:
+            log("Phase 4: Post-processing skipped (no prompts-ext/postprocess-prompt.md)")
 
     # Summary
     total_surfaces = sum(len(find_surface_files(d)) for d in work_dirs)

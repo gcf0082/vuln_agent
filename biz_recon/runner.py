@@ -124,6 +124,9 @@ def main(work_dir: str | None = None,
                 surface_analyze.run(d, max_workers=max_workers,
                                     only_surfaces=matched_files,
                                     extra_prompt=flow_prompt, thinking=thinking)
+            elif stage == "postprocess":
+                from . import vuln_postprocess
+                vuln_postprocess.run(d, thinking=thinking, prefix=f"[{d.name}]")
             elif stage == "vuln":
                 matched_stems = None
                 if force_surface:
