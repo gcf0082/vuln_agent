@@ -2,7 +2,7 @@
 
 本清单用于漏洞规划阶段快速识别需优先分析的模式。
 
-参考：`{tool_dir}/references/FALSE-rules.md`，命中自动忽略类别的 -> 不标记。
+`{tool_dir}/references/FALSE-rules.md` 为最高优先级，命中其中的忽略场景时不标记，与其他描述冲突时以 FALSE-rules.md 为准。
 
 ## 高优先级 (high-risk)
 
