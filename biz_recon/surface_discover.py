@@ -4,7 +4,7 @@
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, ensure_dirs, build_vars, log, get_timeout
+from .workspace import OUTPUT_PARENT, ensure_dirs, build_vars, log, get_timeout, is_interrupted
 
 
 DONE_MARKER = ".surface_discover_done"
@@ -45,6 +45,10 @@ def run(work_dir: Path, extra_prompt: str = "", force: bool = False,
     if result.exit_code != 0:
         suffix = "（超时）" if result.timed_out else ""
         raise RuntimeError(f"Surface discovery failed (exit={result.exit_code}){suffix}")
+
+    if is_interrupted():
+        sd_log(f"{prefix} ✗ 暴露面识别被中断，不生成完成标记")
+        return result
 
     surfaces_dir = work_dir / OUTPUT_PARENT / "discovered_surfaces"
     surface_files = sorted(surfaces_dir.glob("*.md"))
