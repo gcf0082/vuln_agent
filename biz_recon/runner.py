@@ -110,13 +110,39 @@ def main(work_dir: str | None = None,
         runner_log(f"Single stage: {stage}")
         for d in work_dirs:
             if stage == "recon":
+                if force_surface:
+                    runner_log("  --force-surface ignored for recon stage (discovery is global)")
                 surface_discover.run(d, extra_prompt=recon_prompt, force=overwrite, thinking=thinking)
             elif stage == "flow":
-                surface_analyze.run(d, max_workers=max_workers, extra_prompt=flow_prompt, thinking=thinking)
+                matched_files = pipeline._parse_force_surface(force_surface, d) if force_surface else None
+                if matched_files == []:
+                    runner_log(f"  No surfaces matched: {force_surface}")
+                    continue
+                if overwrite and matched_files:
+                    for sname in matched_files:
+                        pipeline._delete_surface_outputs(d, sname, from_stage="flow")
+                surface_analyze.run(d, max_workers=max_workers,
+                                    only_surfaces=matched_files,
+                                    extra_prompt=flow_prompt, thinking=thinking)
             elif stage == "vuln":
-                vuln_analyze.run(d, max_workers=max_workers, extra_prompt=vuln_prompt, thinking=thinking, min_level=min_level)
+                matched_stems = None
+                if force_surface:
+                    matched_files = pipeline._parse_force_surface(force_surface, d)
+                    if not matched_files:
+                        runner_log(f"  No surfaces matched: {force_surface}")
+                        continue
+                    matched_stems = [f.replace(".md", "") for f in matched_files]
+                if overwrite and matched_stems:
+                    for sname in matched_files:
+                        pipeline._delete_surface_outputs(d, sname, from_stage="vuln")
+                vuln_analyze.run(d, max_workers=max_workers,
+                                 extra_prompt=vuln_prompt, thinking=thinking,
+                                 min_level=min_level,
+                                 only_stems=matched_stems)
                 from . import review_vuln
-                review_vuln.run(d, max_workers=max_workers, extra_prompt=vuln_prompt, thinking=thinking)
+                review_vuln.run(d, max_workers=max_workers,
+                                extra_prompt=vuln_prompt, thinking=thinking,
+                                only_stems=matched_stems)
     else:
         pipeline.run(
             work_dirs=work_dirs,
@@ -130,6 +156,7 @@ def main(work_dir: str | None = None,
             agent=agent,
             min_level=min_level,
             overwrite=overwrite,
+            force_surface=force_surface,
         )
 
     return {"surfaces": 0, "vulns": 0}

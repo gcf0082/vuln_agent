@@ -8,13 +8,52 @@ Flow:
 """
 
 import concurrent.futures as cf
+import fnmatch
 import os
+import shutil
 from pathlib import Path
 
 from . import surface_discover, surface_analyze, vuln_planner, vuln_analyze, review_vuln
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, read_surface_list, find_surface_files, find_vuln_files
 
 _LEVEL_MAP = {"high": 0, "medium": 1, "low": 2}
+
+
+def _parse_force_surface(pattern: str, work_dir: Path) -> list[str]:
+    """解析逗号分隔的模式（支持 * 通配），返回匹配的 surface 文件名列表。"""
+    surfaces_dir = work_dir / OUTPUT_PARENT / "discovered_surfaces"
+    if not surfaces_dir.exists():
+        return []
+    patterns = [p.strip() for p in pattern.split(",") if p.strip()]
+    matched = []
+    for f in sorted(surfaces_dir.glob("*.md")):
+        if any(fnmatch.fnmatch(f.name, p) or fnmatch.fnmatch(f.stem, p) for p in patterns):
+            matched.append(f.name)
+    return matched
+
+
+def _delete_surface_outputs(work_dir: Path, filename: str,
+                            from_stage: str = "flow"):
+    """删除指定 surface 从 from_stage 开始的全部产物。
+
+    from_stage: "flow" = 业务流 onwards, "vuln" = 仅漏洞阶段。
+    """
+    stem = filename.replace(".md", "")
+    base = work_dir / OUTPUT_PARENT
+
+    if from_stage == "flow":
+        (base / "analyzed_surfaces" / filename).unlink(missing_ok=True)
+        plan_dir = base / "vuln_plans" / stem
+        if plan_dir.exists():
+            shutil.rmtree(plan_dir)
+
+    for dir_name in ["vuln_findings", "vuln_reviews"]:
+        d = base / dir_name
+        if d.exists():
+            for f in d.glob(f"*{stem}*.md"):
+                f.unlink()
+
+    (base / ".phase3_done").unlink(missing_ok=True)
 
 
 def _levels_for_min(min_level: str) -> list[str]:
@@ -41,7 +80,8 @@ def run(work_dirs: list[Path],
         model: str = "",
         agent: str = "",
         min_level: str = "low",
-        overwrite: bool = False):
+        overwrite: bool = False,
+        force_surface: str = ""):
     setup_logging()
     log = setup_stage_log("pipeline")
 
@@ -55,21 +95,32 @@ def run(work_dirs: list[Path],
     log(f"Targets: {len(work_dirs)} directory(s), workers={max_workers}, vuln_workers={vuln_workers}, min_level={min_level}")
 
     with cf.ThreadPoolExecutor(max_workers=max_workers) as pool:
-        # ── Phase 1: Discovery ──
-        log("Phase 1: Surface discovery")
+        # ── Phase 1: Discovery (skip if force_surface) ──
         all_surfaces: list[tuple[Path, str]] = []
-        discovery_futures = {}
 
-        for d in work_dirs:
-            prefix = f"[{d.name}]"
-            f = pool.submit(_discover_one, d, recon_prompt, overwrite, thinking, prefix)
-            discovery_futures[f] = d
+        if force_surface:
+            log(f"Force-surface mode: {force_surface}")
+            for d in work_dirs:
+                matched = _parse_force_surface(force_surface, d)
+                if overwrite:
+                    for sname in matched:
+                        _delete_surface_outputs(d, sname, from_stage="flow")
+                for sname in matched:
+                    all_surfaces.append((d, sname))
+        else:
+            log("Phase 1: Surface discovery")
+            discovery_futures = {}
 
-        for f in cf.as_completed(discovery_futures):
-            d = discovery_futures[f]
-            surfaces = f.result()
-            for sname in surfaces:
-                all_surfaces.append((d, sname))
+            for d in work_dirs:
+                prefix = f"[{d.name}]"
+                f = pool.submit(_discover_one, d, recon_prompt, overwrite, thinking, prefix)
+                discovery_futures[f] = d
+
+            for f in cf.as_completed(discovery_futures):
+                d = discovery_futures[f]
+                surfaces = f.result()
+                for sname in surfaces:
+                    all_surfaces.append((d, sname))
 
         if not all_surfaces:
             log("No surfaces discovered. Done.")
