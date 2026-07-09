@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, log
+from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout
 
 
 def _vuln_has_review(vuln_stem: str, review_dir: Path) -> bool:
@@ -76,9 +76,10 @@ def run(work_dir: Path, max_workers: int = 3,
         prompt = read_prompt("review-vulnerability.txt", local_vars)
 
         client = OpenCodeClient()
-        result = client.run(prompt, verbose=thinking)
+        result = client.run(prompt, verbose=thinking, timeout=get_timeout())
         if result.exit_code != 0:
-            ra_log(f"{prefix} ✗ {vf_path.name}")
+            suffix = "（超时）" if result.timed_out else ""
+            ra_log(f"{prefix} ✗ {vf_path.name}{suffix}")
             return False
         ra_log(f"{prefix} ✓ 漏洞复核完成 {vf_path.name}")
         return True

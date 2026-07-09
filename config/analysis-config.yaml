@@ -28,3 +28,9 @@ max_workers: 3
 
 # Max concurrent threads for vulnerability analysis (separate pool)
 vuln_workers: 5
+
+# Timeout for surface discovery stage (minutes)
+timeout_surface_discover: 120
+
+# Timeout for other analysis stages (minutes)
+timeout_default: 60

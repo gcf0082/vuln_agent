@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, find_vuln_files, log
+from .workspace import OUTPUT_PARENT, build_vars, find_vuln_files, log, get_timeout
 
 
 def _surface_has_vuln_output(surface_stem: str, vuln_dir: Path, plans_dir: Path | None = None) -> bool:
@@ -115,9 +115,10 @@ def run(work_dir: Path, max_workers: int = 3,
         prompt = read_prompt(prompt_name, local_vars)
 
         client = OpenCodeClient()
-        result = client.run(prompt, verbose=thinking)
+        result = client.run(prompt, verbose=thinking, timeout=get_timeout())
         if result.exit_code != 0:
-            ao_log(f"{prefix} ✗ {label}")
+            suffix = "（超时）" if result.timed_out else ""
+            ao_log(f"{prefix} ✗ {label}{suffix}")
             return False
         ao_log(f"{prefix} ✓ 漏洞分析完成 {label}")
         return True

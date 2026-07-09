@@ -4,7 +4,7 @@
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, ensure_dirs, build_vars, log
+from .workspace import OUTPUT_PARENT, ensure_dirs, build_vars, log, get_timeout
 
 
 DONE_MARKER = ".surface_discover_done"
@@ -41,9 +41,10 @@ def run(work_dir: Path, extra_prompt: str = "", force: bool = False,
     prompt = read_prompt("identify-surfaces.txt", vars)
 
     client = OpenCodeClient()
-    result = client.run(prompt, verbose=thinking)
+    result = client.run(prompt, verbose=thinking, timeout=get_timeout("surface_discover"))
     if result.exit_code != 0:
-        raise RuntimeError(f"Surface discovery failed (exit={result.exit_code})")
+        suffix = "（超时）" if result.timed_out else ""
+        raise RuntimeError(f"Surface discovery failed (exit={result.exit_code}){suffix}")
 
     surfaces_dir = work_dir / OUTPUT_PARENT / "discovered_surfaces"
     surface_files = sorted(surfaces_dir.glob("*.md"))

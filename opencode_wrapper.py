@@ -118,6 +118,7 @@ class OpenCodeResult:
     """Result from an opencode CLI invocation."""
     text: str
     exit_code: int
+    timed_out: bool = False
 
 
 # Default config template — model resolved from env at runtime
@@ -166,13 +167,15 @@ class OpenCodeClient:
     # ── public API ──
 
     def run(self, prompt: str, profile: ProfileConfig | None = None,
-            verbose: bool = False) -> OpenCodeResult:
+            verbose: bool = False,
+            timeout: int | None = None) -> OpenCodeResult:
         """Run prompt through llm-run.sh in a fully isolated profile.
 
         Args:
             prompt: The prompt to send to the LLM.
             profile: Controls which skills/agents/model to use.
             verbose: If True, print stderr logs.
+            timeout: Timeout in seconds. None means no timeout.
 
         Returns:
             OpenCodeResult with the response text and exit code.
@@ -180,10 +183,11 @@ class OpenCodeClient:
         if profile is None:
             profile = ProfileConfig()
 
-        return self._run_via_script(prompt, profile, verbose)
+        return self._run_via_script(prompt, profile, verbose, timeout)
 
     def _run_via_script(self, prompt: str, profile: ProfileConfig,
-                        verbose: bool = False) -> OpenCodeResult:
+                        verbose: bool = False,
+                        timeout: int | None = None) -> OpenCodeResult:
         """Run prompt via llm-run.sh (Linux) or llm-run.py (Windows)."""
         is_windows = sys.platform.startswith("win")
         script_path = Path(__file__).parent / ("llm-run.py" if is_windows else "llm-run.sh")
@@ -205,32 +209,24 @@ class OpenCodeClient:
                 env=env,
             )
 
-            # Send prompt via stdin (pipe mode)
-            assert proc.stdin is not None
-            proc.stdin.write(prompt.encode("utf-8"))
-            proc.stdin.close()
-
-            # Read stdout chunk by chunk (only print when verbose)
-            output_chunks: list[str] = []
-            assert proc.stdout is not None
-            while True:
-                chunk = proc.stdout.read(1024)
-                if not chunk:
-                    break
-                decoded = chunk.decode("utf-8", errors="replace")
+            try:
+                stdout_bytes, stderr_bytes = proc.communicate(
+                    input=prompt.encode("utf-8"), timeout=timeout
+                )
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                stdout_bytes, stderr_bytes = proc.communicate()
                 if verbose:
-                    print(decoded, end="", flush=True)
-                output_chunks.append(decoded)
+                    print(f"\n[TIMEOUT] Process killed after {timeout}s")
+                return OpenCodeResult(text="", exit_code=-1, timed_out=True)
 
-            full_text = "".join(output_chunks).strip()
+            full_text = stdout_bytes.decode("utf-8", errors="replace").strip()
+            stderr_text = stderr_bytes.decode("utf-8", errors="replace")
 
-            # Collect stderr
-            assert proc.stderr is not None
-            stderr_text = proc.stderr.read().decode("utf-8", errors="replace")
-            proc.wait()
-
-            if verbose and stderr_text:
-                print("\n[stderr]", stderr_text[:500], sep="\n")
+            if verbose:
+                print(full_text, end="", flush=True)
+                if stderr_text:
+                    print("\n[stderr]", stderr_text[:500], sep="\n")
 
             return OpenCodeResult(text=full_text, exit_code=proc.returncode)
 

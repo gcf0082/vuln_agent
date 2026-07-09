@@ -54,9 +54,10 @@ def run(work_dir: Path, max_workers: int = 3,
         prompt = read_prompt("vuln-planner.txt", local_vars)
 
         client = OpenCodeClient()
-        result = client.run(prompt, verbose=thinking)
+        result = client.run(prompt, verbose=thinking, timeout=get_timeout())
         if result.exit_code != 0:
-            pl_ao_log(f"{prefix} ✗ {sf_path.name}")
+            suffix = "（超时）" if result.timed_out else ""
+            pl_ao_log(f"{prefix} ✗ {sf_path.name}{suffix}")
             return False
         pl_ao_log(f"{prefix} ✓ 规划漏洞分析任务完成 {sf_path.name}")
         return True

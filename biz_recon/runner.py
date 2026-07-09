@@ -72,6 +72,8 @@ def main(work_dir: str | None = None,
     config = load_config()
     max_workers = config.get("max_workers", 5)
     vuln_workers = config.get("vuln_workers", 5)
+    os.environ["TIMEOUT_SURFACE_DISCOVER"] = str(config.get("timeout_surface_discover", 120))
+    os.environ["TIMEOUT_DEFAULT"] = str(config.get("timeout_default", 60))
 
     setup_logging()
     runner_log = setup_stage_log("runner")

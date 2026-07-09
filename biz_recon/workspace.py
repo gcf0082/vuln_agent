@@ -11,6 +11,16 @@ OUTPUT_PARENT = ".vuln_agent_output"
 TOOL_DIR = Path(__file__).parent
 LOG_DIR = TOOL_DIR.parent / "var" / "logs"
 
+
+def get_timeout(stage: str = "default") -> int:
+    """Get timeout in seconds from env vars (set by runner from analysis-config.yaml).
+
+    Config values are in minutes, converted to seconds here.
+    """
+    if stage == "surface_discover":
+        return int(os.environ.get("TIMEOUT_SURFACE_DISCOVER", 120)) * 60
+    return int(os.environ.get("TIMEOUT_DEFAULT", 60)) * 60
+
 _logger: logging.Logger | None = None
 
 

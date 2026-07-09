@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, log
+from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout
 
 
 def run(work_dir: Path, extra_prompt: str = "",
@@ -71,9 +71,10 @@ def run(work_dir: Path, extra_prompt: str = "",
         prompt = read_prompt("postprocess-vulnerability.txt", local_vars)
 
         client = OpenCodeClient()
-        result = client.run(prompt, verbose=thinking)
+        result = client.run(prompt, verbose=thinking, timeout=get_timeout())
         if result.exit_code != 0:
-            rp_log(f"{prefix} ✗ {rf_path.name}")
+            suffix = "（超时）" if result.timed_out else ""
+            rp_log(f"{prefix} ✗ {rf_path.name}{suffix}")
             return False
         rp_log(f"{prefix} ✓ 漏洞后置处理完成 {rf_path.name}")
         return True

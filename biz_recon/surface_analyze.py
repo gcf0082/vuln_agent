@@ -5,7 +5,7 @@ import concurrent.futures
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, read_surface_list, log
+from .workspace import OUTPUT_PARENT, build_vars, read_surface_list, log, get_timeout
 
 
 def run(work_dir: Path, max_workers: int = 3,
@@ -46,9 +46,10 @@ def run(work_dir: Path, max_workers: int = 3,
         prompt = read_prompt("analyze-surface.txt", local_vars)
 
         client = OpenCodeClient()
-        result = client.run(prompt, verbose=thinking)
+        result = client.run(prompt, verbose=thinking, timeout=get_timeout())
         if result.exit_code != 0:
-            ao_log(f"{prefix} ✗ {item.filename}")
+            suffix = "（超时）" if result.timed_out else ""
+            ao_log(f"{prefix} ✗ {item.filename}{suffix}")
             return False
         ao_log(f"{prefix} ✓ 业务流分析完成 {item.filename}")
         return True
