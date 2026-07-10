@@ -126,6 +126,11 @@ def main(work_dir: str | None = None,
                 surface_analyze.run(d, max_workers=max_workers,
                                     only_surfaces=matched_files,
                                     extra_prompt=flow_prompt, thinking=thinking)
+                from . import vuln_planner
+                matched_stems = [f.replace(".md", "") for f in matched_files] if matched_files else None
+                vuln_planner.run(d, max_workers=max_workers,
+                                 extra_prompt=vuln_prompt, thinking=thinking,
+                                 only_stems=matched_stems)
             elif stage == "postprocess":
                 from . import vuln_postprocess
                 vuln_postprocess.run(d, thinking=thinking, prefix=f"[{d.name}]")
@@ -140,6 +145,10 @@ def main(work_dir: str | None = None,
                 if overwrite and matched_stems:
                     for sname in matched_files:
                         pipeline._delete_surface_outputs(d, sname, from_stage="vuln")
+                from . import vuln_planner
+                vuln_planner.run(d, max_workers=max_workers,
+                                 extra_prompt=vuln_prompt, thinking=thinking,
+                                 only_stems=matched_stems)
                 vuln_analyze.run(d, max_workers=max_workers,
                                  extra_prompt=vuln_prompt, thinking=thinking,
                                  min_level=min_level,
