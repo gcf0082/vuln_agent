@@ -181,6 +181,8 @@ REST 接口可能定义在 Swagger/OpenAPI 的 YAML 文件中。这类文件通�
 
 - **类型**：iface（或 noniface）
 - **分类**：REST（或 SCRIPT 等）
+- **URL**：（能取到时必填）接口访问路径，如 `GET /api/users/{id}`、`/ws/chat`；非接口类型无 URL 时不填
+- **参数**：（有参数时填写）格式为 `{位置}: {参数名}({约束})`；从 Swagger/OpenAPI YAML 发现时必须完整提取全部校验约束（required/类型/min/maxLength/pattern/enum 等），不可省略
 - **来源**：/src/main/java/com/acme/UserController.java:48 list()
 - **描述**：查询用户列表
 - **发现**：（可选）识别过程中看到的值得注意的信息，如涉及高危操作
@@ -190,7 +192,7 @@ REST 接口可能定义在 Swagger/OpenAPI 的 YAML 文件中。这类文件通�
 
 | 分类 | 补充字段 |
 |------|---------|
-| REST | `**URL**`：`GET /api/users/{id}`、`**入口**`：`src/main/java/com/acme/UserController.java:48 listUsers()`、`**参数**`：path: id(required, integer, minimum=1)（spec 中发现时必填全部约束）、`**接口定义**`：`api/swagger.yaml` |
+| REST | `**入口**`：`src/main/java/com/acme/UserController.java:48 listUsers()`、`**接口定义**`：`api/swagger.yaml` |
 | MQ | `**队列/Topic**`：order.created、`**消费者**`：OrderHandler.onCreated() |
 | gRPC | `**服务**`：UserService、`**方法**`：GetUser、`**Proto**`：user.proto |
 | WebSocket | `**端点**`：/ws/chat、`**处理器**`：ChatHandler |
