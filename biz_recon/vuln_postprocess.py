@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout
+from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout, record_failure
 
 
 def run(work_dir: Path, extra_prompt: str = "",
@@ -88,3 +88,5 @@ def run(work_dir: Path, extra_prompt: str = "",
         msg = f"{prefix} FAILURES ({len(failures)}): {', '.join(failures)}"
         pp_log(msg)
         print(msg, flush=True)
+        for fname in failures:
+            record_failure(f"后置处理 [{prefix}] {fname}")

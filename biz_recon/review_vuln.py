@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout
+from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout, record_failure
 
 
 def _vuln_has_review(vuln_stem: str, review_dir: Path) -> bool:
@@ -93,5 +93,7 @@ def run(work_dir: Path, max_workers: int = 3,
         msg = f"{prefix} FAILURES ({len(failures)}): {', '.join(failures)}"
         rv_log(msg)
         print(msg, flush=True)
+        for fname in failures:
+            record_failure(f"漏洞复核 [{prefix}] {fname}")
 
     return sorted((work_dir / OUTPUT_PARENT / "vuln_reviews").glob("*"))

@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, find_vuln_files, log, get_timeout
+from .workspace import OUTPUT_PARENT, build_vars, find_vuln_files, log, get_timeout, record_failure
 
 
 def _surface_has_vuln_output(surface_stem: str, vuln_dir: Path, plans_dir: Path | None = None) -> bool:
@@ -160,5 +160,7 @@ def run(work_dir: Path, max_workers: int = 3,
         msg = f"{prefix} FAILURES ({len(failures)}): {', '.join(failures)}"
         va_log(msg)
         print(msg, flush=True)
+        for fname in failures:
+            record_failure(f"漏洞分析 [{prefix}] {fname}")
 
     return find_vuln_files(work_dir)

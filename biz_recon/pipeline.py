@@ -14,7 +14,7 @@ import shutil
 from pathlib import Path
 
 from . import surface_discover, surface_analyze, vuln_planner, vuln_analyze, review_vuln, vuln_postprocess
-from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, read_surface_list, find_surface_files, find_vuln_files
+from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, read_surface_list, find_surface_files, find_vuln_files, record_failure, get_all_failures, reset_failures
 
 _LEVEL_MAP = {"high": 0, "medium": 1, "low": 2}
 
@@ -84,6 +84,7 @@ def run(work_dirs: list[Path],
         force_surface: str = ""):
     setup_logging()
     log = setup_stage_log("pipeline")
+    reset_failures()
 
     if model:
         os.environ["LLM_MODEL"] = model
@@ -118,9 +119,13 @@ def run(work_dirs: list[Path],
 
             for f in cf.as_completed(discovery_futures):
                 d = discovery_futures[f]
-                surfaces = f.result()
-                for sname in surfaces:
-                    all_surfaces.append((d, sname))
+                try:
+                    surfaces = f.result()
+                    for sname in surfaces:
+                        all_surfaces.append((d, sname))
+                except Exception as e:
+                    log(f"[{d.name}] Discovery failed: {e}")
+                    record_failure(f"Phase 1 Discovery [{d.name}]: {e}")
 
         if not all_surfaces:
             log("No surfaces discovered. Done.")
@@ -140,10 +145,15 @@ def run(work_dirs: list[Path],
                 phase2a_futures[f] = (d, sname)
 
             # As each analyze+plan completes, submit high-risk vuln+review immediately
-            vuln_futures: list[cf.Future] = []
+            vuln_futures: dict[cf.Future, tuple[Path, str]] = {}
             for f in cf.as_completed(phase2a_futures):
                 d, sname = phase2a_futures[f]
-                f.result()  # propagate exceptions
+                try:
+                    f.result()
+                except Exception as e:
+                    log(f"[{d.name}/{sname}] Analyze+Plan failed: {e}")
+                    record_failure(f"Phase 2 Analyze+Plan [{d.name}/{sname}]: {e}")
+                    continue
 
                 stem = sname.replace(".md", "")
                 plan_dir = d / OUTPUT_PARENT / "vuln_plans" / stem
@@ -151,12 +161,17 @@ def run(work_dirs: list[Path],
                     vf = vpool.submit(_phase2_vuln_review, d, sname,
                                       vuln_prompt, verify_prompt, thinking,
                                       prefix=f"[{d.name}/{sname}]")
-                    vuln_futures.append(vf)
+                    vuln_futures[vf] = (d, sname)
 
             log("Phase 2a complete: all surfaces analyzed and planned")
 
             for vf in cf.as_completed(vuln_futures):
-                vf.result()
+                d, sname = vuln_futures[vf]
+                try:
+                    vf.result()
+                except Exception as e:
+                    log(f"[{d.name}/{sname}] Vuln+Review failed: {e}")
+                    record_failure(f"Phase 2 Vuln+Review [{d.name}/{sname}]: {e}")
 
             log("Phase 2b complete: high-risk vuln+review done")
 
@@ -165,16 +180,21 @@ def run(work_dirs: list[Path],
             phase3_marker = work_dirs[0] / OUTPUT_PARENT / ".phase3_done"
             if phase3_levels and not phase3_marker.exists():
                 log(f"Phase 3: {', '.join(l.upper() for l in phase3_levels)} vuln+review")
-                phase3_futures = []
+                phase3_futures: dict[cf.Future, tuple[Path, str]] = {}
 
                 for d, sname in all_surfaces:
                     f = vpool.submit(_phase3_one, d, sname, phase3_levels,
                                      vuln_prompt, verify_prompt, thinking,
                                      prefix=f"[{d.name}/{sname}]")
-                    phase3_futures.append(f)
+                    phase3_futures[f] = (d, sname)
 
                 for f in cf.as_completed(phase3_futures):
-                    f.result()
+                    d, sname = phase3_futures[f]
+                    try:
+                        f.result()
+                    except Exception as e:
+                        log(f"[{d.name}/{sname}] Phase 3 failed: {e}")
+                        record_failure(f"Phase 3 Vuln+Review [{d.name}/{sname}]: {e}")
 
                 phase3_marker.parent.mkdir(parents=True, exist_ok=True)
                 phase3_marker.touch()
@@ -187,14 +207,23 @@ def run(work_dirs: list[Path],
         if ext_file.exists():
             log("Phase 4: Post-processing (user-defined)")
             for d in work_dirs:
-                vuln_postprocess.run(d, thinking=thinking, prefix=f"[{d.name}]")
+                try:
+                    vuln_postprocess.run(d, thinking=thinking, prefix=f"[{d.name}]")
+                except Exception as e:
+                    log(f"[{d.name}] Postprocess failed: {e}")
+                    record_failure(f"Phase 4 Postprocess [{d.name}]: {e}")
         else:
             log("Phase 4: Post-processing skipped (no prompts-ext/postprocess-prompt.md)")
 
     # Summary
     total_surfaces = sum(len(find_surface_files(d)) for d in work_dirs)
     total_vulns = sum(len(find_vuln_files(d)) for d in work_dirs)
-    log(f"Pipeline complete: {total_surfaces} surfaces, {total_vulns} vuln files")
+    all_failures = get_all_failures()
+    if all_failures:
+        log(f"=== 失败汇总 ({len(all_failures)}) ===")
+        for msg in all_failures:
+            log(f"  {msg}")
+    log(f"Pipeline complete: {total_surfaces} surfaces, {total_vulns} vuln files, {len(all_failures)} failures")
 
 
 def _discover_one(work_dir: Path, recon_prompt: str, overwrite: bool,

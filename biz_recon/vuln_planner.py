@@ -5,7 +5,7 @@ import concurrent.futures
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout
+from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout, record_failure
 
 
 def run(work_dir: Path, max_workers: int = 3,
@@ -71,3 +71,5 @@ def run(work_dir: Path, max_workers: int = 3,
         msg = f"{prefix} FAILURES ({len(failures)}): {', '.join(failures)}"
         pl_log(msg)
         print(msg, flush=True)
+        for fname in failures:
+            record_failure(f"漏洞规划 [{prefix}] {fname}")

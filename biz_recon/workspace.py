@@ -154,3 +154,17 @@ def needs_analysis(work_dir: Path, surface_filename: str) -> bool:
         if surface_filename.replace(".md", "") in f.name:
             return False
     return True
+
+
+# ---- 失败汇总（全管道共享） ----
+
+_all_failures: list[str] = []
+
+def record_failure(msg: str):
+    _all_failures.append(msg)
+
+def get_all_failures() -> list[str]:
+    return list(_all_failures)
+
+def reset_failures():
+    _all_failures.clear()
