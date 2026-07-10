@@ -63,10 +63,26 @@
 
 收集所有攻击面（接口 + 非接口）：
 
-- **接口**：web（REST / JAX-RS / Servlet / GraphQL）、外部 MQ 消费者、gRPC、WebSocket / SSE — 识别 REST API 暴露面时可使用 `rest-api-extractor` skill 辅助分析
+- **接口**：web（REST / JAX-RS / Servlet / GraphQL）、外部 MQ 消费者、gRPC、WebSocket / SSE
 - **非接口**：独立可执行脚本、独立工具（含 main 入口的可执行程序）、接收外部输入的任务/消息处理、CLI 命令入口
 
 每条目必须提取精确的**来源信息**（完整文件路径:行号、函数名），路径必须是完整的绝对或相对项目根路径，供后续分析步骤直接使用。**REST 接口必须找到实际的 Controller 入口代码位置（文件路径:行号:函数名），而非路由配置或接口文档来源。****"独立工具"**指有 main 函数作为入口的可独立执行的程序，不是编译产物分析也不是工具类/工具函数。
+
+### Swagger/OpenAPI YAML 文件提取 REST 接口
+
+REST 接口可能定义在 Swagger/OpenAPI 的 YAML 文件中。这类文件通常名为 `rest*.yaml`/`rest*.yml`，但也可能不以此前缀命名。查找项目中的 `*.yaml` / `*.yml` 文件，读取其内容判断是否为 OpenAPI spec（包含 `openapi` 或 `swagger` 版本号 + `paths` 字段）：
+
+- **tags** → 类名推定：`tags` 列表第一个值一般为对应 controller 类名。如果类名以 `Api`/`Controller` 结尾则直接使用，否则尝试追加 `DelegateImpl` 后缀（如 tag=`user` → `UserDelegateImpl`）
+- **operationId** → 函数名
+- **参数提取**：通过 spec 文件发现的暴露面，**参数校验配置必须完整提取到 `**参数**` 字段，不可省略**。格式为 `{位置}: {参数名}({约束})`，含以下约束：
+  - `required`（必填）
+  - 类型（`string`/`integer`/`boolean` 等）
+  - 数值范围：`minimum=值`、`maximum=值`
+  - 长度范围：`minLength=值`、`maxLength=值`
+  - 正则：`pattern=表达式`
+  - 枚举值：`enum=val1|val2...`
+  - `x-example` 及相关 `x-*` 扩展字段**不作为**约束范围，必须忽略
+- **接口定义**：在补充字段中加入 `**接口定义**` 指向该 YAML 文件的完整相对路径
 
 基于入口处已采集的信息，完整填写输出格式中各字段（代码路径、函数名、接口参数等），尽量详细。不要求主动获取更多信息或跨函数追踪。
 
@@ -114,7 +130,7 @@
 
 | 分类 | 补充字段 |
 |------|---------|
-| REST | `**URL**`：`GET /api/users/{id}`、`**入口**`：`src/main/java/com/acme/UserController.java:48 listUsers()`、`**参数**`：path: id, query: page |
+| REST | `**URL**`：`GET /api/users/{id}`、`**入口**`：`src/main/java/com/acme/UserController.java:48 listUsers()`、`**参数**`：path: id(required, integer, minimum=1)（spec 中发现时必填全部约束）、`**接口定义**`：`api/swagger.yaml` |
 | MQ | `**队列/Topic**`：order.created、`**消费者**`：OrderHandler.onCreated() |
 | gRPC | `**服务**`：UserService、`**方法**`：GetUser、`**Proto**`：user.proto |
 | WebSocket | `**端点**`：/ws/chat、`**处理器**`：ChatHandler |
