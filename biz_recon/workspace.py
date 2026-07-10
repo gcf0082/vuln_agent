@@ -4,8 +4,6 @@
 import logging
 import os
 import re
-import signal
-import threading
 from pathlib import Path
 from .models import SurfaceItem
 
@@ -22,24 +20,6 @@ def get_timeout(stage: str = "default") -> int:
     if stage == "surface_discover":
         return int(os.environ.get("TIMEOUT_SURFACE_DISCOVER", 120)) * 60
     return int(os.environ.get("TIMEOUT_DEFAULT", 60)) * 60
-
-
-_sigint_event = threading.Event()
-
-
-def install_sigint_handler():
-    """Install SIGINT handler that sets interrupt event then re-raises KeyboardInterrupt."""
-    def _handler(signum, frame):
-        _sigint_event.set()
-        raise KeyboardInterrupt
-    try:
-        signal.signal(signal.SIGINT, _handler)
-    except ValueError:
-        pass
-
-
-def is_interrupted() -> bool:
-    return _sigint_event.is_set()
 
 
 _logger: logging.Logger | None = None

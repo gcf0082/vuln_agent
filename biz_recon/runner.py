@@ -8,7 +8,7 @@ from pathlib import Path
 
 from . import pipeline
 from . import surface_discover, surface_analyze, vuln_analyze
-from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, install_sigint_handler
+from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log
 
 SKIP_DIRS = frozenset({
     "node_modules", "__pycache__", "venv",
@@ -74,7 +74,6 @@ def main(work_dir: str | None = None,
     vuln_workers = config.get("vuln_workers", 5)
     os.environ["TIMEOUT_SURFACE_DISCOVER"] = str(config.get("timeout_surface_discover", 120))
     os.environ["TIMEOUT_DEFAULT"] = str(config.get("timeout_default", 60))
-    install_sigint_handler()
 
     setup_logging()
     runner_log = setup_stage_log("runner")
