@@ -44,12 +44,14 @@ def run(work_dir: Path, extra_prompt: str = "", force: bool = False,
     result = client.run(prompt, verbose=thinking, timeout=get_timeout("surface_discover"))
     if result.exit_code != 0:
         suffix = "（超时）" if result.timed_out else ""
-        raise RuntimeError(f"Surface discovery failed (exit={result.exit_code}){suffix}")
+        sd_log(f"{prefix} ⚠ 暴露面识别失败 (exit={result.exit_code}){suffix}")
+        return
 
     surfaces_dir = work_dir / OUTPUT_PARENT / "discovered_surfaces"
     surface_files = sorted(surfaces_dir.glob("*.md"))
     if not surface_files:
-        raise RuntimeError("Surface discovery completed but no surface files were generated")
+        sd_log(f"{prefix} ⚠ 暴露面识别完成，但未生成任何暴露面文件")
+        return
 
     sd_log(f"{prefix} ✓ 暴露面识别完成")
     marker.parent.mkdir(parents=True, exist_ok=True)
