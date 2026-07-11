@@ -18,13 +18,8 @@ def run(work_dir: Path, extra_prompt: str = "", force: bool = False,
 
     marker = work_dir / OUTPUT_PARENT / DONE_MARKER
     if not force and marker.exists():
-        surfaces_dir = work_dir / OUTPUT_PARENT / "discovered_surfaces"
-        if surfaces_dir.exists() and list(surfaces_dir.glob("*.md")):
-            sd_log(f"{prefix} ⏭ 暴露面识别跳过")
-            return
-        # Stale marker — no surface files, re-run
-        if marker.exists():
-            marker.unlink()
+        sd_log(f"{prefix} ⏭ 暴露面识别跳过")
+        return
 
     ensure_dirs(work_dir)
     vars = build_vars(work_dir)
@@ -51,6 +46,8 @@ def run(work_dir: Path, extra_prompt: str = "", force: bool = False,
     surface_files = sorted(surfaces_dir.glob("*.md"))
     if not surface_files:
         sd_log(f"{prefix} ⚠ 暴露面识别完成，但未生成任何暴露面文件")
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
         return
 
     sd_log(f"{prefix} ✓ 暴露面识别完成")
