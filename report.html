@@ -205,7 +205,7 @@ function getFileLabel(path) {
   if (path.indexOf('discovered_surfaces/') !== -1) return '📄 攻击面';
   if (path.indexOf('analyzed_surfaces/') !== -1) return '🔍 业务流';
   if (path.indexOf('vuln_findings/') !== -1) return '📋 漏洞分析';
-  if (path.indexOf('vuln_reviews/') !== -1) return '✅ 复核';
+  if (path.indexOf('vuln_reviews/') !== -1) return '⚖️ 复核';
   return '📄 文件';
 }
 
@@ -358,7 +358,7 @@ function renderFindings(data) {
       }
       links.push('<a onclick="openDrawer(\'' + f.relative_path + '\', this)" title="漏洞分析">📋</a>');
       if (f.review_relative_path) {
-        links.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)" title="复核">✅</a>');
+        links.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)" title="复核">⚖️</a>');
       }
       html += '<tr>' +
         '<td><strong>' + escapeHtml(f.surface_stem) + '</strong></td>' +
@@ -411,7 +411,7 @@ function renderSurfaces(data) {
           var flinks = [];
           flinks.push('<a onclick="openDrawer(\'' + f.relative_path + '\', this)">📋</a>');
           if (f.review_relative_path) {
-            flinks.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)">✅</a>');
+            flinks.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)">⚖️</a>');
           }
           html += '<tr>' +
             '<td>' + escapeHtml(title.substring(0, 50)) + ' ' + flinks.join('') + '</td>' +
