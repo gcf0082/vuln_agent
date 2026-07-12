@@ -111,6 +111,7 @@ tr.active-row td { border-bottom-color: #bee3f8; }
       </select>
       <label>攻击面</label>
       <input type="text" id="filter-surface-name" placeholder="输入名称模糊搜索..." oninput="applyFilters()">
+      <select id="filter-surface" onchange="applyFilters()"><option value="all">下拉选择</option></select>
       <label>严重性</label>
       <select id="filter-severity" onchange="applyFilters()">
         <option value="all">全部</option>
@@ -436,10 +437,12 @@ function applyFilters() {
   var rv = document.getElementById('filter-review').value;
   var sev = document.getElementById('filter-severity').value;
   var sn = (document.getElementById('filter-surface-name').value || '').toLowerCase().trim();
+  var sv = document.getElementById('filter-surface').value;
   var filteredSurfaces = [];
   for (var i = 0; i < DATA.length; i++) {
     var s = DATA[i];
     if (sn && (s.stem || '').toLowerCase().indexOf(sn) === -1) continue;
+    if (sv !== 'all' && s.stem !== sv) continue;
     filteredSurfaces.push(s);
   }
   var filtered = [];
@@ -479,6 +482,17 @@ function switchView(name, btn) {
 (function init() {
   renderHeader();
   renderSummary(DATA);
+  var sel = document.getElementById('filter-surface');
+  var stems = [];
+  for (var i = 0; i < DATA.length; i++) {
+    if (stems.indexOf(DATA[i].stem) === -1) stems.push(DATA[i].stem);
+  }
+  stems.sort();
+  for (var i = 0; i < stems.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = stems[i]; opt.textContent = stems[i];
+    sel.appendChild(opt);
+  }
   applyFilters();
 })();
 </script>
