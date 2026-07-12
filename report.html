@@ -48,6 +48,10 @@ tr:hover { background: #f7fafc; }
 .links a { display: inline-block; margin: 0 2px; padding: 4px 8px; border-radius: 4px; font-size: 12px; text-decoration: none; background: #edf2f7; color: #4a5568; transition: background 0.2s; cursor: pointer; }
 .links a:hover { background: #cbd5e0; }
 .links a.visited { opacity: 0.4; background: #e2e8f0; }
+.links a.disabled, .surf-btn.disabled { opacity: 0.3; cursor: not-allowed; background: #f7fafc; color: #cbd5e0; pointer-events: none; }
+.surf-btn { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 13px; text-decoration: none; background: #edf2f7; color: #4a5568; cursor: pointer; transition: background 0.2s; margin-right: 6px; }
+.surf-btn:hover { background: #cbd5e0; }
+.surf-btn.visited { opacity: 0.5; }
 tr.active-row { background: #ebf8ff !important; }
 tr.active-row td { border-bottom-color: #bee3f8; }
 .surface-card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
@@ -58,6 +62,7 @@ tr.active-row td { border-bottom-color: #bee3f8; }
 .surface-card .sub-table { margin: 0; }
 .surface-card .sub-table th { font-size: 11px; padding: 8px 12px; }
 .surface-card .sub-table td { font-size: 13px; padding: 6px 12px; }
+.surf-links { margin-bottom: 8px; font-size: 13px; }
 .empty { text-align: center; padding: 60px 20px; color: #a0aec0; font-size: 16px; }
 .footer { margin-top: 24px; padding: 16px 48px; text-align: center; font-size: 12px; color: #a0aec0; }
 
@@ -352,13 +357,19 @@ function renderFindings(data) {
       var links = [];
       if (surf && surf.relative_path) {
         links.push('<a onclick="openDrawer(\'' + surf.relative_path + '\', this)" title="攻击面">📄</a>');
+      } else {
+        links.push('<a class="disabled" title="攻击面">📄</a>');
       }
       if (surf && surf.analyzed_relative_path) {
         links.push('<a onclick="openDrawer(\'' + surf.analyzed_relative_path + '\', this)" title="业务流">🔍</a>');
+      } else {
+        links.push('<a class="disabled" title="业务流">🔍</a>');
       }
       links.push('<a onclick="openDrawer(\'' + f.relative_path + '\', this)" title="漏洞分析">📋</a>');
       if (f.review_relative_path) {
         links.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)" title="复核">⚖️</a>');
+      } else {
+        links.push('<a class="disabled" title="复核">⚖️</a>');
       }
       html += '<tr>' +
         '<td><strong>' + escapeHtml(f.surface_stem) + '</strong></td>' +
@@ -387,10 +398,25 @@ function renderSurfaces(data) {
       var s = data[i];
       var surfLinks = [];
       if (s.relative_path) {
-        surfLinks.push('<a onclick="openDrawer(\'' + s.relative_path + '\', this)">📄 攻击面</a>');
+        surfLinks.push('<a class="surf-btn" onclick="openDrawer(\'' + s.relative_path + '\', this)">📄 攻击面</a>');
+      } else {
+        surfLinks.push('<span class="surf-btn disabled">📄 攻击面</span>');
       }
       if (s.analyzed_relative_path) {
-        surfLinks.push('<a onclick="openDrawer(\'' + s.analyzed_relative_path + '\', this)">🔍 业务流</a>');
+        surfLinks.push('<a class="surf-btn" onclick="openDrawer(\'' + s.analyzed_relative_path + '\', this)">🔍 业务流</a>');
+      } else {
+        surfLinks.push('<span class="surf-btn disabled">🔍 业务流</span>');
+      }
+      var hasFindings = s.findings && s.findings.length > 0;
+      if (hasFindings) {
+        surfLinks.push('<a class="surf-btn" onclick="openDrawer(\'' + s.findings[0].relative_path + '\', this)">📋 漏洞</a>');
+      } else {
+        surfLinks.push('<span class="surf-btn disabled">📋 漏洞</span>');
+      }
+      if (hasFindings && s.findings[0].review_relative_path) {
+        surfLinks.push('<a class="surf-btn" onclick="openDrawer(\'' + s.findings[0].review_relative_path + '\', this)">⚖️ 复核</a>');
+      } else {
+        surfLinks.push('<span class="surf-btn disabled">⚖️ 复核</span>');
       }
       var desc = '';
       if (s.surface_type) desc += '类型: ' + escapeHtml(s.surface_type);
@@ -399,7 +425,7 @@ function renderSurfaces(data) {
       html += '<div class="surface-card">' +
         '<h3><a onclick="openDrawer(\'' + (s.relative_path || s.analyzed_relative_path || '') + '\', this)">' + escapeHtml(s.stem) + '</a></h3>' +
         '<div class="meta">' + desc + '</div>' +
-        '<div style="margin-bottom:8px;font-size:13px;color:#718096;">' + surfLinks.join(' &middot; ') + '</div>';
+        '<div class="surf-links">' + surfLinks.join('') + '</div>';
       if (s.findings && s.findings.length > 0) {
         html += '<table class="sub-table"><thead><tr><th>文件</th><th>原始结论</th><th>复核结论</th><th>类型</th><th>CVSS</th><th>严重性</th></tr></thead><tbody>';
         for (var j = 0; j < s.findings.length; j++) {
@@ -412,6 +438,8 @@ function renderSurfaces(data) {
           flinks.push('<a onclick="openDrawer(\'' + f.relative_path + '\', this)">📋</a>');
           if (f.review_relative_path) {
             flinks.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)">⚖️</a>');
+          } else {
+            flinks.push('<a class="disabled">⚖️</a>');
           }
           html += '<tr>' +
             '<td>' + escapeHtml(title.substring(0, 50)) + ' ' + flinks.join('') + '</td>' +
