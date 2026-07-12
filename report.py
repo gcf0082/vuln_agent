@@ -2,11 +2,14 @@
 """Generate a consolidated HTML audit report from vuln_agent output products."""
 
 import argparse
+import html
 import json
 import re
+import shutil
 from pathlib import Path
 from dataclasses import dataclass, asdict
 from typing import Optional
+
 
 OUTPUT_PARENT = ".vuln_agent_output"
 
@@ -31,6 +34,8 @@ class FindingEntry:
     review_filename: Optional[str]
     review_relative_path: Optional[str]
     meta: FindingMeta
+    content: str = ""
+    review_content: str = ""
 
 
 @dataclass
@@ -43,7 +48,9 @@ class SurfaceEntry:
     description: str
     source: str
     analyzed_relative_path: Optional[str]
-    findings: list[FindingEntry]
+    content: str = ""
+    analyzed_content: str = ""
+    findings: Optional[list[FindingEntry]] = None
 
 
 def parse_surface_file(path: Path) -> dict:
@@ -94,11 +101,11 @@ def extract_finding_meta(content: str) -> FindingMeta:
     return meta
 
 
-def scan_output(target_dir: Path) -> list[SurfaceEntry]:
+def scan_output(target_dir: Path) -> tuple[list[SurfaceEntry], dict[str, str]]:
     output_dir = target_dir / OUTPUT_PARENT
     if not output_dir.exists():
         print(f"Error: {output_dir} not found. Run the pipeline first.")
-        return []
+        return [], {}
 
     surfaces_dir = output_dir / "discovered_surfaces"
     analyzed_dir = output_dir / "analyzed_surfaces"
@@ -106,12 +113,23 @@ def scan_output(target_dir: Path) -> list[SurfaceEntry]:
     reviews_dir = output_dir / "vuln_reviews"
 
     surface_map: dict[str, SurfaceEntry] = {}
+    file_contents: dict[str, str] = {}
 
     if surfaces_dir.exists():
         for f in sorted(surfaces_dir.glob("*.md")):
             stem = f.stem
             parsed = parse_surface_file(f)
+            content = f.read_text(encoding="utf-8")
+            file_contents[f"./discovered_surfaces/{f.name}"] = content
+
             analyzed_path = analyzed_dir / f.name
+            analyzed_content = ""
+            analyzed_rel = None
+            if analyzed_path.exists():
+                analyzed_content = analyzed_path.read_text(encoding="utf-8")
+                analyzed_rel = f"./analyzed_surfaces/{f.name}"
+                file_contents[analyzed_rel] = analyzed_content
+
             surface_map[stem] = SurfaceEntry(
                 stem=stem,
                 filename=f.name,
@@ -120,7 +138,9 @@ def scan_output(target_dir: Path) -> list[SurfaceEntry]:
                 category=parsed["category"],
                 description=parsed["description"],
                 source=parsed["source"],
-                analyzed_relative_path=f"./analyzed_surfaces/{f.name}" if analyzed_path.exists() else None,
+                analyzed_relative_path=analyzed_rel,
+                content=content,
+                analyzed_content=analyzed_content,
                 findings=[],
             )
 
@@ -131,20 +151,27 @@ def scan_output(target_dir: Path) -> list[SurfaceEntry]:
                 continue
             prefix, surface_stem, n = parsed
             finding_stem = f.stem
+            content = f.read_text(encoding="utf-8")
+            file_contents[f"./vuln_findings/{f.name}"] = content
+
             review_prefix = None
             review_filename = None
             review_relative_path = None
+            review_content = ""
 
             if reviews_dir.exists():
                 for rp in ("VULN", "NOVULN", "SUSPECTED"):
                     rf_name = f"{rp}-{finding_stem}.md"
-                    if (reviews_dir / rf_name).exists():
+                    rf_path = reviews_dir / rf_name
+                    if rf_path.exists():
                         review_prefix = rp
                         review_filename = rf_name
                         review_relative_path = f"./vuln_reviews/{rf_name}"
+                        review_content = rf_path.read_text(encoding="utf-8")
+                        file_contents[review_relative_path] = review_content
                         break
 
-            meta = extract_finding_meta(f.read_text(encoding="utf-8"))
+            meta = extract_finding_meta(content)
             fe = FindingEntry(
                 surface_stem=surface_stem,
                 prefix=prefix,
@@ -155,6 +182,8 @@ def scan_output(target_dir: Path) -> list[SurfaceEntry]:
                 review_filename=review_filename,
                 review_relative_path=review_relative_path,
                 meta=meta,
+                content=content,
+                review_content=review_content,
             )
 
             if surface_stem in surface_map:
@@ -172,18 +201,30 @@ def scan_output(target_dir: Path) -> list[SurfaceEntry]:
                     findings=[fe],
                 )
 
-    return list(surface_map.values())
+    return list(surface_map.values()), file_contents
+
+
+def copy_assets(target_dir: Path) -> Path:
+    src = Path(__file__).resolve().parent / "assets"
+    dst = target_dir / OUTPUT_PARENT / "assets"
+    dst.mkdir(parents=True, exist_ok=True)
+    if src.exists():
+        for f in src.iterdir():
+            if f.is_file():
+                shutil.copy2(f, dst / f.name)
+    return dst
 
 
 CSS = """
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f6fa; color: #2c3e50; line-height: 1.6; }
-.container { max-width: 1400px; margin: 0 auto; padding: 24px; }
-header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #fff; padding: 32px 24px; border-radius: 12px; margin-bottom: 24px; }
+.page { min-height: 100vh; }
+header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #fff; padding: 32px 48px; }
 header h1 { font-size: 24px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
 header h1 span { font-size: 28px; }
 header .meta { font-size: 14px; color: #a0aec0; margin-top: 8px; }
 header .meta a { color: #63b3ed; text-decoration: none; }
+.main { padding: 24px 48px; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center; }
 .card .num { font-size: 32px; font-weight: 700; margin-bottom: 4px; }
@@ -211,22 +252,46 @@ tr:hover { background: #f7fafc; }
 .badge-suspected { background: #fefcbf; color: #975a16; }
 .badge-empty { background: #e2e8f0; color: #4a5568; }
 .links { white-space: nowrap; }
-.links a { display: inline-block; margin: 0 2px; padding: 4px 8px; border-radius: 4px; font-size: 12px; text-decoration: none; background: #edf2f7; color: #4a5568; transition: background 0.2s; }
+.links a { display: inline-block; margin: 0 2px; padding: 4px 8px; border-radius: 4px; font-size: 12px; text-decoration: none; background: #edf2f7; color: #4a5568; transition: background 0.2s; cursor: pointer; }
 .links a:hover { background: #cbd5e0; }
 .surface-card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .surface-card h3 { font-size: 16px; margin-bottom: 8px; }
-.surface-card h3 a { color: #2b6cb0; text-decoration: none; }
+.surface-card h3 a { color: #2b6cb0; text-decoration: none; cursor: pointer; }
 .surface-card h3 a:hover { text-decoration: underline; }
 .surface-card .meta { font-size: 13px; color: #718096; margin-bottom: 12px; }
 .surface-card .sub-table { margin: 0; }
 .surface-card .sub-table th { font-size: 11px; padding: 8px 12px; }
 .surface-card .sub-table td { font-size: 13px; padding: 6px 12px; }
 .empty { text-align: center; padding: 60px 20px; color: #a0aec0; font-size: 16px; }
-.footer { margin-top: 24px; padding: 16px; text-align: center; font-size: 12px; color: #a0aec0; }
+.footer { margin-top: 24px; padding: 16px 48px; text-align: center; font-size: 12px; color: #a0aec0; }
+
+.drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); z-index: 999; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; }
+.drawer-overlay.active { opacity: 1; visibility: visible; }
+.drawer { position: fixed; top: 0; right: 0; width: 55%; height: 100%; background: #fff; z-index: 1000; transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: -6px 0 24px rgba(0,0,0,0.2); display: flex; flex-direction: column; }
+.drawer.active { transform: translateX(0); }
+.drawer-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; background: #fafbfc; }
+.drawer-header h2 { font-size: 15px; font-weight: 600; color: #2d3748; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
+.drawer-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #718096; padding: 4px 8px; line-height: 1; border-radius: 4px; transition: background 0.15s; }
+.drawer-close:hover { background: #edf2f7; color: #2d3748; }
+.drawer-body { flex: 1; overflow-y: auto; padding: 24px; }
+.drawer-body .markdown-body { padding: 0; max-width: none; }
+.drawer-body .markdown-body pre { border-radius: 6px; }
+.drawer-loading { text-align: center; padding: 60px 20px; color: #a0aec0; font-size: 14px; }
+
+@media (max-width: 1024px) {
+  .drawer { width: 75%; }
+}
+@media (max-width: 768px) {
+  header { padding: 24px 20px; }
+  .main { padding: 16px 20px; }
+  .drawer { width: 100%; }
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .filters { flex-direction: column; align-items: stretch; }
+}
 """
 
 
-def generate_html(surfaces: list[SurfaceEntry], target_name: str) -> str:
+def generate_html(surfaces: list[SurfaceEntry], file_contents: dict[str, str], target_name: str) -> str:
     import datetime
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -234,67 +299,96 @@ def generate_html(surfaces: list[SurfaceEntry], target_name: str) -> str:
     total_findings = 0
     for s in surfaces:
         s_dict = asdict(s)
-        s_dict["findings_count"] = len(s.findings)
-        total_findings += len(s.findings)
+        s_dict["findings_count"] = len(s.findings) if s.findings else 0
+        total_findings += s_dict["findings_count"]
         data_list.append(s_dict)
 
     json_data = json.dumps(data_list, ensure_ascii=False)
+    json_contents = json.dumps(file_contents, ensure_ascii=False)
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>安全审计报告 - {target_name}</title>
+<title>安全审计报告 - {html.escape(target_name)}</title>
+<link rel="stylesheet" href="./assets/github-markdown.css">
+<link rel="stylesheet" href="./assets/github-dark.min.css">
 <style>{CSS}</style>
 </head>
 <body>
-<div class="container">
+<div class="page">
+
   <header>
     <h1><span>🛡</span> 安全审计报告</h1>
     <div class="meta">
-      目标: <strong>{target_name}</strong> &middot; {now}
+      目标: <strong>{html.escape(target_name)}</strong> &middot; {now}
       &middot; {len(surfaces)} 攻击面 &middot; {total_findings} 发现
     </div>
   </header>
 
-  <div id="summary" class="cards"></div>
+  <div class="main">
 
-  <div class="filters">
-    <label>复核结论</label>
-    <select id="filter-review" onchange="applyFilters()">
-      <option value="all">全部</option>
-      <option value="VULN">✓ 复核确认 (VULN)</option>
-      <option value="NOVULN">✗ 复核推翻 (NOVULN)</option>
-      <option value="SUSPECTED">? 无法确定</option>
-      <option value="none">— 未复核</option>
-    </select>
-    <label>攻击面</label>
-    <select id="filter-surface" onchange="applyFilters()"><option value="all">全部</option></select>
-    <label>严重性</label>
-    <select id="filter-severity" onchange="applyFilters()">
-      <option value="all">全部</option>
-      <option value="严重">严重</option>
-      <option value="高">高</option>
-      <option value="中">中</option>
-      <option value="低">低</option>
-    </select>
-    <span id="count-label" style="font-size:13px;color:#718096;margin-left:12px;"></span>
+    <div id="summary" class="cards"></div>
+
+    <div class="filters">
+      <label>复核结论</label>
+      <select id="filter-review" onchange="applyFilters()">
+        <option value="all">全部</option>
+        <option value="VULN">✓ 复核确认 (VULN)</option>
+        <option value="NOVULN">✗ 复核推翻 (NOVULN)</option>
+        <option value="SUSPECTED">? 无法确定</option>
+        <option value="none">— 未复核</option>
+      </select>
+      <label>攻击面</label>
+      <select id="filter-surface" onchange="applyFilters()"><option value="all">全部</option></select>
+      <label>严重性</label>
+      <select id="filter-severity" onchange="applyFilters()">
+        <option value="all">全部</option>
+        <option value="严重">严重</option>
+        <option value="高">高</option>
+        <option value="中">中</option>
+        <option value="低">低</option>
+      </select>
+      <span id="count-label" style="font-size:13px;color:#718096;margin-left:12px;"></span>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchView('findings', this)">📋 漏洞清单</button>
+      <button class="tab-btn" onclick="switchView('surfaces', this)">📂 攻击面总览</button>
+    </div>
+
+    <div id="view-findings"></div>
+    <div id="view-surfaces" style="display:none"></div>
+
+    <div class="footer">Generated by vuln_agent report.py</div>
+
   </div>
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchView('findings', this)">📋 漏洞清单</button>
-    <button class="tab-btn" onclick="switchView('surfaces', this)">📂 攻击面总览</button>
-  </div>
-
-  <div id="view-findings"></div>
-  <div id="view-surfaces" style="display:none"></div>
-
-  <div class="footer">Generated by vuln_agent report.py</div>
 </div>
 
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <h2 id="drawerTitle">文件预览</h2>
+    <button class="drawer-close" onclick="closeDrawer()">×</button>
+  </div>
+  <div class="drawer-body" id="drawerBody">
+    <div class="drawer-loading">加载中...</div>
+  </div>
+</div>
+
+<script src="./assets/marked.min.js"></script>
+<script src="./assets/highlight.min.js"></script>
 <script>
 const DATA = {json_data};
+const FILE_CONTENTS = {json_contents};
+
+function escapeHtml(text) {{
+  var d = document.createElement('div');
+  d.appendChild(document.createTextNode(text));
+  return d.innerHTML;
+}}
 
 function badge(prefix) {{
   if (prefix === 'VULN') return '<span class="badge badge-vuln">VULN</span>';
@@ -310,13 +404,72 @@ function reviewStatus(review_prefix) {{
   return '未复核';
 }}
 
+function getFileLabel(path) {{
+  if (!path) return '';
+  if (path.indexOf('discovered_surfaces/') !== -1) return '📄 攻击面';
+  if (path.indexOf('analyzed_surfaces/') !== -1) return '🔍 业务流';
+  if (path.indexOf('vuln_findings/') !== -1) return '📋 漏洞分析';
+  if (path.indexOf('vuln_reviews/') !== -1) return '✅ 复核';
+  return '📄 文件';
+}}
+
+function renderMarkdown(content) {{
+  if (typeof marked !== 'undefined' && marked.parse) {{
+    try {{
+      var html = marked.parse(content, {{ breaks: true, gfm: true }});
+      return '<div class="markdown-body">' + html + '</div>';
+    }} catch(e) {{
+      return '<pre style="white-space:pre-wrap;word-break:break-word;padding:16px;font-size:13px;">' + escapeHtml(content) + '</pre>';
+    }}
+  }}
+  return '<pre style="white-space:pre-wrap;word-break:break-word;padding:16px;font-size:13px;">' + escapeHtml(content) + '</pre>';
+}}
+
+function openDrawer(path) {{
+  if (!path || !FILE_CONTENTS[path]) {{
+    document.getElementById('drawerBody').innerHTML = '<div class="empty">文件内容不可用。</div>';
+    document.getElementById('drawerTitle').textContent = path ? path.split('/').pop() : '未知文件';
+    document.getElementById('drawerOverlay').classList.add('active');
+    document.getElementById('drawer').classList.add('active');
+    document.body.style.overflow = 'hidden';
+    return;
+  }}
+  var filename = path.split('/').pop();
+  var label = getFileLabel(path);
+  document.getElementById('drawerTitle').textContent = label + ': ' + filename;
+  document.getElementById('drawerBody').innerHTML = renderMarkdown(FILE_CONTENTS[path]);
+  document.getElementById('drawerOverlay').classList.add('active');
+  document.getElementById('drawer').classList.add('active');
+  document.body.style.overflow = 'hidden';
+  if (typeof hljs !== 'undefined') {{
+    setTimeout(function() {{
+      document.querySelectorAll('#drawerBody pre code').forEach(function(block) {{
+        hljs.highlightElement(block);
+      }});
+    }}, 50);
+  }}
+}}
+
+function closeDrawer() {{
+  document.getElementById('drawerOverlay').classList.remove('active');
+  document.getElementById('drawer').classList.remove('active');
+  document.body.style.overflow = '';
+}}
+
+document.addEventListener('keydown', function(e) {{
+  if (e.key === 'Escape') closeDrawer();
+}});
+
 function renderSummary(data) {{
-  let surfaces = data.length;
-  let total = 0, vuln = 0, novuln = 0, suspected = 0;
-  let rvuln = 0, rnovuln = 0, rsuspected = 0, rnone = 0;
-  let severe = 0, high = 0, medium = 0, low = 0;
-  for (const s of data) {{
-    for (const f of s.findings) {{
+  var surfaces = data.length;
+  var total = 0, vuln = 0, novuln = 0, suspected = 0;
+  var rvuln = 0, rnovuln = 0, rsuspected = 0, rnone = 0;
+  var severe = 0, high = 0, medium = 0, low = 0;
+  for (var i = 0; i < data.length; i++) {{
+    var s = data[i];
+    if (!s.findings) continue;
+    for (var j = 0; j < s.findings.length; j++) {{
+      var f = s.findings[j];
       total++;
       if (f.prefix === 'VULN') vuln++;
       else if (f.prefix === 'NOVULN') novuln++;
@@ -325,49 +478,60 @@ function renderSummary(data) {{
       else if (f.review_prefix === 'NOVULN') rnovuln++;
       else if (f.review_prefix === 'SUSPECTED') rsuspected++;
       else rnone++;
-      const sv = (f.meta.severity || '').trim();
+      var sv = (f.meta.severity || '').trim();
       if (sv === '严重') severe++;
       else if (sv === '高') high++;
       else if (sv === '中') medium++;
       else if (sv === '低') low++;
     }}
   }}
-  document.getElementById('summary').innerHTML = `
-    <div class="card highlight-blue"><div class="num">${{surfaces}}</div><div class="label">攻击面</div></div>
-    <div class="card highlight-gray"><div class="num">${{total}}</div><div class="label">总发现</div></div>
-    <div class="card highlight-green"><div class="num">${{rvuln}}</div><div class="label">复核确认</div></div>
-    <div class="card highlight-red"><div class="num">${{rnovuln}}</div><div class="label">复核推翻</div></div>
-    <div class="card highlight-yellow"><div class="num">${{rsuspected + rnone}}</div><div class="label">待定 / 未复核</div></div>
-  `;
+  document.getElementById('summary').innerHTML =
+    '<div class="card highlight-blue"><div class="num">' + surfaces + '</div><div class="label">攻击面</div></div>' +
+    '<div class="card highlight-gray"><div class="num">' + total + '</div><div class="label">总发现</div></div>' +
+    '<div class="card highlight-green"><div class="num">' + rvuln + '</div><div class="label">复核确认</div></div>' +
+    '<div class="card highlight-red"><div class="num">' + rnovuln + '</div><div class="label">复核推翻</div></div>' +
+    '<div class="card highlight-yellow"><div class="num">' + (rsuspected + rnone) + '</div><div class="label">待定 / 未复核</div></div>';
 }}
 
 function renderFindings(data) {{
-  let html = '';
+  var html = '';
   if (data.length === 0) {{
     html = '<div class="empty">没有匹配的发现。</div>';
   }} else {{
     html = '<table><thead><tr><th>攻击面</th><th>漏洞名称</th><th>原始结论</th><th>复核结论</th><th>类型</th><th>CVSS</th><th>严重性</th><th>文件</th></tr></thead><tbody>';
-    for (const f of data) {{
-      const cvss = f.meta.cvss || '-';
-      const sev = f.meta.severity || '-';
-      const type = f.meta.vuln_type || '-';
-      const title = f.meta.title || f.filename;
-      const links = [];
-      const surf = DATA.find(s => s.stem === f.surface_stem);
-      if (surf && surf.relative_path) links.push(`<a href="${{surf.relative_path}}" target="_blank" title="攻击面">📄</a>`);
-      if (surf && surf.analyzed_relative_path) links.push(`<a href="${{surf.analyzed_relative_path}}" target="_blank" title="业务流">🔍</a>`);
-      links.push(`<a href="${{f.relative_path}}" target="_blank" title="漏洞分析">📋</a>`);
-      if (f.review_relative_path) links.push(`<a href="${{f.review_relative_path}}" target="_blank" title="复核">✅</a>`);
-      html += `<tr>
-        <td><strong>${{f.surface_stem}}</strong></td>
-        <td>${{title.substring(0, 60)}}</td>
-        <td>${{badge(f.prefix)}}</td>
-        <td>${{badge(f.review_prefix)}} ${{reviewStatus(f.review_prefix)}}</td>
-        <td>${{type}}</td>
-        <td>${{cvss}}</td>
-        <td>${{sev}}</td>
-        <td class="links">${{links.join('')}}</td>
-      </tr>`;
+    for (var i = 0; i < data.length; i++) {{
+      var f = data[i];
+      var cvss = f.meta.cvss || '-';
+      var sev = f.meta.severity || '-';
+      var type = f.meta.vuln_type || '-';
+      var title = f.meta.title || f.filename;
+      var safeTitle = escapeHtml(title.substring(0, 60));
+      var surfIdx = -1;
+      for (var k = 0; k < DATA.length; k++) {{
+        if (DATA[k].stem === f.surface_stem) {{ surfIdx = k; break; }}
+      }}
+      var surf = surfIdx >= 0 ? DATA[surfIdx] : null;
+      var links = [];
+      if (surf && surf.relative_path) {{
+        links.push('<a onclick="openDrawer(\\'' + surf.relative_path + '\\')" title="攻击面">📄</a>');
+      }}
+      if (surf && surf.analyzed_relative_path) {{
+        links.push('<a onclick="openDrawer(\\'' + surf.analyzed_relative_path + '\\')" title="业务流">🔍</a>');
+      }}
+      links.push('<a onclick="openDrawer(\\'' + f.relative_path + '\\')" title="漏洞分析">📋</a>');
+      if (f.review_relative_path) {{
+        links.push('<a onclick="openDrawer(\\'' + f.review_relative_path + '\\')" title="复核">✅</a>');
+      }}
+      html += '<tr>' +
+        '<td><strong>' + escapeHtml(f.surface_stem) + '</strong></td>' +
+        '<td>' + safeTitle + '</td>' +
+        '<td>' + badge(f.prefix) + '</td>' +
+        '<td>' + badge(f.review_prefix) + ' ' + reviewStatus(f.review_prefix) + '</td>' +
+        '<td>' + escapeHtml(type) + '</td>' +
+        '<td>' + escapeHtml(cvss) + '</td>' +
+        '<td>' + escapeHtml(sev) + '</td>' +
+        '<td class="links">' + links.join('') + '</td>' +
+      '</tr>';
     }}
     html += '</tbody></table>';
   }}
@@ -375,37 +539,49 @@ function renderFindings(data) {{
 }}
 
 function renderSurfaces(data) {{
-  let html = '';
+  var html = '';
   if (data.length === 0) {{
     html = '<div class="empty">没有攻击面数据。</div>';
   }} else {{
     html = '';
-    for (const s of data) {{
-      const surfLinks = [];
-      if (s.relative_path) surfLinks.push(`<a href="${{s.relative_path}}" target="_blank">📄 攻击面</a>`);
-      if (s.analyzed_relative_path) surfLinks.push(`<a href="${{s.analyzed_relative_path}}" target="_blank">🔍 业务流</a>`);
-      html += `<div class="surface-card">
-        <h3><a href="${{s.relative_path || '#'}}" target="_blank">${{s.stem}}</a></h3>
-        <div class="meta">${{s.surface_type ? '类型: ' + s.surface_type : ''}}${{s.category ? ' | 分类: ' + s.category : ''}}${{s.description ? ' | ' + s.description : ''}}</div>
-        <div style="margin-bottom:8px;font-size:13px;color:#718096;">${{surfLinks.join(' &middot; ')}}</div>`;
+    for (var i = 0; i < data.length; i++) {{
+      var s = data[i];
+      var surfLinks = [];
+      if (s.relative_path) {{
+        surfLinks.push('<a onclick="openDrawer(\\'' + s.relative_path + '\\')">📄 攻击面</a>');
+      }}
+      if (s.analyzed_relative_path) {{
+        surfLinks.push('<a onclick="openDrawer(\\'' + s.analyzed_relative_path + '\\')">🔍 业务流</a>');
+      }}
+      var desc = '';
+      if (s.surface_type) desc += '类型: ' + escapeHtml(s.surface_type);
+      if (s.category) desc += (desc ? ' | ' : '') + '分类: ' + escapeHtml(s.category);
+      if (s.description) desc += (desc ? ' | ' : '') + escapeHtml(s.description);
+      html += '<div class="surface-card">' +
+        '<h3><a onclick="openDrawer(\\'' + (s.relative_path || s.analyzed_relative_path || '') + '\\')">' + escapeHtml(s.stem) + '</a></h3>' +
+        '<div class="meta">' + desc + '</div>' +
+        '<div style="margin-bottom:8px;font-size:13px;color:#718096;">' + surfLinks.join(' &middot; ') + '</div>';
       if (s.findings && s.findings.length > 0) {{
         html += '<table class="sub-table"><thead><tr><th>文件</th><th>原始结论</th><th>复核结论</th><th>类型</th><th>CVSS</th><th>严重性</th></tr></thead><tbody>';
-        for (const f of s.findings) {{
-          const cvss = f.meta.cvss || '-';
-          const sev = f.meta.severity || '-';
-          const type = f.meta.vuln_type || '-';
-          const title = f.meta.title || f.filename;
-          const flinks = [];
-          flinks.push(`<a href="${{f.relative_path}}" target="_blank">📋</a>`);
-          if (f.review_relative_path) flinks.push(`<a href="${{f.review_relative_path}}" target="_blank">✅</a>`);
-          html += `<tr>
-            <td>${{title.substring(0, 50)}} ${{flinks.join('')}}</td>
-            <td>${{badge(f.prefix)}}</td>
-            <td>${{badge(f.review_prefix)}} ${{reviewStatus(f.review_prefix)}}</td>
-            <td>${{type}}</td>
-            <td>${{cvss}}</td>
-            <td>${{sev}}</td>
-          </tr>`;
+        for (var j = 0; j < s.findings.length; j++) {{
+          var f = s.findings[j];
+          var cvss = f.meta.cvss || '-';
+          var sev = f.meta.severity || '-';
+          var type = f.meta.vuln_type || '-';
+          var title = f.meta.title || f.filename;
+          var flinks = [];
+          flinks.push('<a onclick="openDrawer(\\'' + f.relative_path + '\\')">📋</a>');
+          if (f.review_relative_path) {{
+            flinks.push('<a onclick="openDrawer(\\'' + f.review_relative_path + '\\')">✅</a>');
+          }}
+          html += '<tr>' +
+            '<td>' + escapeHtml(title.substring(0, 50)) + ' ' + flinks.join('') + '</td>' +
+            '<td>' + badge(f.prefix) + '</td>' +
+            '<td>' + badge(f.review_prefix) + ' ' + reviewStatus(f.review_prefix) + '</td>' +
+            '<td>' + escapeHtml(type) + '</td>' +
+            '<td>' + escapeHtml(cvss) + '</td>' +
+            '<td>' + escapeHtml(sev) + '</td>' +
+          '</tr>';
         }}
         html += '</tbody></table>';
       }} else {{
@@ -418,19 +594,22 @@ function renderSurfaces(data) {{
 }}
 
 function applyFilters() {{
-  const rv = document.getElementById('filter-review').value;
-  const sv = document.getElementById('filter-surface').value;
-  const sev = document.getElementById('filter-severity').value;
-  let filtered = [];
-  for (const s of DATA) {{
-    for (const f of s.findings) {{
+  var rv = document.getElementById('filter-review').value;
+  var sv = document.getElementById('filter-surface').value;
+  var sev = document.getElementById('filter-severity').value;
+  var filtered = [];
+  for (var i = 0; i < DATA.length; i++) {{
+    var s = DATA[i];
+    if (!s.findings) continue;
+    for (var j = 0; j < s.findings.length; j++) {{
+      var f = s.findings[j];
       if (rv !== 'all') {{
-        const fRv = f.review_prefix || 'none';
+        var fRv = f.review_prefix || 'none';
         if (fRv !== rv) continue;
       }}
       if (sv !== 'all' && f.surface_stem !== sv) continue;
       if (sev !== 'all') {{
-        const fSev = (f.meta.severity || '').trim();
+        var fSev = (f.meta.severity || '').trim();
         if (fSev !== sev) continue;
       }}
       filtered.push({{
@@ -441,12 +620,12 @@ function applyFilters() {{
       }});
     }}
   }}
-  document.getElementById('count-label').textContent = `${{filtered.length}} 条结果`;
+  document.getElementById('count-label').textContent = filtered.length + ' 条结果';
   renderFindings(filtered);
 }}
 
 function switchView(name, btn) {{
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(function(b) {{ b.classList.remove('active'); }});
   btn.classList.add('active');
   document.getElementById('view-findings').style.display = name === 'findings' ? '' : 'none';
   document.getElementById('view-surfaces').style.display = name === 'surfaces' ? '' : 'none';
@@ -454,11 +633,14 @@ function switchView(name, btn) {{
 
 (function init() {{
   renderSummary(DATA);
-  const sel = document.getElementById('filter-surface');
-  const stems = [...new Set(DATA.map(s => s.stem))];
-  for (const stem of stems) {{
-    const opt = document.createElement('option');
-    opt.value = stem; opt.textContent = stem;
+  var sel = document.getElementById('filter-surface');
+  var stems = [];
+  for (var i = 0; i < DATA.length; i++) {{
+    if (stems.indexOf(DATA[i].stem) === -1) stems.push(DATA[i].stem);
+  }}
+  for (var i = 0; i < stems.length; i++) {{
+    var opt = document.createElement('option');
+    opt.value = stems[i]; opt.textContent = stems[i];
     sel.appendChild(opt);
   }}
   applyFilters();
@@ -479,12 +661,14 @@ def main():
         print(f"Error: target directory not found: {target_dir}")
         return
 
-    surfaces = scan_output(target_dir)
+    surfaces, file_contents = scan_output(target_dir)
     if not surfaces:
         print("No data found. Run the pipeline first.")
         return
 
-    html = generate_html(surfaces, target_dir.name)
+    copy_assets(target_dir)
+
+    html = generate_html(surfaces, file_contents, target_dir.name)
     output_path = target_dir / OUTPUT_PARENT / "report.html"
     output_path.write_text(html, encoding="utf-8")
     print(f"Report generated: {output_path}")
