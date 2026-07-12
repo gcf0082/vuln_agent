@@ -254,6 +254,11 @@ tr:hover { background: #f7fafc; }
 .links { white-space: nowrap; }
 .links a { display: inline-block; margin: 0 2px; padding: 4px 8px; border-radius: 4px; font-size: 12px; text-decoration: none; background: #edf2f7; color: #4a5568; transition: background 0.2s; cursor: pointer; }
 .links a:hover { background: #cbd5e0; }
+.links a.visited { opacity: 0.4; background: #e2e8f0; }
+tr.active-row { background: #ebf8ff !important; }
+tr.active-row td { border-bottom-color: #bee3f8; }
+tr.visited-row { background: #f0fff4; }
+tr.visited-row td:first-child { border-left: 3px solid #38a169; }
 .surface-card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .surface-card h3 { font-size: 16px; margin-bottom: 8px; }
 .surface-card h3 a { color: #2b6cb0; text-decoration: none; cursor: pointer; }
@@ -307,6 +312,7 @@ def generate_html(surfaces: list[SurfaceEntry], file_contents: dict[str, str], t
 
     json_data = json.dumps(data_list, ensure_ascii=False)
     json_contents = json.dumps(file_contents, ensure_ascii=False)
+    visited_key = json.dumps(f"vuln_agent_visited_{target_name}")
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -387,6 +393,18 @@ def generate_html(surfaces: list[SurfaceEntry], file_contents: dict[str, str], t
 <script>
 const DATA = {json_data};
 const FILE_CONTENTS = {json_contents};
+const VISITED_KEY = {visited_key};
+var VISITED = (function() {{
+  var s = new Set();
+  try {{
+    var saved = localStorage.getItem(VISITED_KEY);
+    if (saved) JSON.parse(saved).forEach(function(p) {{ s.add(p); }});
+  }} catch(e) {{}}
+  return s;
+}})();
+function saveVisited() {{
+  try {{ localStorage.setItem(VISITED_KEY, JSON.stringify(Array.from(VISITED))); }} catch(e) {{}}
+}}
 
 function escapeHtml(text) {{
   var d = document.createElement('div');
@@ -442,7 +460,34 @@ function renderMermaid(container) {{
   return true;
 }}
 
-function openDrawer(path) {{
+function applyVisitedStyles() {{
+  var links = document.querySelectorAll('#view-findings a[onclick], #view-surfaces a[onclick]');
+  links.forEach(function(a) {{
+    var onclick = a.getAttribute('onclick') || '';
+    var m = onclick.match(/openDrawer\\(['"]([^'"]+)['"]/);
+    if (m && VISITED.has(m[1])) {{
+      a.classList.add('visited');
+      var tr = a.closest('tr');
+      if (tr) tr.classList.add('visited-row');
+    }}
+  }});
+}}
+
+function openDrawer(path, el) {{
+  document.querySelectorAll('tr.active-row').forEach(function(tr) {{
+    tr.classList.remove('active-row');
+    tr.classList.add('visited-row');
+  }});
+  if (el) {{
+    el.classList.add('visited');
+    var tr = el.closest('tr');
+    if (tr) tr.classList.add('active-row');
+  }}
+  if (path) {{
+    var prevSize = VISITED.size;
+    VISITED.add(path);
+    if (VISITED.size !== prevSize) saveVisited();
+  }}
   if (!path || !FILE_CONTENTS[path]) {{
     document.getElementById('drawerBody').innerHTML = '<div class="empty">文件内容不可用。</div>';
     document.getElementById('drawerTitle').textContent = path ? path.split('/').pop() : '未知文件';
@@ -476,6 +521,10 @@ function closeDrawer() {{
   document.getElementById('drawerOverlay').classList.remove('active');
   document.getElementById('drawer').classList.remove('active');
   document.body.style.overflow = '';
+  document.querySelectorAll('tr.active-row').forEach(function(tr) {{
+    tr.classList.remove('active-row');
+    tr.classList.add('visited-row');
+  }});
 }}
 
 document.addEventListener('keydown', function(e) {{
@@ -535,14 +584,14 @@ function renderFindings(data) {{
       var surf = surfIdx >= 0 ? DATA[surfIdx] : null;
       var links = [];
       if (surf && surf.relative_path) {{
-        links.push('<a onclick="openDrawer(\\'' + surf.relative_path + '\\')" title="攻击面">📄</a>');
+        links.push('<a onclick="openDrawer(\\'' + surf.relative_path + '\\', this)" title="攻击面">📄</a>');
       }}
       if (surf && surf.analyzed_relative_path) {{
-        links.push('<a onclick="openDrawer(\\'' + surf.analyzed_relative_path + '\\')" title="业务流">🔍</a>');
+        links.push('<a onclick="openDrawer(\\'' + surf.analyzed_relative_path + '\\', this)" title="业务流">🔍</a>');
       }}
-      links.push('<a onclick="openDrawer(\\'' + f.relative_path + '\\')" title="漏洞分析">📋</a>');
+      links.push('<a onclick="openDrawer(\\'' + f.relative_path + '\\', this)" title="漏洞分析">📋</a>');
       if (f.review_relative_path) {{
-        links.push('<a onclick="openDrawer(\\'' + f.review_relative_path + '\\')" title="复核">✅</a>');
+        links.push('<a onclick="openDrawer(\\'' + f.review_relative_path + '\\', this)" title="复核">✅</a>');
       }}
       html += '<tr>' +
         '<td><strong>' + escapeHtml(f.surface_stem) + '</strong></td>' +
@@ -558,6 +607,7 @@ function renderFindings(data) {{
     html += '</tbody></table>';
   }}
   document.getElementById('view-findings').innerHTML = html;
+  applyVisitedStyles();
 }}
 
 function renderSurfaces(data) {{
@@ -570,17 +620,17 @@ function renderSurfaces(data) {{
       var s = data[i];
       var surfLinks = [];
       if (s.relative_path) {{
-        surfLinks.push('<a onclick="openDrawer(\\'' + s.relative_path + '\\')">📄 攻击面</a>');
+        surfLinks.push('<a onclick="openDrawer(\\'' + s.relative_path + '\\', this)">📄 攻击面</a>');
       }}
       if (s.analyzed_relative_path) {{
-        surfLinks.push('<a onclick="openDrawer(\\'' + s.analyzed_relative_path + '\\')">🔍 业务流</a>');
+        surfLinks.push('<a onclick="openDrawer(\\'' + s.analyzed_relative_path + '\\', this)">🔍 业务流</a>');
       }}
       var desc = '';
       if (s.surface_type) desc += '类型: ' + escapeHtml(s.surface_type);
       if (s.category) desc += (desc ? ' | ' : '') + '分类: ' + escapeHtml(s.category);
       if (s.description) desc += (desc ? ' | ' : '') + escapeHtml(s.description);
       html += '<div class="surface-card">' +
-        '<h3><a onclick="openDrawer(\\'' + (s.relative_path || s.analyzed_relative_path || '') + '\\')">' + escapeHtml(s.stem) + '</a></h3>' +
+        '<h3><a onclick="openDrawer(\\'' + (s.relative_path || s.analyzed_relative_path || '') + '\\', this)">' + escapeHtml(s.stem) + '</a></h3>' +
         '<div class="meta">' + desc + '</div>' +
         '<div style="margin-bottom:8px;font-size:13px;color:#718096;">' + surfLinks.join(' &middot; ') + '</div>';
       if (s.findings && s.findings.length > 0) {{
@@ -592,9 +642,9 @@ function renderSurfaces(data) {{
           var type = f.meta.vuln_type || '-';
           var title = f.meta.title || f.filename;
           var flinks = [];
-          flinks.push('<a onclick="openDrawer(\\'' + f.relative_path + '\\')">📋</a>');
+          flinks.push('<a onclick="openDrawer(\\'' + f.relative_path + '\\', this)">📋</a>');
           if (f.review_relative_path) {{
-            flinks.push('<a onclick="openDrawer(\\'' + f.review_relative_path + '\\')">✅</a>');
+            flinks.push('<a onclick="openDrawer(\\'' + f.review_relative_path + '\\', this)">✅</a>');
           }}
           html += '<tr>' +
             '<td>' + escapeHtml(title.substring(0, 50)) + ' ' + flinks.join('') + '</td>' +
@@ -613,6 +663,7 @@ function renderSurfaces(data) {{
     }}
   }}
   document.getElementById('view-surfaces').innerHTML = html;
+  applyVisitedStyles();
 }}
 
 function applyFilters() {{
