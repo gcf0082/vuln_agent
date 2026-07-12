@@ -47,7 +47,6 @@ tr:hover { background: #f7fafc; }
 .links { white-space: nowrap; }
 .links a { display: inline-block; margin: 0 2px; padding: 4px 8px; border-radius: 4px; font-size: 12px; text-decoration: none; background: #ebf8ff; color: #2b6cb0; transition: background 0.2s; cursor: pointer; }
 .links a:hover { background: #bee3f8; }
-.links a.visited { opacity: 0.4; background: #e2e8f0; }
 .surf-btn { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 13px; text-decoration: none; background: #ebf8ff; color: #2b6cb0; cursor: pointer; transition: background 0.2s; margin-right: 6px; }
 .surf-btn:hover { background: #bee3f8; }
 tr.active-row { background: #ebf8ff !important; }
@@ -159,18 +158,6 @@ tr.active-row td { border-bottom-color: #bee3f8; }
 <script>
 var DATA = window.REPORT_DATA.surfaces;
 var FILE_CONTENTS = window.REPORT_DATA.file_contents;
-var VISITED_KEY = window.REPORT_DATA.visited_key;
-var VISITED = (function() {
-  var s = new Set();
-  try {
-    var saved = localStorage.getItem(VISITED_KEY);
-    if (saved) JSON.parse(saved).forEach(function(p) { s.add(p); });
-  } catch(e) {}
-  return s;
-})();
-function saveVisited() {
-  try { localStorage.setItem(VISITED_KEY, JSON.stringify(Array.from(VISITED))); } catch(e) {}
-}
 
 function renderHeader() {
   var total = 0;
@@ -237,30 +224,14 @@ function renderMermaid(container) {
   return true;
 }
 
-function applyVisitedStyles() {
-  var links = document.querySelectorAll('#view-findings a[onclick], #view-surfaces a[onclick]');
-  links.forEach(function(a) {
-    var onclick = a.getAttribute('onclick') || '';
-    var m = onclick.match(/openDrawer\(['"]([^'"]+)['"]/);
-    if (m && VISITED.has(m[1])) {
-      a.classList.add('visited');
-    }
-  });
-}
 
 function openDrawer(path, el) {
   document.querySelectorAll('tr.active-row').forEach(function(tr) {
     tr.classList.remove('active-row');
   });
   if (el) {
-    el.classList.add('visited');
     var tr = el.closest('tr');
     if (tr) tr.classList.add('active-row');
-  }
-  if (path) {
-    var prevSize = VISITED.size;
-    VISITED.add(path);
-    if (VISITED.size !== prevSize) saveVisited();
   }
   if (!path || !FILE_CONTENTS[path]) {
     document.getElementById('drawerBody').innerHTML = '<div class="empty">文件内容不可用。</div>';
