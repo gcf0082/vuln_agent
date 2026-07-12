@@ -245,28 +245,33 @@ def copy_static_files(target_dir: Path) -> None:
                 shutil.copy2(f, dst_assets / f.name)
 
 
+def generate_report(target_dir: Path) -> tuple[bool, str]:
+    """Generate report-data.js + copy static files for a target directory.
+    
+    Returns (success, message).
+    """
+    try:
+        if not target_dir.exists():
+            return False, f"Target directory not found: {target_dir}"
+        surfaces, file_contents = scan_output(target_dir)
+        if not surfaces:
+            return False, "No data found. Run the pipeline first."
+        js_content = generate_data_js(surfaces, file_contents, target_dir.name)
+        data_path = target_dir / OUTPUT_PARENT / "report-data.js"
+        data_path.write_text(js_content, encoding="utf-8")
+        copy_static_files(target_dir)
+        return True, f"Report generated: {data_path}"
+    except Exception as e:
+        return False, str(e)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate audit report data for vuln_agent")
     parser.add_argument("target_dir", help="Target directory that was analyzed")
     args = parser.parse_args()
 
-    target_dir = Path(args.target_dir).resolve()
-    if not target_dir.exists():
-        print(f"Error: target directory not found: {target_dir}")
-        return
-
-    surfaces, file_contents = scan_output(target_dir)
-    if not surfaces:
-        print("No data found. Run the pipeline first.")
-        return
-
-    js_content = generate_data_js(surfaces, file_contents, target_dir.name)
-    data_path = target_dir / OUTPUT_PARENT / "report-data.js"
-    data_path.write_text(js_content, encoding="utf-8")
-    print(f"Data written: {data_path}")
-
-    copy_static_files(target_dir)
-    print(f"Static files copied to: {target_dir / OUTPUT_PARENT}")
+    ok, msg = generate_report(Path(args.target_dir).resolve())
+    print(msg)
 
 
 if __name__ == "__main__":
