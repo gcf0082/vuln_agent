@@ -28,6 +28,8 @@ header .meta a { color: #63b3ed; text-decoration: none; }
 .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
 .filters label { font-size: 13px; font-weight: 600; color: #4a5568; }
 .filters select { padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px; background: #fff; color: #2d3748; cursor: pointer; }
+.filters input[type="text"] { padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px; background: #fff; color: #2d3748; width: 200px; outline: none; }
+.filters input[type="text"]:focus { border-color: #4299e1; box-shadow: 0 0 0 2px rgba(66,153,225,0.2); }
 .tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; }
 .tab-btn { padding: 10px 24px; border: none; background: none; font-size: 14px; font-weight: 600; color: #718096; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
 .tab-btn:hover { color: #2d3748; }
@@ -108,7 +110,7 @@ tr.active-row td { border-bottom-color: #bee3f8; }
         <option value="none">— 未复核</option>
       </select>
       <label>攻击面</label>
-      <select id="filter-surface" onchange="applyFilters()"><option value="all">全部</option></select>
+      <input type="text" id="filter-surface-name" placeholder="输入名称模糊搜索..." oninput="applyFilters()">
       <label>严重性</label>
       <select id="filter-severity" onchange="applyFilters()">
         <option value="all">全部</option>
@@ -432,11 +434,17 @@ function renderSurfaces(data) {
 
 function applyFilters() {
   var rv = document.getElementById('filter-review').value;
-  var sv = document.getElementById('filter-surface').value;
   var sev = document.getElementById('filter-severity').value;
-  var filtered = [];
+  var sn = (document.getElementById('filter-surface-name').value || '').toLowerCase().trim();
+  var filteredSurfaces = [];
   for (var i = 0; i < DATA.length; i++) {
     var s = DATA[i];
+    if (sn && (s.stem || '').toLowerCase().indexOf(sn) === -1) continue;
+    filteredSurfaces.push(s);
+  }
+  var filtered = [];
+  for (var i = 0; i < filteredSurfaces.length; i++) {
+    var s = filteredSurfaces[i];
     if (!s.findings) continue;
     for (var j = 0; j < s.findings.length; j++) {
       var f = s.findings[j];
@@ -444,7 +452,6 @@ function applyFilters() {
         var fRv = f.review_prefix || 'none';
         if (fRv !== rv) continue;
       }
-      if (sv !== 'all' && f.surface_stem !== sv) continue;
       if (sev !== 'all') {
         var fSev = (f.meta.severity || '').trim();
         if (fSev !== sev) continue;
@@ -459,6 +466,7 @@ function applyFilters() {
   }
   document.getElementById('count-label').textContent = filtered.length + ' 条结果';
   renderFindings(filtered);
+  renderSurfaces(filteredSurfaces);
 }
 
 function switchView(name, btn) {
@@ -471,18 +479,7 @@ function switchView(name, btn) {
 (function init() {
   renderHeader();
   renderSummary(DATA);
-  var sel = document.getElementById('filter-surface');
-  var stems = [];
-  for (var i = 0; i < DATA.length; i++) {
-    if (stems.indexOf(DATA[i].stem) === -1) stems.push(DATA[i].stem);
-  }
-  for (var i = 0; i < stems.length; i++) {
-    var opt = document.createElement('option');
-    opt.value = stems[i]; opt.textContent = stems[i];
-    sel.appendChild(opt);
-  }
   applyFilters();
-  renderSurfaces(DATA);
 })();
 </script>
 </body>
