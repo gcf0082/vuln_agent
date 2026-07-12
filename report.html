@@ -114,6 +114,13 @@ tr.active-row td { border-bottom-color: #bee3f8; }
       <label>攻击面</label>
       <input type="text" id="filter-surface-name" placeholder="输入名称模糊搜索..." oninput="applyFilters()">
       <select id="filter-surface" onchange="applyFilters()"><option value="all">下拉选择</option></select>
+      <label>原始结论</label>
+      <select id="filter-original" onchange="applyFilters()">
+        <option value="all">全部</option>
+        <option value="VULN">VULN</option>
+        <option value="NOVULN">NOVULN</option>
+        <option value="SUSPECTED">SUSPECTED</option>
+      </select>
       <label>严重性</label>
       <select id="filter-severity" onchange="applyFilters()">
         <option value="all">全部</option>
@@ -412,6 +419,7 @@ function applyFilters() {
   var sev = document.getElementById('filter-severity').value;
   var sn = (document.getElementById('filter-surface-name').value || '').toLowerCase().trim();
   var sv = document.getElementById('filter-surface').value;
+  var ov = document.getElementById('filter-original').value;
   var filteredSurfaces = [];
   for (var i = 0; i < DATA.length; i++) {
     var s = DATA[i];
@@ -429,6 +437,7 @@ function applyFilters() {
         var fRv = f.review_prefix || 'none';
         if (fRv !== rv) continue;
       }
+      if (ov !== 'all' && f.prefix !== ov) continue;
       if (sev !== 'all') {
         var fSev = (f.meta.severity || '').trim();
         if (fSev !== sev) continue;
