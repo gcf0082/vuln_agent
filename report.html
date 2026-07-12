@@ -48,8 +48,6 @@ tr:hover { background: #f7fafc; }
 .links a.visited { opacity: 0.4; background: #e2e8f0; }
 tr.active-row { background: #ebf8ff !important; }
 tr.active-row td { border-bottom-color: #bee3f8; }
-tr.visited-row { background: #f0fff4; }
-tr.visited-row td:first-child { border-left: 3px solid #38a169; }
 .surface-card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .surface-card h3 { font-size: 16px; margin-bottom: 8px; }
 .surface-card h3 a { color: #2b6cb0; text-decoration: none; cursor: pointer; }
@@ -240,8 +238,6 @@ function applyVisitedStyles() {
     var m = onclick.match(/openDrawer\(['"]([^'"]+)['"]/);
     if (m && VISITED.has(m[1])) {
       a.classList.add('visited');
-      var tr = a.closest('tr');
-      if (tr) tr.classList.add('visited-row');
     }
   });
 }
@@ -249,7 +245,6 @@ function applyVisitedStyles() {
 function openDrawer(path, el) {
   document.querySelectorAll('tr.active-row').forEach(function(tr) {
     tr.classList.remove('active-row');
-    tr.classList.add('visited-row');
   });
   if (el) {
     el.classList.add('visited');
@@ -296,7 +291,6 @@ function closeDrawer() {
   document.body.style.overflow = '';
   document.querySelectorAll('tr.active-row').forEach(function(tr) {
     tr.classList.remove('active-row');
-    tr.classList.add('visited-row');
   });
 }
 
