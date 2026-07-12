@@ -289,9 +289,6 @@ function closeDrawer() {
   document.getElementById('drawerOverlay').classList.remove('active');
   document.getElementById('drawer').classList.remove('active');
   document.body.style.overflow = '';
-  document.querySelectorAll('tr.active-row').forEach(function(tr) {
-    tr.classList.remove('active-row');
-  });
 }
 
 document.addEventListener('keydown', function(e) {
