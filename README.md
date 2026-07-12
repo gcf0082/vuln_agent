@@ -151,6 +151,32 @@ vuln_re_analysis: false          # 是否对确认漏洞进行业务上下文复
 vuln_planning: true              # 是否启用漏洞分析规划
 ```
 
+## 报告生成
+
+管道运行完成后自动生成 HTML 审计报告，也可手动生成：
+
+```bash
+python3 report.py /path/to/target
+```
+
+报告文件输出到 `.vuln_agent_output/`：
+- `report.html` — 静态模板（全屏布局，不含项目特有数据）
+- `report-data.js` — 扫描数据（按 `<script src>` 加载，支持 `file://` 协议）
+- `assets/` — 静态资源（marked / highlight / mermaid / GitHub 样式）
+
+功能：
+- **📋 漏洞清单** — 汇总卡片 + 可筛选表格（按复核结论 / 攻击面模糊搜索+精确下拉 / 严重性）
+- **📂 攻击面总览** — 按攻击面分组展示，含子表格和文件链接
+- **📄 文件预览** — 点击文件图标打开右侧抽屉，渲染 Markdown / 代码高亮 / Mermaid 图表
+- **🔄 关闭抽屉后保持行高亮** — 便于继续操作该行的其他按钮
+- **👁️ 已查看文件图标淡化** — 通过 localStorage 持久化，跨页面刷新保持
+
+![漏洞清单](docs/screenshots/report-findings.png)
+
+![文件预览抽屉](docs/screenshots/report-drawer.png)
+
+![攻击面总览](docs/screenshots/report-surfaces.png)
+
 ## 示例产物
 
 `<分析目标>/.vuln_agent_output` 目录包含各阶段产出的示例文件，可点击查看：
