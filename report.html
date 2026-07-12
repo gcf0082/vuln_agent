@@ -49,6 +49,10 @@ tr:hover { background: #f7fafc; }
 .links a:hover { background: #bee3f8; }
 .surf-btn { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 13px; text-decoration: none; background: #ebf8ff; color: #2b6cb0; cursor: pointer; transition: background 0.2s; margin-right: 6px; }
 .surf-btn:hover { background: #bee3f8; }
+.tag-group { display: inline-flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.tag { padding: 3px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; background: #edf2f7; color: #4a5568; user-select: none; transition: background 0.15s; }
+.tag:hover { background: #cbd5e0; }
+.tag.selected { background: #ebf8ff; color: #2b6cb0; border: 1px solid #bee3f8; }
 tr.active-row { background: #ebf8ff !important; }
 tr.active-row td { border-bottom-color: #bee3f8; }
 .surface-card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
@@ -104,23 +108,21 @@ tr.active-row td { border-bottom-color: #bee3f8; }
 
     <div class="filters">
       <label>复核结论</label>
-      <select id="filter-review" onchange="applyFilters()">
-        <option value="all">全部</option>
-        <option value="VULN">✓ 复核确认 (VULN)</option>
-        <option value="NOVULN">✗ 复核推翻 (NOVULN)</option>
-        <option value="SUSPECTED">? 无法确定</option>
-        <option value="none">— 未复核</option>
-      </select>
+      <div class="tag-group" id="filter-review-tags">
+        <span class="tag selected" data-value="VULN" onclick="toggleTag(this)">VULN</span>
+        <span class="tag" data-value="NOVULN" onclick="toggleTag(this)">NOVULN</span>
+        <span class="tag selected" data-value="SUSPECTED" onclick="toggleTag(this)">SUSPECTED</span>
+        <span class="tag" data-value="none" onclick="toggleTag(this)">未复核</span>
+      </div>
       <label>攻击面</label>
       <input type="text" id="filter-surface-name" placeholder="输入名称模糊搜索..." oninput="applyFilters()">
       <select id="filter-surface" onchange="applyFilters()"><option value="all">下拉选择</option></select>
       <label>原始结论</label>
-      <select id="filter-original" onchange="applyFilters()">
-        <option value="all">全部</option>
-        <option value="VULN">VULN</option>
-        <option value="NOVULN">NOVULN</option>
-        <option value="SUSPECTED">SUSPECTED</option>
-      </select>
+      <div class="tag-group" id="filter-original-tags">
+        <span class="tag selected" data-value="VULN" onclick="toggleTag(this)">VULN</span>
+        <span class="tag selected" data-value="NOVULN" onclick="toggleTag(this)">NOVULN</span>
+        <span class="tag selected" data-value="SUSPECTED" onclick="toggleTag(this)">SUSPECTED</span>
+      </div>
       <label>严重性</label>
       <select id="filter-severity" onchange="applyFilters()">
         <option value="all">全部</option>
@@ -355,7 +357,6 @@ function renderFindings(data) {
     html += '</tbody></table>';
   }
   document.getElementById('view-findings').innerHTML = html;
-  applyVisitedStyles();
 }
 
 function renderSurfaces(data) {
@@ -411,15 +412,19 @@ function renderSurfaces(data) {
     }
   }
   document.getElementById('view-surfaces').innerHTML = html;
-  applyVisitedStyles();
+}
+
+function toggleTag(el) {
+  el.classList.toggle('selected');
+  applyFilters();
 }
 
 function applyFilters() {
-  var rv = document.getElementById('filter-review').value;
+  var rv = Array.from(document.querySelectorAll('#filter-review-tags .tag.selected')).map(function(t) { return t.dataset.value; });
   var sev = document.getElementById('filter-severity').value;
   var sn = (document.getElementById('filter-surface-name').value || '').toLowerCase().trim();
   var sv = document.getElementById('filter-surface').value;
-  var ov = document.getElementById('filter-original').value;
+  var ov = Array.from(document.querySelectorAll('#filter-original-tags .tag.selected')).map(function(t) { return t.dataset.value; });
   var filteredSurfaces = [];
   for (var i = 0; i < DATA.length; i++) {
     var s = DATA[i];
@@ -433,11 +438,8 @@ function applyFilters() {
     if (!s.findings) continue;
     for (var j = 0; j < s.findings.length; j++) {
       var f = s.findings[j];
-      if (rv !== 'all') {
-        var fRv = f.review_prefix || 'none';
-        if (fRv !== rv) continue;
-      }
-      if (ov !== 'all' && f.prefix !== ov) continue;
+      if (rv.length > 0 && rv.indexOf(f.review_prefix || 'none') === -1) continue;
+      if (ov.length > 0 && ov.indexOf(f.prefix) === -1) continue;
       if (sev !== 'all') {
         var fSev = (f.meta.severity || '').trim();
         if (fSev !== sev) continue;
