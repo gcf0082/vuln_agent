@@ -276,6 +276,8 @@ tr:hover { background: #f7fafc; }
 .drawer-body { flex: 1; overflow-y: auto; padding: 24px; }
 .drawer-body .markdown-body { padding: 0; max-width: none; }
 .drawer-body .markdown-body pre { border-radius: 6px; }
+.drawer-body .mermaid { max-width: 100%; overflow-x: auto; margin: 16px 0; }
+.drawer-body .mermaid svg { max-width: 100%; height: auto; }
 .drawer-loading { text-align: center; padding: 60px 20px; color: #a0aec0; font-size: 14px; }
 
 @media (max-width: 1024px) {
@@ -380,6 +382,8 @@ def generate_html(surfaces: list[SurfaceEntry], file_contents: dict[str, str], t
 
 <script src="./assets/marked.min.js"></script>
 <script src="./assets/highlight.min.js"></script>
+<script src="./assets/mermaid.min.js"></script>
+<script>mermaid.initialize({{ startOnLoad: false }});</script>
 <script>
 const DATA = {json_data};
 const FILE_CONTENTS = {json_contents};
@@ -425,6 +429,19 @@ function renderMarkdown(content) {{
   return '<pre style="white-space:pre-wrap;word-break:break-word;padding:16px;font-size:13px;">' + escapeHtml(content) + '</pre>';
 }}
 
+function renderMermaid(container) {{
+  var blocks = container.querySelectorAll('pre code.language-mermaid');
+  if (blocks.length === 0) return false;
+  blocks.forEach(function(block) {{
+    var pre = block.parentElement;
+    var div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = block.textContent;
+    pre.parentElement.replaceChild(div, pre);
+  }});
+  return true;
+}}
+
 function openDrawer(path) {{
   if (!path || !FILE_CONTENTS[path]) {{
     document.getElementById('drawerBody').innerHTML = '<div class="empty">文件内容不可用。</div>';
@@ -441,13 +458,18 @@ function openDrawer(path) {{
   document.getElementById('drawerOverlay').classList.add('active');
   document.getElementById('drawer').classList.add('active');
   document.body.style.overflow = 'hidden';
-  if (typeof hljs !== 'undefined') {{
-    setTimeout(function() {{
-      document.querySelectorAll('#drawerBody pre code').forEach(function(block) {{
+  setTimeout(function() {{
+    if (typeof hljs !== 'undefined') {{
+      document.querySelectorAll('#drawerBody pre code:not(.language-mermaid)').forEach(function(block) {{
         hljs.highlightElement(block);
       }});
-    }}, 50);
-  }}
+    }}
+    if (typeof mermaid !== 'undefined') {{
+      if (renderMermaid(document.getElementById('drawerBody'))) {{
+        try {{ mermaid.run(); }} catch(e) {{}}
+      }}
+    }}
+  }}, 50);
 }}
 
 function closeDrawer() {{
