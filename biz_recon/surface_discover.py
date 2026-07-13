@@ -4,7 +4,7 @@
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, ensure_dirs, build_vars, log, get_timeout
+from .workspace import OUTPUT_PARENT, ensure_dirs, build_vars, log, get_timeout, save_thinking, append_thinking_manifest
 
 
 DONE_MARKER = ".surface_discover_done"
@@ -37,6 +37,10 @@ def run(work_dir: Path, extra_prompt: str = "", force: bool = False,
 
     client = OpenCodeClient()
     result = client.run(prompt, verbose=thinking, timeout=get_timeout("surface_discover"))
+
+    thinking_id = "discover"
+    save_thinking(work_dir, thinking_id, prompt, result.text, "discover", result.exit_code)
+
     if result.exit_code != 0:
         suffix = "（超时）" if result.timed_out else ""
         sd_log(f"{prefix} ⚠ 暴露面识别失败 (exit={result.exit_code}){suffix}")
@@ -44,6 +48,13 @@ def run(work_dir: Path, extra_prompt: str = "", force: bool = False,
 
     surfaces_dir = work_dir / OUTPUT_PARENT / "discovered_surfaces"
     surface_files = sorted(surfaces_dir.glob("*.md"))
+    if surface_files:
+        append_thinking_manifest(work_dir, {
+            "thinking_id": thinking_id,
+            "stage": "discover",
+            "surface_stem": None,
+            "output_files": [f"discovered_surfaces/{f.name}" for f in surface_files],
+        })
     if not surface_files:
         sd_log(f"{prefix} ⚠ 暴露面识别完成，但未生成任何暴露面文件")
         marker.parent.mkdir(parents=True, exist_ok=True)

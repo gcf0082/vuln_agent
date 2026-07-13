@@ -156,6 +156,61 @@ def needs_analysis(work_dir: Path, surface_filename: str) -> bool:
     return True
 
 
+# ---- 思考过程保存 ----
+
+THINKING_DIR = TOOL_DIR.parent / "var" / "thinking"
+THINKING_MANIFEST_NAME = "thinking_manifest.jsonl"
+
+
+def get_target_id(work_dir: Path) -> str:
+    return work_dir.name
+
+
+def get_thinking_dir(work_dir: Path) -> Path:
+    return THINKING_DIR / get_target_id(work_dir)
+
+
+def save_thinking(work_dir: Path, thinking_id: str, prompt: str,
+                  response: str, stage: str, exit_code: int = 0) -> Path:
+    from datetime import datetime
+    d = get_thinking_dir(work_dir)
+    d.mkdir(parents=True, exist_ok=True)
+    tp = d / f"{thinking_id}.md"
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    status = "失败" if exit_code != 0 else "成功"
+    content = (
+        f"# 思考过程：{stage} - {thinking_id}\n\n"
+        f"**时间**：{now}  **状态**：{status}  **阶段**：{stage}\n\n"
+        f"---\n\n"
+        f"## Prompt\n\n{prompt}\n\n"
+        f"---\n\n"
+        f"## Response\n\n{response}\n"
+    )
+    tp.write_text(content, encoding="utf-8")
+    return tp
+
+
+def append_thinking_manifest(work_dir: Path, entry: dict):
+    import json
+    mf = work_dir / OUTPUT_PARENT / THINKING_MANIFEST_NAME
+    with open(mf, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+def read_thinking_manifest(work_dir: Path) -> list[dict]:
+    import json
+    mf = work_dir / OUTPUT_PARENT / THINKING_MANIFEST_NAME
+    if not mf.exists():
+        return []
+    entries = []
+    with open(mf, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                entries.append(json.loads(line))
+    return entries
+
+
 # ---- 失败汇总（全管道共享） ----
 
 _all_failures: list[str] = []

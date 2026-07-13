@@ -35,6 +35,7 @@ class FindingEntry:
     meta: FindingMeta
     content: str = ""
     review_content: str = ""
+    thinking_ids: Optional[list[str]] = None
 
 
 @dataclass
@@ -50,6 +51,7 @@ class SurfaceEntry:
     content: str = ""
     analyzed_content: str = ""
     findings: Optional[list[FindingEntry]] = None
+    thinking_ids: Optional[list[str]] = None
 
 
 def parse_surface_file(path: Path) -> dict:
@@ -98,6 +100,55 @@ def extract_finding_meta(content: str) -> FindingMeta:
     if m:
         meta.location = m.group(1).strip()
     return meta
+
+
+def _add_thinking_data(target_dir: Path, surfaces: list[SurfaceEntry],
+                       file_contents: dict[str, str]) -> tuple[list[SurfaceEntry], dict[str, str]]:
+    manifest_path = target_dir / OUTPUT_PARENT / "thinking_manifest.jsonl"
+    if not manifest_path.exists():
+        return surfaces, file_contents
+
+    target_name = target_dir.name
+    thinking_dir = Path(__file__).resolve().parent / "var" / "thinking" / target_name
+
+    entries = []
+    with open(manifest_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                entries.append(json.loads(line))
+
+    output_map: dict[str, list[str]] = {}
+    for e in entries:
+        tid = e["thinking_id"]
+        for of in e.get("output_files", []):
+            output_map.setdefault(of, []).append(tid)
+
+    for e in entries:
+        tid = e["thinking_id"]
+        tp = thinking_dir / f"{tid}.md"
+        if tp.exists():
+            file_contents[f"thinking/{tid}.md"] = tp.read_text(encoding="utf-8")
+
+    for s in surfaces:
+        ids: set[str] = set()
+        for e in entries:
+            if e.get("surface_stem") == s.stem:
+                ids.add(e["thinking_id"])
+            elif e["stage"] == "discover" and f"discovered_surfaces/{s.filename}" in e.get("output_files", []):
+                ids.add(e["thinking_id"])
+        s.thinking_ids = [f"thinking/{tid}.md" for tid in sorted(ids)] if ids else None
+
+    for s in surfaces:
+        for f in (s.findings or []):
+            ids: set[str] = set()
+            for of_rel in [f.relative_path, f.review_relative_path]:
+                if of_rel:
+                    clean = of_rel.lstrip("./")
+                    ids.update(output_map.get(clean, []))
+            f.thinking_ids = [f"thinking/{tid}.md" for tid in sorted(ids)] if ids else None
+
+    return surfaces, file_contents
 
 
 def scan_output(target_dir: Path) -> tuple[list[SurfaceEntry], dict[str, str]]:
@@ -200,7 +251,8 @@ def scan_output(target_dir: Path) -> tuple[list[SurfaceEntry], dict[str, str]]:
                     findings=[fe],
                 )
 
-    return list(surface_map.values()), file_contents
+    surfaces_list = list(surface_map.values())
+    return _add_thinking_data(target_dir, surfaces_list, file_contents)
 
 
 def generate_data_js(surfaces: list[SurfaceEntry], file_contents: dict[str, str], target_name: str) -> str:

@@ -271,6 +271,41 @@ function openDrawer(path, el) {
   }, 50);
 }
 
+function openDrawerThinking(idsStr, el) {
+  var ids = idsStr.split(',').filter(function(id) { return id; });
+  document.querySelectorAll('tr.active-row').forEach(function(tr) {
+    tr.classList.remove('active-row');
+  });
+  if (el) {
+    var tr = el.closest('tr');
+    if (tr) tr.classList.add('active-row');
+  }
+  var content = '';
+  for (var i = 0; i < ids.length; i++) {
+    var c = FILE_CONTENTS[ids[i]];
+    if (c) {
+      if (content) content += '\n\n---\n\n';
+      content += c;
+    }
+  }
+  if (!content) {
+    document.getElementById('drawerBody').innerHTML = '<div class="empty">思考过程文件未找到。</div>';
+  } else {
+    document.getElementById('drawerBody').innerHTML = renderMarkdown(content);
+  }
+  document.getElementById('drawerTitle').textContent = '🧠 思考过程 (' + ids.length + ')';
+  document.getElementById('drawerOverlay').classList.add('active');
+  document.getElementById('drawer').classList.add('active');
+  document.body.style.overflow = 'hidden';
+  setTimeout(function() {
+    if (typeof hljs !== 'undefined') {
+      document.querySelectorAll('#drawerBody pre code').forEach(function(block) {
+        hljs.highlightElement(block);
+      });
+    }
+  }, 50);
+}
+
 function closeDrawer() {
   document.getElementById('drawerOverlay').classList.remove('active');
   document.getElementById('drawer').classList.remove('active');
@@ -343,6 +378,9 @@ function renderFindings(data) {
       if (f.review_relative_path) {
         links.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)" title="复核">⚖️</a>');
       }
+      if (f.thinking_ids && f.thinking_ids.length) {
+        links.push('<a onclick="openDrawerThinking(\'' + f.thinking_ids.join(',') + '\', this)" title="思考过程">🧠</a>');
+      }
       html += '<tr>' +
         '<td><strong>' + escapeHtml(f.surface_stem) + '</strong></td>' +
         '<td>' + safeTitle + '</td>' +
@@ -374,6 +412,9 @@ function renderSurfaces(data) {
       if (s.analyzed_relative_path) {
         surfLinks.push('<a class="surf-btn" onclick="openDrawer(\'' + s.analyzed_relative_path + '\', this)">🔍 业务流</a>');
       }
+      if (s.thinking_ids && s.thinking_ids.length) {
+        surfLinks.push('<a class="surf-btn" onclick="openDrawerThinking(\'' + s.thinking_ids.join(',') + '\', this)">🧠 思考过程</a>');
+      }
       var desc = '';
       if (s.surface_type) desc += '类型: ' + escapeHtml(s.surface_type);
       if (s.category) desc += (desc ? ' | ' : '') + '分类: ' + escapeHtml(s.category);
@@ -394,6 +435,9 @@ function renderSurfaces(data) {
           flinks.push('<a onclick="openDrawer(\'' + f.relative_path + '\', this)">📋</a>');
           if (f.review_relative_path) {
             flinks.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)">⚖️</a>');
+          }
+          if (f.thinking_ids && f.thinking_ids.length) {
+            flinks.push('<a onclick="openDrawerThinking(\'' + f.thinking_ids.join(',') + '\', this)">🧠</a>');
           }
           html += '<tr>' +
             '<td>' + escapeHtml(title.substring(0, 50)) + ' ' + flinks.join('') + '</td>' +

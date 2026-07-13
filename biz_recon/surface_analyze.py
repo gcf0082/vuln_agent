@@ -5,7 +5,7 @@ import concurrent.futures
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, read_surface_list, log, get_timeout, record_failure
+from .workspace import OUTPUT_PARENT, build_vars, read_surface_list, log, get_timeout, record_failure, save_thinking, append_thinking_manifest
 
 
 def run(work_dir: Path, max_workers: int = 3,
@@ -47,10 +47,20 @@ def run(work_dir: Path, max_workers: int = 3,
 
         client = OpenCodeClient()
         result = client.run(prompt, verbose=thinking, timeout=get_timeout())
+
+        thinking_id = f"analyze-{item.filename.replace('.md', '')}"
+        save_thinking(work_dir, thinking_id, prompt, result.text, "analyze", result.exit_code)
+
         if result.exit_code != 0:
             suffix = "（超时）" if result.timed_out else ""
             ao_log(f"{prefix} ✗ {item.filename}{suffix}")
             return False
+        append_thinking_manifest(work_dir, {
+            "thinking_id": thinking_id,
+            "stage": "analyze",
+            "surface_stem": item.filename.replace('.md', ''),
+            "output_files": [f"analyzed_surfaces/{item.filename}"],
+        })
         ao_log(f"{prefix} ✓ 业务流分析完成 {item.filename}")
         return True
 

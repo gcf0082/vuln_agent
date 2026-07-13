@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, find_vuln_files, log, get_timeout, record_failure
+from .workspace import OUTPUT_PARENT, build_vars, find_vuln_files, log, get_timeout, record_failure, save_thinking, append_thinking_manifest
 
 
 def _surface_has_vuln_output(surface_stem: str, vuln_dir: Path, plans_dir: Path | None = None) -> bool:
@@ -101,10 +101,12 @@ def run(work_dir: Path, max_workers: int = 3,
     extras = f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else ""
     failures: list[str] = []
 
-    def _run_one(sf_path, prompt_name, extra_vars, log_suffix=""):
+    def _run_one(sf_path, prompt_name, extra_vars, log_suffix="", thinking_id=""):
         ao_log = setup_stage_log("vuln_analyze", sf_path.name, prefix=prefix)
         label = f"{sf_path.name}{log_suffix}"
         ao_log(f"{prefix} → 漏洞分析 {label}")
+
+        existing = set(f.name for f in vuln_dir.glob("*.md")) if vuln_dir.exists() else set()
 
         local_vars = {**vars,
             "surface_file": sf_path.name,
@@ -116,6 +118,18 @@ def run(work_dir: Path, max_workers: int = 3,
 
         client = OpenCodeClient()
         result = client.run(prompt, verbose=thinking, timeout=get_timeout())
+
+        if thinking_id:
+            save_thinking(work_dir, thinking_id, prompt, result.text, "vuln", result.exit_code)
+            new_files = sorted(set(f.name for f in vuln_dir.glob("*.md")) - existing)
+            if new_files:
+                append_thinking_manifest(work_dir, {
+                    "thinking_id": thinking_id,
+                    "stage": "vuln",
+                    "surface_stem": sf_path.stem,
+                    "output_files": [f"vuln_findings/{fn}" for fn in new_files],
+                })
+
         if result.exit_code != 0:
             suffix = "（超时）" if result.timed_out else ""
             ao_log(f"{prefix} ✗ {label}{suffix}")
@@ -138,15 +152,16 @@ def run(work_dir: Path, max_workers: int = 3,
         if not plan_dir.exists():
             return _run_one(sf_path, "analyze-vulnerability.txt", {
                 "analysis_plan": "",
-            })
+            }, thinking_id=f"vuln-{sf_path.stem}-no-plan")
 
         for pf in sorted(plan_dir.glob("*.md")):
             if not _level_match(pf):
                 continue
             plan_content = pf.read_text(encoding="utf-8")
+            thinking_id = f"vuln-{sf_path.stem}-{pf.stem}"
             ok = _run_one(sf_path, "analyze-vulnerability.txt", {
                 "analysis_plan": plan_content,
-            }, log_suffix=f" [{pf.name}]")
+            }, log_suffix=f" [{pf.name}]", thinking_id=thinking_id)
             if not ok:
                 return False
         return True

@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout, record_failure
+from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout, record_failure, save_thinking, append_thinking_manifest
 
 
 def _vuln_has_review(vuln_stem: str, review_dir: Path) -> bool:
@@ -75,12 +75,26 @@ def run(work_dir: Path, max_workers: int = 3,
         }
         prompt = read_prompt("review-vulnerability.txt", local_vars)
 
+        existing_reviews = set(f.name for f in review_dir.glob("*.md"))
+
         client = OpenCodeClient()
         result = client.run(prompt, verbose=thinking, timeout=get_timeout())
+
+        thinking_id = f"review-{vf_path.stem}"
+        save_thinking(work_dir, thinking_id, prompt, result.text, "review", result.exit_code)
+
         if result.exit_code != 0:
             suffix = "（超时）" if result.timed_out else ""
             ra_log(f"{prefix} ✗ {vf_path.name}{suffix}")
             return False
+        new_reviews = sorted(set(f.name for f in review_dir.glob("*.md")) - existing_reviews)
+        if new_reviews:
+            append_thinking_manifest(work_dir, {
+                "thinking_id": thinking_id,
+                "stage": "review",
+                "surface_stem": _extract_surface_stem(vf_path.stem),
+                "output_files": [f"vuln_reviews/{fn}" for fn in new_reviews],
+            })
         ra_log(f"{prefix} ✓ 漏洞复核完成 {vf_path.name}")
         return True
 

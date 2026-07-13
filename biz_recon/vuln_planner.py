@@ -5,7 +5,7 @@ import concurrent.futures
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout, record_failure
+from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout, record_failure, save_thinking, append_thinking_manifest
 
 
 def run(work_dir: Path, max_workers: int = 3,
@@ -55,10 +55,22 @@ def run(work_dir: Path, max_workers: int = 3,
 
         client = OpenCodeClient()
         result = client.run(prompt, verbose=thinking, timeout=get_timeout())
+
+        thinking_id = f"plan-{sf_path.stem}"
+        save_thinking(work_dir, thinking_id, prompt, result.text, "plan", result.exit_code)
+
         if result.exit_code != 0:
             suffix = "（超时）" if result.timed_out else ""
             pl_ao_log(f"{prefix} ✗ {sf_path.name}{suffix}")
             return False
+        plan_dir_now = plans_dir / sf_path.stem
+        plan_files_now = sorted(plan_dir_now.glob("*.md")) if plan_dir_now.exists() else []
+        append_thinking_manifest(work_dir, {
+            "thinking_id": thinking_id,
+            "stage": "plan",
+            "surface_stem": sf_path.stem,
+            "output_files": [f"vuln_plans/{sf_path.stem}/{f.name}" for f in plan_files_now],
+        })
         pl_ao_log(f"{prefix} ✓ 规划漏洞分析任务完成 {sf_path.name}")
         return True
 

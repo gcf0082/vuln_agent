@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from opencode_wrapper import OpenCodeClient
 from .prompt import read_prompt
-from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout, record_failure
+from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout, record_failure, save_thinking, append_thinking_manifest
 
 
 def run(work_dir: Path, extra_prompt: str = "",
@@ -72,10 +72,21 @@ def run(work_dir: Path, extra_prompt: str = "",
 
         client = OpenCodeClient()
         result = client.run(prompt, verbose=thinking, timeout=get_timeout())
+
+        thinking_id = f"postprocess-{rf_path.stem}"
+        save_thinking(work_dir, thinking_id, prompt, result.text, "postprocess", result.exit_code)
+
         if result.exit_code != 0:
             suffix = "（超时）" if result.timed_out else ""
             rp_log(f"{prefix} ✗ {rf_path.name}{suffix}")
             return False
+        if output_path.exists():
+            append_thinking_manifest(work_dir, {
+                "thinking_id": thinking_id,
+                "stage": "postprocess",
+                "surface_stem": analysis_stem,
+                "output_files": [f"vuln_postprocess/{output_path.name}"],
+            })
         rp_log(f"{prefix} ✓ 漏洞后置处理完成 {rf_path.name}")
         return True
 
