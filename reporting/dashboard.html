@@ -222,25 +222,16 @@ function getFileLabel(path) {
 }
 
 function getThinkingStage(key) {
-  var name = key.replace('thinking/', '').replace('.md', '');
-  return name.split('-')[0];
+  var m = key.match(/thinking\/([^/]+)\.md/);
+  return m ? m[1].split('-')[0] : '';
 }
-function stageLabel(stage) {
-  var map = { 'discover': '🔍 暴露面识别', 'analyze': '🔬 业务流分析', 'plan': '📋 漏洞规划', 'vuln': '🛠 漏洞分析', 'review': '⚖️ 复核', 'postprocess': '📝 后置处理' };
-  return map[stage] || '🧠 ' + stage;
-}
-function stageShortLabel(stage) {
-  var map = { 'discover': '🔍', 'analyze': '🔬', 'plan': '📋', 'vuln': '🛠', 'review': '⚖️', 'postprocess': '📝' };
-  return map[stage] || '🧠';
-}
-function groupThinkingByStage(ids) {
-  var groups = {};
+function getThinkingForStage(ids, stage) {
+  if (!ids || !ids.length) return [];
+  var r = [];
   for (var i = 0; i < ids.length; i++) {
-    var stage = getThinkingStage(ids[i]);
-    if (!groups[stage]) groups[stage] = [];
-    groups[stage].push(ids[i]);
+    if (getThinkingStage(ids[i]) === stage) r.push(ids[i]);
   }
-  return groups;
+  return r;
 }
 
 function renderMarkdown(content) {
@@ -409,19 +400,21 @@ function renderFindings(data) {
       var links = [];
       if (surf && surf.relative_path) {
         links.push('<a onclick="openDrawer(\'' + surf.relative_path + '\', this)" title="攻击面">📄</a>');
+        var dt = getThinkingForStage(surf.thinking_ids, 'discover');
+        if (dt.length) links.push('<a onclick="openDrawerThinking(\'' + dt.join(',') + '\', this)" title="暴露面识别思考">🧠</a>');
       }
       if (surf && surf.analyzed_relative_path) {
         links.push('<a onclick="openDrawer(\'' + surf.analyzed_relative_path + '\', this)" title="业务流">🔍</a>');
+        var at = getThinkingForStage(surf.thinking_ids, 'analyze');
+        if (at.length) links.push('<a onclick="openDrawerThinking(\'' + at.join(',') + '\', this)" title="业务流分析思考">🧠</a>');
       }
       links.push('<a onclick="openDrawer(\'' + f.relative_path + '\', this)" title="漏洞分析">📋</a>');
+      var vt = getThinkingForStage(f.thinking_ids, 'vuln');
+      if (vt.length) links.push('<a onclick="openDrawerThinking(\'' + vt.join(',') + '\', this)" title="漏洞分析思考">🧠</a>');
       if (f.review_relative_path) {
         links.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)" title="复核">⚖️</a>');
-      }
-      if (f.thinking_ids && f.thinking_ids.length) {
-        var groups = groupThinkingByStage(f.thinking_ids);
-        for (var st in groups) {
-          links.push('<a onclick="openDrawerThinking(\'' + groups[st].join(',') + '\', this)" title="' + stageLabel(st) + '">' + stageShortLabel(st) + '</a>');
-        }
+        var rt = getThinkingForStage(f.thinking_ids, 'review');
+        if (rt.length) links.push('<a onclick="openDrawerThinking(\'' + rt.join(',') + '\', this)" title="复核思考">🧠</a>');
       }
       html += '<tr>' +
         '<td><strong>' + escapeHtml(f.surface_stem) + '</strong></td>' +
@@ -451,16 +444,18 @@ function renderSurfaces(data) {
       var surfLinks = [];
       if (s.relative_path) {
         surfLinks.push('<a class="surf-btn" onclick="openDrawer(\'' + s.relative_path + '\', this)">📄 攻击面</a>');
+        var dt = getThinkingForStage(s.thinking_ids, 'discover');
+        if (dt.length) surfLinks.push('<a class="surf-btn" onclick="openDrawerThinking(\'' + dt.join(',') + '\', this)" title="暴露面识别思考">🧠</a>');
       }
       if (s.analyzed_relative_path) {
         surfLinks.push('<a class="surf-btn" onclick="openDrawer(\'' + s.analyzed_relative_path + '\', this)">🔍 业务流</a>');
+        var at = getThinkingForStage(s.thinking_ids, 'analyze');
+        if (at.length) surfLinks.push('<a class="surf-btn" onclick="openDrawerThinking(\'' + at.join(',') + '\', this)" title="业务流分析思考">🧠</a>');
       }
-      if (s.thinking_ids && s.thinking_ids.length) {
-        var groups = groupThinkingByStage(s.thinking_ids);
-        for (var st in groups) {
-          surfLinks.push('<a class="surf-btn" onclick="openDrawerThinking(\'' + groups[st].join(',') + '\', this)" title="' + stageLabel(st) + '">' + stageLabel(st) + '</a>');
-        }
-      }
+      var pt = getThinkingForStage(s.thinking_ids, 'plan');
+      if (pt.length) surfLinks.push('<a class="surf-btn" onclick="openDrawerThinking(\'' + pt.join(',') + '\', this)" title="漏洞规划思考">🧠 规划</a>');
+      var pp = getThinkingForStage(s.thinking_ids, 'postprocess');
+      if (pp.length) surfLinks.push('<a class="surf-btn" onclick="openDrawerThinking(\'' + pp.join(',') + '\', this)" title="后置处理思考">🧠 后置</a>');
       var desc = '';
       if (IS_MERGED && s._target_name) desc += '目标: ' + escapeHtml(s._target_name);
       if (s.surface_type) desc += (desc ? ' | ' : '') + '类型: ' + escapeHtml(s.surface_type);
@@ -480,14 +475,12 @@ function renderSurfaces(data) {
           var title = f.meta.title || f.filename;
           var flinks = [];
           flinks.push('<a onclick="openDrawer(\'' + f.relative_path + '\', this)">📋</a>');
+          var vt = getThinkingForStage(f.thinking_ids, 'vuln');
+          if (vt.length) flinks.push('<a onclick="openDrawerThinking(\'' + vt.join(',') + '\', this)" title="漏洞分析思考">🧠</a>');
           if (f.review_relative_path) {
             flinks.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)">⚖️</a>');
-          }
-          if (f.thinking_ids && f.thinking_ids.length) {
-            var groups = groupThinkingByStage(f.thinking_ids);
-            for (var st in groups) {
-              flinks.push('<a onclick="openDrawerThinking(\'' + groups[st].join(',') + '\', this)" title="' + stageLabel(st) + '">' + stageShortLabel(st) + '</a>');
-            }
+            var rt = getThinkingForStage(f.thinking_ids, 'review');
+            if (rt.length) flinks.push('<a onclick="openDrawerThinking(\'' + rt.join(',') + '\', this)" title="复核思考">🧠</a>');
           }
           html += '<tr>' +
             '<td>' + escapeHtml(title.substring(0, 50)) + ' ' + flinks.join('') + '</td>' +
