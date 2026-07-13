@@ -574,6 +574,7 @@ function loadAllTargets() {
             var f = s.findings[j];
             f._target_id = t.id;
             f._target_name = t.short_name;
+            f.surface_stem = s.stem;
             if (f.relative_path) f.relative_path = t.id + ':' + f.relative_path;
             if (f.review_relative_path) f.review_relative_path = t.id + ':' + f.review_relative_path;
           }
