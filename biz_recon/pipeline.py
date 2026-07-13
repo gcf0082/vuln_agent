@@ -11,12 +11,29 @@ import concurrent.futures as cf
 import fnmatch
 import os
 import shutil
+import signal
 from pathlib import Path
 
 from . import surface_discover, surface_analyze, vuln_planner, vuln_analyze, review_vuln, vuln_postprocess
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, read_surface_list, find_surface_files, find_vuln_files, record_failure, get_all_failures, reset_failures
 
 _LEVEL_MAP = {"high": 0, "medium": 1, "low": 2}
+_INTERRUPTED = False
+
+
+def _init_signal_handler():
+    global _INTERRUPTED
+    _INTERRUPTED = False
+    signal.signal(signal.SIGINT, _signal_handler)
+
+
+def _signal_handler(sig, frame):
+    global _INTERRUPTED
+    if _INTERRUPTED:
+        print("\nSecond interrupt — force exit.", flush=True)
+        os._exit(1)
+    _INTERRUPTED = True
+    print("\nInterrupt received — finishing running tasks (press Ctrl+C again to force exit)...", flush=True)
 
 
 def _parse_force_surface(pattern: str, work_dir: Path) -> list[str]:
@@ -85,6 +102,7 @@ def run(work_dirs: list[Path],
     setup_logging()
     log = setup_stage_log("pipeline")
     reset_failures()
+    _init_signal_handler()
 
     if model:
         os.environ["LLM_MODEL"] = model
@@ -118,6 +136,10 @@ def run(work_dirs: list[Path],
                 discovery_futures[f] = d
 
             for f in cf.as_completed(discovery_futures):
+                if _INTERRUPTED:
+                    for remaining in discovery_futures:
+                        remaining.cancel()
+                    break
                 d = discovery_futures[f]
                 try:
                     surfaces = f.result()
@@ -127,8 +149,8 @@ def run(work_dirs: list[Path],
                     log(f"[{d.name}] Discovery failed: {e}")
                     record_failure(f"Phase 1 Discovery [{d.name}]: {e}")
 
-        if not all_surfaces:
-            log("No surfaces discovered. Done.")
+        if not all_surfaces or _INTERRUPTED:
+            log("Interrupted after Phase 1" if _INTERRUPTED else "No surfaces discovered. Done.")
             return
 
         log(f"Phase 1 complete: {len(all_surfaces)} surfaces across {len(work_dirs)} directory(s)")
@@ -147,6 +169,8 @@ def run(work_dirs: list[Path],
             # As each analyze+plan completes, submit high-risk vuln+review immediately
             vuln_futures: dict[cf.Future, tuple[Path, str]] = {}
             for f in cf.as_completed(phase2a_futures):
+                if _INTERRUPTED:
+                    break
                 d, sname = phase2a_futures[f]
                 try:
                     f.result()
@@ -166,6 +190,10 @@ def run(work_dirs: list[Path],
             log("Phase 2a complete: all surfaces analyzed and planned")
 
             for vf in cf.as_completed(vuln_futures):
+                if _INTERRUPTED:
+                    for remaining in vuln_futures:
+                        remaining.cancel()
+                    break
                 d, sname = vuln_futures[vf]
                 try:
                     vf.result()
@@ -178,17 +206,23 @@ def run(work_dirs: list[Path],
             # ── Phase 3: Medium → Low vuln+review ──
             phase3_levels = _levels_for_min(min_level)
             phase3_marker = work_dirs[0] / OUTPUT_PARENT / ".phase3_done"
-            if phase3_levels and not phase3_marker.exists():
+            if not _INTERRUPTED and phase3_levels and not phase3_marker.exists():
                 log(f"Phase 3: {', '.join(l.upper() for l in phase3_levels)} vuln+review")
                 phase3_futures: dict[cf.Future, tuple[Path, str]] = {}
 
                 for d, sname in all_surfaces:
+                    if _INTERRUPTED:
+                        break
                     f = vpool.submit(_phase3_one, d, sname, phase3_levels,
                                      vuln_prompt, verify_prompt, thinking,
                                      prefix=f"[{d.name}/{sname}]")
                     phase3_futures[f] = (d, sname)
 
                 for f in cf.as_completed(phase3_futures):
+                    if _INTERRUPTED:
+                        for remaining in phase3_futures:
+                            remaining.cancel()
+                        break
                     d, sname = phase3_futures[f]
                     try:
                         f.result()
@@ -196,9 +230,10 @@ def run(work_dirs: list[Path],
                         log(f"[{d.name}/{sname}] Phase 3 failed: {e}")
                         record_failure(f"Phase 3 Vuln+Review [{d.name}/{sname}]: {e}")
 
-                phase3_marker.parent.mkdir(parents=True, exist_ok=True)
-                phase3_marker.touch()
-                log("Phase 3 complete")
+                if not _INTERRUPTED:
+                    phase3_marker.parent.mkdir(parents=True, exist_ok=True)
+                    phase3_marker.touch()
+                    log("Phase 3 complete")
             elif phase3_marker.exists():
                 log("Phase 3 already completed (delete .phase3_done to redo)")
 

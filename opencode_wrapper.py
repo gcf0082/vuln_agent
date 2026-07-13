@@ -15,6 +15,24 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+
+def _kill_proc(proc: subprocess.Popen):
+    """Kill a subprocess and its children cross-platform.
+
+    On Unix uses process-group kill (requires start_new_session=True).
+    On Windows falls back to proc.kill().
+    """
+    if not sys.platform.startswith("win"):
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            return
+        except (ProcessLookupError, AttributeError, PermissionError):
+            pass
+    try:
+        proc.kill()
+    except OSError:
+        pass
+
 ANSI_ESCAPE_RE = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
 
 def strip_ansi(text: str) -> str:
@@ -222,13 +240,13 @@ class OpenCodeClient:
                     input=prompt.encode("utf-8"), timeout=timeout
                 )
             except subprocess.TimeoutExpired:
-                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                _kill_proc(proc)
                 stdout_bytes, stderr_bytes = proc.communicate()
                 if verbose:
                     print(f"\n[TIMEOUT] Process killed after {timeout}s")
                 return OpenCodeResult(text="", exit_code=-1, timed_out=True)
             except KeyboardInterrupt:
-                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                _kill_proc(proc)
                 proc.communicate()
                 raise
 

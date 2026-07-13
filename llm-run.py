@@ -109,6 +109,7 @@ def main():
 
 def _pipe(agent, cmd, prompt):
     """Pipe prompt to agent and exit with its return code."""
+    proc = None
     try:
         use_shell = sys.platform.startswith("win")
         proc = subprocess.Popen(
@@ -134,10 +135,19 @@ def _pipe(agent, cmd, prompt):
     except subprocess.TimeoutExpired:
         print(f"Error: '{agent}' timeout after 600 seconds", file=sys.stderr)
         try:
-            proc.kill()
+            if proc:
+                proc.kill()
         except Exception:
             pass
         sys.exit(1)
+    except KeyboardInterrupt:
+        if proc:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+        print("\nInterrupted by user.", file=sys.stderr)
+        sys.exit(130)
 
 
 if __name__ == "__main__":
