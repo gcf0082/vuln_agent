@@ -179,11 +179,11 @@ python3 collect.py /path/to/parent/*
 - **🔄 关闭抽屉后保持行高亮** — 便于继续操作该行的其他按钮
 - **👁️ 已查看文件图标淡化** — 通过 localStorage 持久化，跨页面刷新保持
 
-![漏洞清单](docs/screenshots/report-findings.png)
+![漏洞清单](docs/screenshots/report-findings.gif)
 
-![文件预览抽屉](docs/screenshots/report-drawer.png)
+![文件预览抽屉](docs/screenshots/report-drawer.gif)
 
-![攻击面总览](docs/screenshots/report-surfaces.png)
+![攻击面总览](docs/screenshots/report-surfaces.gif)
 
 ## 示例产物
 
