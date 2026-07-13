@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import signal
 import sys
@@ -13,6 +14,11 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+
+ANSI_ESCAPE_RE = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
+
+def strip_ansi(text: str) -> str:
+    return ANSI_ESCAPE_RE.sub('', text)
 
 
 # ── .env loading ──
@@ -230,9 +236,9 @@ class OpenCodeClient:
             stderr_text = stderr_bytes.decode("utf-8", errors="replace")
 
             if verbose:
-                print(full_text, end="", flush=True)
+                print(strip_ansi(full_text), end="", flush=True)
                 if stderr_text:
-                    print("\n[stderr]", stderr_text[:500], sep="\n")
+                    print("\n[stderr]", strip_ansi(stderr_text[:500]), sep="\n")
 
             return OpenCodeResult(text=full_text, exit_code=proc.returncode)
 
@@ -268,7 +274,7 @@ class OpenCodeClient:
                     break
                 decoded = chunk.decode("utf-8", errors="replace")
                 if verbose:
-                    print(decoded, end="", flush=True)
+                    print(strip_ansi(decoded), end="", flush=True)
                 output_chunks.append(decoded)
 
             full_text = "".join(output_chunks).strip()
