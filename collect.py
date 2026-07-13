@@ -9,8 +9,8 @@ from pathlib import Path
 
 
 TOOL_DIR = Path(__file__).resolve().parent
-COLLECTED_DIR = TOOL_DIR / "collected"
-TARGETS_JS = TOOL_DIR / "targets.js"
+COLLECTED_DIR = TOOL_DIR / "reporting" / "collected"
+TARGETS_JS = TOOL_DIR / "reporting" / "targets.js"
 
 
 def target_id(target_dir: Path) -> str:

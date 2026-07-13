@@ -232,11 +232,11 @@ def copy_static_files(target_dir: Path) -> None:
     project_root = Path(__file__).resolve().parent
     output_dir = target_dir / OUTPUT_PARENT
 
-    src_html = project_root / "report.html"
+    src_html = project_root / "reporting" / "report.html"
     if src_html.exists():
         shutil.copy2(src_html, output_dir / "report.html")
 
-    src_assets = project_root / "assets"
+    src_assets = project_root / "reporting" / "assets"
     dst_assets = output_dir / "assets"
     dst_assets.mkdir(parents=True, exist_ok=True)
     if src_assets.exists():
