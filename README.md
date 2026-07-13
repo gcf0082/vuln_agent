@@ -151,30 +151,46 @@ vuln_re_analysis: false          # 是否对确认漏洞进行业务上下文复
 vuln_planning: true              # 是否启用漏洞分析规划
 ```
 
-## 报告生成
+## 审计报告
 
-管道运行完成后自动生成 HTML 审计报告。多目标收集查看：
+管道运行完成后，产物持久化在目标目录的 `.vuln_agent_output/` 下。审计报告系统通过浏览器直接查看，无需搭建服务器。
+
+### 查看单目标报告
+
+直接双击 `reporting/report.html` 即可查看已分析目标的报告，或搭配 HTTP 服务：
 
 ```bash
-python3 collect.py /path/to/target1 /path/to/target2
-# 支持通配符：展开指定目录下的所有子目录
-python3 collect.py /path/to/parent/*
+# 任意静态文件服务均可
+python3 -m http.server 8080 -d reporting
+# 然后访问 http://localhost:8080/report.html
 ```
 
-收集到 `reporting/collected/`，通过 `reporting/dashboard.html` 查看。多个目标时默认合并显示。
+### 多目标收集（collect.py）
 
-功能：
+```bash
+# 收集一个或多个目标
+python3 collect.py /path/to/target1 /path/to/target2
+
+# 支持通配符：展开指定目录下的所有子目录
+python3 collect.py /path/to/parent/*
+
+# 重复执行会自动覆盖旧收集（按完整路径去重）
+python3 collect.py /path/to/target  # 重新收集
+```
+
+`collect.py` 将每个目标的 `.vuln_agent_output/` 拷贝到 `reporting/collected/<full_path_hash>/`，并更新 `reporting/targets.js`。打开 `reporting/dashboard.html` 即可查看。
+
+管道运行完成后也会**自动执行收集**，无需手动调用 `collect.py`。
+
+### 功能
+
 - **📋 漏洞清单** — 汇总卡片 + 可筛选表格（按复核结论 / 攻击面模糊搜索+精确下拉 / 严重性）
 - **📂 攻击面总览** — 按攻击面分组展示，含子表格和文件链接
 - **📄 文件预览** — 点击文件图标打开右侧抽屉，渲染 Markdown / 代码高亮 / Mermaid 图表
+- **🧠 思考过程预览** — 点击 🧠 图标查看 LLM 思考过程（Prompt 默认折叠）
+- **📊 多目标合并视图** — 收集 ≥2 个目标后自动合并显示，所有条目标注来源目标
+- **🔎 筛选与过滤** — 复核结论标签多选、攻击面模糊搜索 + 精确下拉、严重性筛选
 - **🔄 关闭抽屉后保持行高亮** — 便于继续操作该行的其他按钮
-- **👁️ 已查看文件图标淡化** — 通过 localStorage 持久化，跨页面刷新保持
-
-![漏洞清单](docs/screenshots/report-findings.gif)
-
-![文件预览抽屉](docs/screenshots/report-drawer.gif)
-
-![攻击面总览](docs/screenshots/report-surfaces.gif)
 
 ## 示例产物
 
