@@ -223,7 +223,10 @@ class OpenCodeClient:
             work_dir = Path(os.environ.get("OPENCODE_WORK_DIR", os.getcwd()))
             env = self._build_env(profile_dir, profile, work_dir)
 
-            cmd = [agent, "run", "--dir", str(work_dir)]
+            if sys.platform.startswith("win"):
+                cmd = ["cmd", "/c", agent, "run", "--dir", str(work_dir)]
+            else:
+                cmd = [agent, "run", "--dir", str(work_dir)]
             if profile.model:
                 cmd.extend(["--model", profile.model])
             if os.environ.get("OPENCODE_THINKING") == "true" or env.get("OPENCODE_THINKING") == "true":
