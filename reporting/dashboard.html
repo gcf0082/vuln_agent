@@ -85,6 +85,13 @@ tr.active-row td { border-bottom-color: #bee3f8; }
 .drawer-body .mermaid { max-width: 100%; overflow-x: auto; margin: 16px 0; }
 .drawer-body .mermaid svg { max-width: 100%; height: auto; }
 .drawer-loading { text-align: center; padding: 60px 20px; color: #a0aec0; font-size: 14px; }
+.thinking-block { margin-bottom: 1.5em; }
+.thinking-prompt { margin: 1em 0; background: #f7f8fa; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5em 1em; }
+.thinking-prompt summary { cursor: pointer; font-weight: 600; opacity: 0.8; user-select: none; }
+.thinking-prompt summary:hover { opacity: 1; }
+.thinking-prompt .markdown-body { padding: 0.5em 0; }
+.thinking-response { margin-top: 1em; }
+.thinking-sep { border: 0; border-top: 2px dashed #e2e8f0; margin: 1.5em 0; }
 
 @media (max-width: 1024px) {
   .drawer { width: 75%; }
@@ -233,6 +240,21 @@ function getThinkingForStage(ids, stage) {
   }
   return r;
 }
+function parseThinkingSections(content) {
+  var header = '', prompt = '', response = content;
+  var pm = content.split('## Prompt\n\n');
+  if (pm.length >= 2) {
+    header = pm[0];
+    var rm = pm[1].split('\n\n---\n\n## Response\n\n');
+    if (rm.length >= 2) {
+      prompt = rm[0];
+      response = rm[1];
+    } else {
+      prompt = pm[1];
+    }
+  }
+  return {header: header, prompt: prompt, response: response};
+}
 
 function renderMarkdown(content) {
   if (typeof marked !== 'undefined' && marked.parse) {
@@ -310,18 +332,25 @@ function openDrawerThinking(idsStr, el) {
     var tr = el.closest('tr');
     if (tr) tr.classList.add('active-row');
   }
-  var content = '';
+  var html = '';
   for (var i = 0; i < ids.length; i++) {
     var c = FILE_CONTENTS[ids[i]];
     if (c) {
-      if (content) content += '\n\n---\n\n';
-      content += c;
+      var sections = parseThinkingSections(c);
+      if (html) html += '<hr class="thinking-sep">';
+      html += '<div class="thinking-block">';
+      if (sections.header) html += renderMarkdown(sections.header);
+      if (sections.prompt) {
+        html += '<details class="thinking-prompt"><summary>📝 Prompt（点击展开）</summary>' + renderMarkdown(sections.prompt) + '</details>';
+      }
+      html += '<div class="thinking-response">' + renderMarkdown(sections.response) + '</div>';
+      html += '</div>';
     }
   }
-  if (!content) {
+  if (!html) {
     document.getElementById('drawerBody').innerHTML = '<div class="empty">思考过程文件未找到。</div>';
   } else {
-    document.getElementById('drawerBody').innerHTML = renderMarkdown(content);
+    document.getElementById('drawerBody').innerHTML = html;
   }
   document.getElementById('drawerTitle').textContent = '🧠 思考过程 (' + ids.length + ')';
   document.getElementById('drawerOverlay').classList.add('active');
