@@ -175,7 +175,7 @@ def main(work_dir: str | None = None,
 
         for d in work_dirs:
             try:
-                from report import generate_report
+                from reporting.report import generate_report
                 ok, msg = generate_report(d)
                 if ok:
                     runner_log(f"Report: {msg}")

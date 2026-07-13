@@ -156,13 +156,19 @@ vuln_planning: true              # 是否启用漏洞分析规划
 管道运行完成后自动生成 HTML 审计报告，也可手动生成：
 
 ```bash
-python3 report.py /path/to/target
+python3 reporting/report.py /path/to/target
 ```
 
 报告文件输出到 `.vuln_agent_output/`：
 - `report.html` — 静态模板（全屏布局，不含项目特有数据）
 - `report-data.js` — 扫描数据（按 `<script src>` 加载，支持 `file://` 协议）
 - `assets/` — 静态资源（marked / highlight / mermaid / GitHub 样式）
+
+多目标收集：
+```bash
+python3 reporting/collect.py /path/to/target1 /path/to/target2
+```
+收集到 `reporting/collected/`，通过 `reporting/dashboard.html` 查看。
 
 功能：
 - **📋 漏洞清单** — 汇总卡片 + 可筛选表格（按复核结论 / 攻击面模糊搜索+精确下拉 / 严重性）
