@@ -194,7 +194,7 @@ class OpenCodeClient:
     def run(self, prompt: str, profile: ProfileConfig | None = None,
             verbose: bool = False,
             timeout: int | None = None) -> OpenCodeResult:
-        """Run prompt through llm-run.sh in a fully isolated profile.
+        """Run prompt through llm-run.py in a fully isolated profile.
 
         Args:
             prompt: The prompt to send to the LLM.
@@ -213,10 +213,9 @@ class OpenCodeClient:
     def _run_via_script(self, prompt: str, profile: ProfileConfig,
                         verbose: bool = False,
                         timeout: int | None = None) -> OpenCodeResult:
-        """Run prompt via llm-run.sh (Linux) or llm-run.py (Windows)."""
-        is_windows = sys.platform.startswith("win")
-        script_path = Path(__file__).parent / ("llm-run.py" if is_windows else "llm-run.sh")
-        shell_cmd = [sys.executable, str(script_path)] if is_windows else ["bash", str(script_path)]
+        """Run prompt via llm-run.py (cross-platform, replaces llm-run.sh)."""
+        script_path = Path(__file__).parent / "llm-run.py"
+        shell_cmd = [sys.executable, str(script_path)]
         profile_dir, needs_cleanup = self._prepare_profile_dir(profile)
 
         try:
