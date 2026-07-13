@@ -23,7 +23,7 @@ header .meta a { color: #63b3ed; text-decoration: none; }
 .card.highlight-green .num { color: #38a169; }
 .card.highlight-red .num { color: #e53e3e; }
 .card.highlight-yellow .num { color: #d69e2e; }
-.card.highlight-blue .num { color: #3182ce; }
+.card.highlight-blue .num { color: #4a5568; }
 .card.highlight-gray .num { color: #718096; }
 .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
 .filters label { font-size: 13px; font-weight: 600; color: #4a5568; }
@@ -33,7 +33,7 @@ header .meta a { color: #63b3ed; text-decoration: none; }
 .tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; }
 .tab-btn { padding: 10px 24px; border: none; background: none; font-size: 14px; font-weight: 600; color: #718096; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
 .tab-btn:hover { color: #2d3748; }
-.tab-btn.active { color: #3182ce; border-bottom-color: #3182ce; }
+.tab-btn.active { color: #2d3748; border-bottom-color: #2d3748; }
 table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 thead { background: #f7fafc; }
 th { text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #4a5568; letter-spacing: 0.05em; border-bottom: 2px solid #e2e8f0; }
@@ -44,25 +44,24 @@ tr:hover { background: #f7fafc; }
 .badge-novuln { background: #c6f6d5; color: #276749; }
 .badge-suspected { background: #fefcbf; color: #975a16; }
 .badge-empty { background: #e2e8f0; color: #4a5568; }
-.links { overflow: visible; }
-.links a { display: inline-block; margin: 1px 2px; padding: 3px 8px; border-radius: 4px; font-size: 12px; text-decoration: none; background: transparent; color: #4a5568; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.15s; }
-.links a:hover { background: #f7f8fa; border-color: #cbd5e0; }
-.links a.btn-think { background: none; border: none; color: #a0aec0; padding: 3px 4px; margin-left: 0; margin-right: 4px; }
-.links a.btn-think:hover { color: #718096; }
-.surf-btn { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 13px; text-decoration: none; background: transparent; color: #4a5568; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.15s; }
-.surf-btn:hover { background: #f7f8fa; border-color: #cbd5e0; }
-.surf-btn.surf-btn-think { background: none; border: none; color: #a0aec0; padding: 3px 6px; }
-.surf-btn.surf-btn-think:hover { color: #718096; }
+.links a { display: inline-block; margin: 1px 2px; padding: 2px 6px; border-radius: 3px; font-size: 12px; text-decoration: none; color: #718096; cursor: pointer; transition: color 0.15s; }
+.links a:hover { color: #2d3748; }
+.links a.btn-think { color: #cbd5e0; }
+.links a.btn-think:hover { color: #a0aec0; }
+.surf-btn { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 13px; text-decoration: none; color: #718096; cursor: pointer; transition: color 0.15s; }
+.surf-btn:hover { color: #2d3748; }
+.surf-btn.surf-btn-think { color: #cbd5e0; }
+.surf-btn.surf-btn-think:hover { color: #a0aec0; }
 .tag-group { display: inline-flex; gap: 4px; flex-wrap: wrap; align-items: center; }
 .tag { padding: 3px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; background: #edf2f7; color: #4a5568; user-select: none; transition: background 0.15s; }
 .tag:hover { background: #cbd5e0; }
-.tag.selected { background: #ebf8ff; color: #2b6cb0; border: 1px solid #bee3f8; }
-tr.active-row { background: #ebf8ff !important; }
-tr.active-row td { border-bottom-color: #bee3f8; }
+.tag.selected { background: #e2e8f0; color: #2d3748; border: 1px solid #cbd5e0; }
+tr.active-row { background: #edf2f7 !important; }
+tr.active-row td { border-bottom-color: #e2e8f0; }
 .surface-card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .surface-card h3 { font-size: 16px; margin-bottom: 8px; }
-.surface-card h3 a { color: #2b6cb0; text-decoration: none; cursor: pointer; }
-.surface-card h3 a:hover { text-decoration: underline; }
+.surface-card h3 a { color: #4a5568; text-decoration: none; cursor: pointer; }
+.surface-card h3 a:hover { color: #2d3748; text-decoration: underline; }
 .surface-card .meta { font-size: 13px; color: #718096; margin-bottom: 12px; }
 .surface-card .sub-table { margin: 0; }
 .surface-card .sub-table th { font-size: 11px; padding: 8px 12px; }
