@@ -166,9 +166,11 @@ python3 reporting/report.py /path/to/target
 
 多目标收集：
 ```bash
-python3 reporting/collect.py /path/to/target1 /path/to/target2
+python3 collect.py /path/to/target1 /path/to/target2
+# 支持通配符：展开指定目录下的所有子目录
+python3 collect.py /path/to/parent/*
 ```
-收集到 `reporting/collected/`，通过 `reporting/dashboard.html` 查看。
+收集到 `reporting/collected/`，通过 `reporting/dashboard.html` 查看。多个目标时默认合并显示。
 
 功能：
 - **📋 漏洞清单** — 汇总卡片 + 可筛选表格（按复核结论 / 攻击面模糊搜索+精确下拉 / 严重性）
