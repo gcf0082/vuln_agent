@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""LLM runner — invoked by llm-run.bat on Windows, mirrors llm-run.sh logic.
+"""LLM runner for all platforms, mirrors llm-run.sh logic.
 
 Reads prompt from stdin, saves to log, then pipes to the LLM agent.
 Supports both OPENCODE_CONFIG mode (via opencode_wrapper.py) and standalone.

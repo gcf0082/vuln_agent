@@ -30,8 +30,8 @@ shell 调用 `opencode` 或 `nga` CLI（每次调用一个子进程）。`requir
 - **`.env` 被 gitignore 且运行时必需**：定义 `OPENCODE_DEFAULT_MODEL` 加上所选 provider/model 的
   API key。像 `w3/`、`opencode-go/` 这类 provider 前缀意味着周边环境里需要自定义 opencode provider 配置。
 - 每次调用都在完全隔离的临时 opencode profile 里运行（`opencode_wrapper.py` 创建并清理临时目录；
-  系统 skills/plugins/`.claude` 全部禁用）。实际调用脚本：`llm-run.sh`（Linux）/ `llm-run.py` +
-  `llm-run.bat`（Windows）。`agent.sh` 用 `agent_env/` 开一个*交互式* LLM 会话。
+   系统 skills/plugins/`.claude` 全部禁用）。实际调用脚本：`llm-run.sh`（Linux）/ `llm-run.py`
+   （Windows）。`agent.sh` 用 `agent_env/` 开一个*交互式* LLM 会话。
 
 ## 管道架构（`biz_recon/`）
 
@@ -104,4 +104,4 @@ shell 调用 `opencode` 或 `nga` CLI（每次调用一个子进程）。`requir
   gitkeep 的空目录）。它的 `node_modules`/`package.json` 被 gitignore（opencode 运行时，非项目依赖）。
 - 根 `package.json` 只为（非核心的）`analyze_slides.py` intro-deck 生成器拉取 `pptxgenjs`。核心管道
   是纯 Python。
-- Windows 通过 `llm-run.py`/`llm-run.bat` 支持；`run.py` 在 Windows 上把 stdout/stderr 包成 UTF-8。
+- Windows 通过 `llm-run.py` 支持；`run.py` 在 Windows 上把 stdout/stderr 包成 UTF-8。
