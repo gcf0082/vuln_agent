@@ -36,6 +36,11 @@ def _signal_handler(sig, frame):
     print("\nInterrupt received — finishing running tasks (press Ctrl+C again to force exit)...", flush=True)
 
 
+def was_interrupted() -> bool:
+    """Check whether SIGINT was received. Safe to import from other modules."""
+    return _INTERRUPTED
+
+
 def _parse_force_surface(pattern: str, work_dir: Path) -> list[str]:
     """解析逗号分隔的模式（支持 * 通配），返回匹配的 surface 文件名列表。"""
     surfaces_dir = work_dir / OUTPUT_PARENT / "discovered_surfaces"
@@ -113,7 +118,9 @@ def run(work_dirs: list[Path],
 
     log(f"Targets: {len(work_dirs)} directory(s), workers={max_workers}, vuln_workers={vuln_workers}, min_level={min_level}")
 
-    with cf.ThreadPoolExecutor(max_workers=max_workers) as pool:
+    pool = cf.ThreadPoolExecutor(max_workers=max_workers)
+    vpool = None
+    try:
         # ── Phase 1: Discovery (skip if force_surface) ──
         all_surfaces: list[tuple[Path, str]] = []
 
@@ -158,55 +165,56 @@ def run(work_dirs: list[Path],
         # ── Phase 2: Analyze → Plan → High-risk vuln+review ──
         log("Phase 2: Analysis → Planning → High-risk vuln+review")
 
-        with cf.ThreadPoolExecutor(max_workers=vuln_workers) as vpool:
-            phase2a_futures: dict[cf.Future, tuple[Path, str]] = {}
-            for d, sname in all_surfaces:
-                f = pool.submit(_phase2_analyze_plan, d, sname,
-                                flow_prompt, vuln_prompt, thinking,
-                                prefix=f"[{d.name}/{sname}]")
-                phase2a_futures[f] = (d, sname)
+        vpool = cf.ThreadPoolExecutor(max_workers=vuln_workers)
+        phase2a_futures: dict[cf.Future, tuple[Path, str]] = {}
+        for d, sname in all_surfaces:
+            f = pool.submit(_phase2_analyze_plan, d, sname,
+                            flow_prompt, vuln_prompt, thinking,
+                            prefix=f"[{d.name}/{sname}]")
+            phase2a_futures[f] = (d, sname)
 
-            # As each analyze+plan completes, submit high-risk vuln+review immediately
-            vuln_futures: dict[cf.Future, tuple[Path, str]] = {}
-            for f in cf.as_completed(phase2a_futures):
-                if _INTERRUPTED:
-                    break
-                d, sname = phase2a_futures[f]
-                try:
-                    f.result()
-                except Exception as e:
-                    log(f"[{d.name}/{sname}] Analyze+Plan failed: {e}")
-                    record_failure(f"Phase 2 Analyze+Plan [{d.name}/{sname}]: {e}")
-                    continue
+        # As each analyze+plan completes, submit high-risk vuln+review immediately
+        vuln_futures: dict[cf.Future, tuple[Path, str]] = {}
+        for f in cf.as_completed(phase2a_futures):
+            if _INTERRUPTED:
+                break
+            d, sname = phase2a_futures[f]
+            try:
+                f.result()
+            except Exception as e:
+                log(f"[{d.name}/{sname}] Analyze+Plan failed: {e}")
+                record_failure(f"Phase 2 Analyze+Plan [{d.name}/{sname}]: {e}")
+                continue
 
-                stem = sname.replace(".md", "")
-                plan_dir = d / OUTPUT_PARENT / "vuln_plans" / stem
-                if plan_dir.exists() and list(plan_dir.glob("high-risk-*.md")):
-                    vf = vpool.submit(_phase2_vuln_review, d, sname,
-                                      vuln_prompt, verify_prompt, thinking,
-                                      prefix=f"[{d.name}/{sname}]")
-                    vuln_futures[vf] = (d, sname)
+            stem = sname.replace(".md", "")
+            plan_dir = d / OUTPUT_PARENT / "vuln_plans" / stem
+            if plan_dir.exists() and list(plan_dir.glob("high-risk-*.md")):
+                vf = vpool.submit(_phase2_vuln_review, d, sname,
+                                  vuln_prompt, verify_prompt, thinking,
+                                  prefix=f"[{d.name}/{sname}]")
+                vuln_futures[vf] = (d, sname)
 
-            log("Phase 2a complete: all surfaces analyzed and planned")
+        log("Phase 2a complete: all surfaces analyzed and planned")
 
-            for vf in cf.as_completed(vuln_futures):
-                if _INTERRUPTED:
-                    for remaining in vuln_futures:
-                        remaining.cancel()
-                    break
-                d, sname = vuln_futures[vf]
-                try:
-                    vf.result()
-                except Exception as e:
-                    log(f"[{d.name}/{sname}] Vuln+Review failed: {e}")
-                    record_failure(f"Phase 2 Vuln+Review [{d.name}/{sname}]: {e}")
+        for vf in cf.as_completed(vuln_futures):
+            if _INTERRUPTED:
+                for remaining in vuln_futures:
+                    remaining.cancel()
+                break
+            d, sname = vuln_futures[vf]
+            try:
+                vf.result()
+            except Exception as e:
+                log(f"[{d.name}/{sname}] Vuln+Review failed: {e}")
+                record_failure(f"Phase 2 Vuln+Review [{d.name}/{sname}]: {e}")
 
-            log("Phase 2b complete: high-risk vuln+review done")
+        log("Phase 2b complete: high-risk vuln+review done")
 
+        if not _INTERRUPTED:
             # ── Phase 3: Medium → Low vuln+review ──
             phase3_levels = _levels_for_min(min_level)
             phase3_marker = work_dirs[0] / OUTPUT_PARENT / ".phase3_done"
-            if not _INTERRUPTED and phase3_levels and not phase3_marker.exists():
+            if phase3_levels and not phase3_marker.exists():
                 log(f"Phase 3: {', '.join(l.upper() for l in phase3_levels)} vuln+review")
                 phase3_futures: dict[cf.Future, tuple[Path, str]] = {}
 
@@ -238,27 +246,34 @@ def run(work_dirs: list[Path],
                 log("Phase 3 already completed (delete .phase3_done to redo)")
 
         # ── Phase 4: Post-processing (user-defined, only if ext file exists) ──
-        ext_file = Path(__file__).parent.parent / "prompts-ext" / "postprocess-prompt.md"
-        if ext_file.exists():
-            log("Phase 4: Post-processing (user-defined)")
-            for d in work_dirs:
-                try:
-                    vuln_postprocess.run(d, thinking=thinking, prefix=f"[{d.name}]")
-                except Exception as e:
-                    log(f"[{d.name}] Postprocess failed: {e}")
-                    record_failure(f"Phase 4 Postprocess [{d.name}]: {e}")
-        else:
-            log("Phase 4: Post-processing skipped (no prompts-ext/postprocess-prompt.md)")
+        if not _INTERRUPTED:
+            ext_file = Path(__file__).parent.parent / "prompts-ext" / "postprocess-prompt.md"
+            if ext_file.exists():
+                log("Phase 4: Post-processing (user-defined)")
+                for d in work_dirs:
+                    try:
+                        vuln_postprocess.run(d, thinking=thinking, prefix=f"[{d.name}]")
+                    except Exception as e:
+                        log(f"[{d.name}] Postprocess failed: {e}")
+                        record_failure(f"Phase 4 Postprocess [{d.name}]: {e}")
+            else:
+                log("Phase 4: Post-processing skipped (no prompts-ext/postprocess-prompt.md)")
+
+    finally:
+        if vpool:
+            vpool.shutdown(wait=not _INTERRUPTED)
+        pool.shutdown(wait=not _INTERRUPTED)
 
     # Summary
-    total_surfaces = sum(len(find_surface_files(d)) for d in work_dirs)
-    total_vulns = sum(len(find_vuln_files(d)) for d in work_dirs)
-    all_failures = get_all_failures()
-    if all_failures:
-        log(f"=== 失败汇总 ({len(all_failures)}) ===")
-        for msg in all_failures:
-            log(f"  {msg}")
-    log(f"Pipeline complete: {total_surfaces} surfaces, {total_vulns} vuln files, {len(all_failures)} failures")
+    if not _INTERRUPTED:
+        total_surfaces = sum(len(find_surface_files(d)) for d in work_dirs)
+        total_vulns = sum(len(find_vuln_files(d)) for d in work_dirs)
+        all_failures = get_all_failures()
+        if all_failures:
+            log(f"=== 失败汇总 ({len(all_failures)}) ===")
+            for msg in all_failures:
+                log(f"  {msg}")
+        log(f"Pipeline complete: {total_surfaces} surfaces, {total_vulns} vuln files, {len(all_failures)} failures")
 
 
 def _discover_one(work_dir: Path, recon_prompt: str, overwrite: bool,

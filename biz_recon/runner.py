@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from . import pipeline
+from .pipeline import was_interrupted
 from . import surface_discover, surface_analyze, vuln_analyze
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log
 
@@ -173,16 +174,17 @@ def main(work_dir: str | None = None,
             force_surface=force_surface,
         )
 
-        for d in work_dirs:
-            try:
-                from report import generate_report
-                ok, msg = generate_report(d)
-                if ok:
-                    runner_log(f"Report: {msg}")
-                else:
-                    runner_log(f"Report skipped for {d.name}: {msg}")
-            except Exception as e:
-                runner_log(f"Report failed for {d.name}: {e}")
+        if not was_interrupted():
+            for d in work_dirs:
+                try:
+                    from report import generate_report
+                    ok, msg = generate_report(d)
+                    if ok:
+                        runner_log(f"Report: {msg}")
+                    else:
+                        runner_log(f"Report skipped for {d.name}: {msg}")
+                except Exception as e:
+                    runner_log(f"Report failed for {d.name}: {e}")
 
     return {"surfaces": 0, "vulns": 0}
 
