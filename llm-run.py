@@ -110,21 +110,21 @@ def main():
 def _pipe(agent, cmd, prompt):
     """Pipe prompt to agent and exit with its return code."""
     try:
-        # Windows: shell=True for .cmd/.bat agent resolution
         use_shell = sys.platform.startswith("win")
         proc = subprocess.Popen(
             cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True,
             shell=use_shell,
-            encoding='utf-8',
-            errors='replace',
         )
-        stdout, stderr = proc.communicate(input=prompt, timeout=600)
-        sys.stdout.write(stdout)
-        sys.stderr.write(stderr)
+        stdout, stderr = proc.communicate(input=prompt.encode('utf-8', errors='surrogateescape'), timeout=600)
+        if sys.platform.startswith("win"):
+            sys.stdout.buffer.write(stdout)
+            sys.stderr.buffer.write(stderr)
+        else:
+            sys.stdout.write(stdout.decode('utf-8', errors='surrogateescape'))
+            sys.stderr.write(stderr.decode('utf-8', errors='surrogateescape'))
         sys.stdout.flush()
         sys.stderr.flush()
         sys.exit(proc.returncode)
