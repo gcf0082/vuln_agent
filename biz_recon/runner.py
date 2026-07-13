@@ -186,6 +186,21 @@ def main(work_dir: str | None = None,
                 except Exception as e:
                     runner_log(f"Report failed for {d.name}: {e}")
 
+            try:
+                from collect import collect_target, update_targets_js
+                collected = []
+                for d in work_dirs:
+                    try:
+                        entry = collect_target(d)
+                        collected.append(entry)
+                    except Exception as e:
+                        runner_log(f"Collect skipped for {d.name}: {e}")
+                if collected:
+                    update_targets_js(collected)
+                    runner_log(f"Dashboard collected: {len(collected)} target(s)")
+            except Exception as e:
+                runner_log(f"Auto-collect failed: {e}")
+
     return {"surfaces": 0, "vulns": 0}
 
 
