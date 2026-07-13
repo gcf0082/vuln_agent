@@ -15,7 +15,7 @@ TARGETS_JS = TOOL_DIR / "reporting" / "targets.js"
 
 
 def target_id(target_dir: Path) -> str:
-    return str(target_dir.resolve()).replace("\\", "/").replace("/", "_")
+    return str(target_dir.resolve()).replace("\\", "/").replace("/", "_").replace(":", "")
 
 
 def collect_target(target_dir: Path) -> dict:
