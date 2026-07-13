@@ -48,11 +48,15 @@ tr:hover { background: #f7fafc; }
 .badge-novuln { background: #c6f6d5; color: #276749; }
 .badge-suspected { background: #fefcbf; color: #975a16; }
 .badge-empty { background: #e2e8f0; color: #4a5568; }
-.links { white-space: nowrap; }
-.links a { display: inline-block; margin: 0 2px; padding: 4px 8px; border-radius: 4px; font-size: 12px; text-decoration: none; background: #ebf8ff; color: #2b6cb0; transition: background 0.2s; cursor: pointer; }
-.links a:hover { background: #bee3f8; }
-.surf-btn { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 13px; text-decoration: none; background: #ebf8ff; color: #2b6cb0; cursor: pointer; transition: background 0.2s; margin-right: 6px; }
-.surf-btn:hover { background: #bee3f8; }
+.links { overflow: visible; }
+.links a { display: inline-block; margin: 1px 2px; padding: 3px 8px; border-radius: 4px; font-size: 12px; text-decoration: none; background: transparent; color: #4a5568; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.15s; }
+.links a:hover { background: #f7f8fa; border-color: #cbd5e0; }
+.links a.btn-think { background: none; border: none; color: #a0aec0; padding: 3px 4px; margin-left: 0; margin-right: 4px; }
+.links a.btn-think:hover { color: #718096; }
+.surf-btn { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 13px; text-decoration: none; background: transparent; color: #4a5568; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.15s; }
+.surf-btn:hover { background: #f7f8fa; border-color: #cbd5e0; }
+.surf-btn.surf-btn-think { background: none; border: none; color: #a0aec0; padding: 3px 6px; }
+.surf-btn.surf-btn-think:hover { color: #718096; }
 .tag-group { display: inline-flex; gap: 4px; flex-wrap: wrap; align-items: center; }
 .tag { padding: 3px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; background: #edf2f7; color: #4a5568; user-select: none; transition: background 0.15s; }
 .tag:hover { background: #cbd5e0; }
@@ -67,7 +71,7 @@ tr.active-row td { border-bottom-color: #bee3f8; }
 .surface-card .sub-table { margin: 0; }
 .surface-card .sub-table th { font-size: 11px; padding: 8px 12px; }
 .surface-card .sub-table td { font-size: 13px; padding: 6px 12px; }
-.surf-links { margin-bottom: 8px; font-size: 13px; }
+.surf-links { margin-bottom: 8px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .empty { text-align: center; padding: 60px 20px; color: #a0aec0; font-size: 16px; }
 .footer { margin-top: 24px; padding: 16px 48px; text-align: center; font-size: 12px; color: #a0aec0; }
 
@@ -427,24 +431,24 @@ function renderFindings(data) {
       }
       var surf = surfIdx >= 0 ? DATA[surfIdx] : null;
       var links = [];
-      if (surf && surf.relative_path) {
-        links.push('<a onclick="openDrawer(\'' + surf.relative_path + '\', this)" title="攻击面">📄</a>');
-        var dt = getThinkingForStage(surf.thinking_ids, 'discover');
-        if (dt.length) links.push('<a onclick="openDrawerThinking(\'' + dt.join(',') + '\', this)" title="暴露面识别思考">🧠</a>');
-      }
-      if (surf && surf.analyzed_relative_path) {
-        links.push('<a onclick="openDrawer(\'' + surf.analyzed_relative_path + '\', this)" title="业务流">🔍</a>');
-        var at = getThinkingForStage(surf.thinking_ids, 'analyze');
-        if (at.length) links.push('<a onclick="openDrawerThinking(\'' + at.join(',') + '\', this)" title="业务流分析思考">🧠</a>');
-      }
-      links.push('<a onclick="openDrawer(\'' + f.relative_path + '\', this)" title="漏洞分析">📋</a>');
-      var vt = getThinkingForStage(f.thinking_ids, 'vuln');
-      if (vt.length) links.push('<a onclick="openDrawerThinking(\'' + vt.join(',') + '\', this)" title="漏洞分析思考">🧠</a>');
-      if (f.review_relative_path) {
-        links.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)" title="复核">⚖️</a>');
-        var rt = getThinkingForStage(f.thinking_ids, 'review');
-        if (rt.length) links.push('<a onclick="openDrawerThinking(\'' + rt.join(',') + '\', this)" title="复核思考">🧠</a>');
-      }
+  if (surf && surf.relative_path) {
+    links.push('<a onclick="openDrawer(\'' + surf.relative_path + '\', this)" title="攻击面">📄</a>');
+    var dt = getThinkingForStage(surf.thinking_ids, 'discover');
+    if (dt.length) links.push('<a class="btn-think" onclick="openDrawerThinking(\'' + dt.join(',') + '\', this)" title="暴露面识别思考">🧠</a>');
+  }
+  if (surf && surf.analyzed_relative_path) {
+    links.push('<a onclick="openDrawer(\'' + surf.analyzed_relative_path + '\', this)" title="业务流">🔍</a>');
+    var at = getThinkingForStage(surf.thinking_ids, 'analyze');
+    if (at.length) links.push('<a class="btn-think" onclick="openDrawerThinking(\'' + at.join(',') + '\', this)" title="业务流分析思考">🧠</a>');
+  }
+  links.push('<a onclick="openDrawer(\'' + f.relative_path + '\', this)" title="漏洞分析">📋</a>');
+  var vt = getThinkingForStage(f.thinking_ids, 'vuln');
+  if (vt.length) links.push('<a class="btn-think" onclick="openDrawerThinking(\'' + vt.join(',') + '\', this)" title="漏洞分析思考">🧠</a>');
+  if (f.review_relative_path) {
+    links.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)" title="复核">⚖️</a>');
+    var rt = getThinkingForStage(f.thinking_ids, 'review');
+    if (rt.length) links.push('<a class="btn-think" onclick="openDrawerThinking(\'' + rt.join(',') + '\', this)" title="复核思考">🧠</a>');
+  }
       html += '<tr>' +
         '<td><strong>' + escapeHtml(f.surface_stem) + '</strong></td>' +
         '<td>' + safeTitle + '</td>' +
@@ -474,17 +478,17 @@ function renderSurfaces(data) {
       if (s.relative_path) {
         surfLinks.push('<a class="surf-btn" onclick="openDrawer(\'' + s.relative_path + '\', this)">📄 攻击面</a>');
         var dt = getThinkingForStage(s.thinking_ids, 'discover');
-        if (dt.length) surfLinks.push('<a class="surf-btn" onclick="openDrawerThinking(\'' + dt.join(',') + '\', this)" title="暴露面识别思考">🧠</a>');
+        if (dt.length) surfLinks.push('<a class="surf-btn surf-btn-think" onclick="openDrawerThinking(\'' + dt.join(',') + '\', this)" title="暴露面识别思考">🧠</a>');
       }
       if (s.analyzed_relative_path) {
         surfLinks.push('<a class="surf-btn" onclick="openDrawer(\'' + s.analyzed_relative_path + '\', this)">🔍 业务流</a>');
         var at = getThinkingForStage(s.thinking_ids, 'analyze');
-        if (at.length) surfLinks.push('<a class="surf-btn" onclick="openDrawerThinking(\'' + at.join(',') + '\', this)" title="业务流分析思考">🧠</a>');
+        if (at.length) surfLinks.push('<a class="surf-btn surf-btn-think" onclick="openDrawerThinking(\'' + at.join(',') + '\', this)" title="业务流分析思考">🧠</a>');
       }
       var pt = getThinkingForStage(s.thinking_ids, 'plan');
-      if (pt.length) surfLinks.push('<a class="surf-btn" onclick="openDrawerThinking(\'' + pt.join(',') + '\', this)" title="漏洞规划思考">🧠 规划</a>');
+      if (pt.length) surfLinks.push('<a class="surf-btn surf-btn-think" onclick="openDrawerThinking(\'' + pt.join(',') + '\', this)" title="漏洞规划思考">🧠 规划</a>');
       var pp = getThinkingForStage(s.thinking_ids, 'postprocess');
-      if (pp.length) surfLinks.push('<a class="surf-btn" onclick="openDrawerThinking(\'' + pp.join(',') + '\', this)" title="后置处理思考">🧠 后置</a>');
+      if (pp.length) surfLinks.push('<a class="surf-btn surf-btn-think" onclick="openDrawerThinking(\'' + pp.join(',') + '\', this)" title="后置处理思考">🧠 后置</a>');
       var desc = '';
       if (IS_MERGED && s._target_name) desc += '目标: ' + escapeHtml(s._target_name);
       if (s.surface_type) desc += (desc ? ' | ' : '') + '类型: ' + escapeHtml(s.surface_type);
@@ -505,11 +509,11 @@ function renderSurfaces(data) {
           var flinks = [];
           flinks.push('<a onclick="openDrawer(\'' + f.relative_path + '\', this)">📋</a>');
           var vt = getThinkingForStage(f.thinking_ids, 'vuln');
-          if (vt.length) flinks.push('<a onclick="openDrawerThinking(\'' + vt.join(',') + '\', this)" title="漏洞分析思考">🧠</a>');
+          if (vt.length) flinks.push('<a class="btn-think" onclick="openDrawerThinking(\'' + vt.join(',') + '\', this)" title="漏洞分析思考">🧠</a>');
           if (f.review_relative_path) {
             flinks.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)">⚖️</a>');
             var rt = getThinkingForStage(f.thinking_ids, 'review');
-            if (rt.length) flinks.push('<a onclick="openDrawerThinking(\'' + rt.join(',') + '\', this)" title="复核思考">🧠</a>');
+            if (rt.length) flinks.push('<a class="btn-think" onclick="openDrawerThinking(\'' + rt.join(',') + '\', this)" title="复核思考">🧠</a>');
           }
           html += '<tr>' +
             '<td>' + escapeHtml(title.substring(0, 50)) + ' ' + flinks.join('') + '</td>' +
