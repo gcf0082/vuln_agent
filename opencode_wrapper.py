@@ -213,9 +213,8 @@ class OpenCodeClient:
     def _run_via_script(self, prompt: str, profile: ProfileConfig,
                         verbose: bool = False,
                         timeout: int | None = None) -> OpenCodeResult:
-        """Run prompt via llm-run.py (cross-platform, replaces llm-run.sh)."""
-        script_path = Path(__file__).parent / "llm-run.py"
-        shell_cmd = [sys.executable, str(script_path)]
+        """Run LLM agent directly (no intermediate script)."""
+        agent = self._resolve_agent()
         profile_dir, needs_cleanup = self._prepare_profile_dir(profile)
 
         try:
@@ -224,8 +223,14 @@ class OpenCodeClient:
             work_dir = Path(os.environ.get("OPENCODE_WORK_DIR", os.getcwd()))
             env = self._build_env(profile_dir, profile, work_dir)
 
+            cmd = [agent, "run", "--dir", str(work_dir)]
+            if profile.model:
+                cmd.extend(["--model", profile.model])
+            if os.environ.get("OPENCODE_THINKING") == "true" or env.get("OPENCODE_THINKING") == "true":
+                cmd.append("--thinking")
+
             proc = subprocess.Popen(
-                shell_cmd,
+                cmd,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -262,6 +267,15 @@ class OpenCodeClient:
         finally:
             if needs_cleanup:
                 shutil.rmtree(profile_dir, ignore_errors=True)
+
+    def _resolve_agent(self) -> str:
+        """Determine LLM agent binary."""
+        agent = os.environ.get("LLM_AGENT", "")
+        if agent:
+            return agent
+        if shutil.which("nga"):
+            return "nga"
+        return self.opencode_bin
 
     def _run_direct(self, prompt: str, profile: ProfileConfig,
                     verbose: bool = False) -> OpenCodeResult:
@@ -372,6 +386,7 @@ class OpenCodeClient:
             "OPENCODE_LOG_DIR": str(profile_dir / "logs"),
             "OPENCODE_STATE_DIR": str(profile_dir / "state"),
             "OPENCODE_CLIENT": "python-wrapper",
+            "OPENCODE_PERMISSION": '{"read":"allow","write":"allow","edit":"allow","command":"allow","browse":"allow","external_directory":{"/*":"allow"}}',
         })
 
         # Model override
