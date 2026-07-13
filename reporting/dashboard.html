@@ -177,15 +177,18 @@ tr.active-row td { border-bottom-color: #bee3f8; }
 <script>
 var DATA = [];
 var FILE_CONTENTS = {};
+var IS_MERGED = false;
 
 function renderHeader() {
   var total = 0;
   for (var i = 0; i < DATA.length; i++) {
     if (DATA[i].findings) total += DATA[i].findings.length;
   }
+  var name = IS_MERGED ? '全部目标（' + TARGETS.length + ' 个）' : window.REPORT_DATA.target_name;
   document.getElementById('header-meta').innerHTML =
-    '目标: <strong>' + escapeHtml(window.REPORT_DATA.target_name) + '</strong> &middot; ' +
-    window.REPORT_DATA.generated_at + ' &middot; ' +
+    '目标: <strong>' + escapeHtml(name) + '</strong> &middot; ' +
+    (window.REPORT_DATA.generated_at || '') + ' &middot; ' +
+    (IS_MERGED ? window.REPORT_DATA.target_count + ' 个目标' : '') +
     DATA.length + ' 攻击面 &middot; ' + total + ' 发现';
 }
 
@@ -251,18 +254,23 @@ function openDrawer(path, el) {
     var tr = el.closest('tr');
     if (tr) tr.classList.add('active-row');
   }
-  if (!path || !FILE_CONTENTS[path]) {
+  var lookupPath = path;
+  var displayPath = path;
+  if (path && path.indexOf(':') > 0 && IS_MERGED) {
+    displayPath = path.substring(path.indexOf(':') + 1);
+  }
+  if (!path || !FILE_CONTENTS[lookupPath]) {
     document.getElementById('drawerBody').innerHTML = '<div class="empty">文件内容不可用。</div>';
-    document.getElementById('drawerTitle').textContent = path ? path.split('/').pop() : '未知文件';
+    document.getElementById('drawerTitle').textContent = displayPath ? displayPath.split('/').pop() : '未知文件';
     document.getElementById('drawerOverlay').classList.add('active');
     document.getElementById('drawer').classList.add('active');
     document.body.style.overflow = 'hidden';
     return;
   }
-  var filename = path.split('/').pop();
-  var label = getFileLabel(path);
+  var filename = displayPath.split('/').pop();
+  var label = getFileLabel(displayPath);
   document.getElementById('drawerTitle').textContent = label + ': ' + filename;
-  document.getElementById('drawerBody').innerHTML = renderMarkdown(FILE_CONTENTS[path]);
+  document.getElementById('drawerBody').innerHTML = renderMarkdown(FILE_CONTENTS[lookupPath]);
   document.getElementById('drawerOverlay').classList.add('active');
   document.getElementById('drawer').classList.add('active');
   document.body.style.overflow = 'hidden';
@@ -328,7 +336,7 @@ function renderFindings(data) {
   if (data.length === 0) {
     html = '<div class="empty">没有匹配的发现。</div>';
   } else {
-    html = '<table><thead><tr><th>攻击面</th><th>漏洞名称</th><th>原始结论</th><th>复核结论</th><th>类型</th><th>CVSS</th><th>严重性</th><th>文件</th></tr></thead><tbody>';
+    html = '<table><thead><tr><th>攻击面</th><th>漏洞名称</th><th>原始结论</th><th>复核结论</th><th>类型</th><th>CVSS</th><th>严重性</th>' + (IS_MERGED ? '<th>目标</th>' : '') + '<th>文件</th></tr></thead><tbody>';
     for (var i = 0; i < data.length; i++) {
       var f = data[i];
       var cvss = f.meta.cvss || '-';
@@ -360,6 +368,7 @@ function renderFindings(data) {
         '<td>' + escapeHtml(type) + '</td>' +
         '<td>' + escapeHtml(cvss) + '</td>' +
         '<td>' + escapeHtml(sev) + '</td>' +
+        (IS_MERGED ? '<td>' + escapeHtml(f._target_name || '') + '</td>' : '') +
         '<td class="links">' + links.join('') + '</td>' +
       '</tr>';
     }
@@ -384,7 +393,8 @@ function renderSurfaces(data) {
         surfLinks.push('<a class="surf-btn" onclick="openDrawer(\'' + s.analyzed_relative_path + '\', this)">🔍 业务流</a>');
       }
       var desc = '';
-      if (s.surface_type) desc += '类型: ' + escapeHtml(s.surface_type);
+      if (IS_MERGED && s._target_name) desc += '目标: ' + escapeHtml(s._target_name);
+      if (s.surface_type) desc += (desc ? ' | ' : '') + '类型: ' + escapeHtml(s.surface_type);
       if (s.category) desc += (desc ? ' | ' : '') + '分类: ' + escapeHtml(s.category);
       if (s.description) desc += (desc ? ' | ' : '') + escapeHtml(s.description);
       html += '<div class="surface-card">' +
@@ -392,7 +402,7 @@ function renderSurfaces(data) {
         '<div class="meta">' + desc + '</div>' +
         '<div class="surf-links">' + surfLinks.join('') + '</div>';
       if (s.findings && s.findings.length > 0) {
-        html += '<table class="sub-table"><thead><tr><th>文件</th><th>原始结论</th><th>复核结论</th><th>类型</th><th>CVSS</th><th>严重性</th></tr></thead><tbody>';
+        html += '<table class="sub-table"><thead><tr><th>文件</th>' + (IS_MERGED ? '<th>目标</th>' : '') + '<th>原始结论</th><th>复核结论</th><th>类型</th><th>CVSS</th><th>严重性</th></tr></thead><tbody>';
         for (var j = 0; j < s.findings.length; j++) {
           var f = s.findings[j];
           var cvss = f.meta.cvss || '-';
@@ -406,6 +416,7 @@ function renderSurfaces(data) {
           }
           html += '<tr>' +
             '<td>' + escapeHtml(title.substring(0, 50)) + ' ' + flinks.join('') + '</td>' +
+            (IS_MERGED ? '<td>' + escapeHtml(f._target_name || '') + '</td>' : '') +
             '<td>' + badge(f.prefix) + '</td>' +
             '<td>' + badge(f.review_prefix) + ' ' + reviewStatus(f.review_prefix) + '</td>' +
             '<td>' + escapeHtml(type) + '</td>' +
@@ -480,14 +491,24 @@ function switchTarget(dataPath) {
   if (!dataPath) {
     DATA = [];
     FILE_CONTENTS = {};
+    IS_MERGED = false;
     document.getElementById('summary').innerHTML = '';
     document.getElementById('view-findings').innerHTML = '<div class="empty">请先选择目标。</div>';
     document.getElementById('view-surfaces').innerHTML = '';
     return;
   }
 
+  if (dataPath === '__all__') {
+    var old = document.getElementById('report-data-script');
+    if (old) old.remove();
+    loadAllTargets();
+    return;
+  }
+
   DATA = [];
   FILE_CONTENTS = {};
+  IS_MERGED = false;
+  document.querySelectorAll('script[data-report-src]').forEach(function(s) { s.remove(); });
   document.getElementById('summary').innerHTML = '<div class="empty" style="padding:20px;">加载中...</div>';
   document.getElementById('view-findings').innerHTML = '';
 
@@ -504,6 +525,74 @@ function switchTarget(dataPath) {
     document.getElementById('view-findings').innerHTML = '<div class="empty">数据加载失败。</div>';
   };
   document.head.appendChild(script);
+}
+
+function loadAllTargets() {
+  document.querySelectorAll('script[data-report-src]').forEach(function(s) { s.remove(); });
+  IS_MERGED = true;
+  DATA = [];
+  FILE_CONTENTS = {};
+  document.getElementById('summary').innerHTML = '<div class="empty" style="padding:20px;">加载全部目标...</div>';
+  document.getElementById('view-findings').innerHTML = '';
+
+  var mergedSurfaces = [];
+  var mergedFileContents = {};
+  var loadedCount = 0;
+  var targetCount = TARGETS.length;
+
+  function loadNext(idx) {
+    if (idx >= TARGETS.length) {
+      DATA = mergedSurfaces;
+      FILE_CONTENTS = mergedFileContents;
+      window.REPORT_DATA = {
+        target_name: '全部目标',
+        target_count: targetCount,
+        generated_at: '',
+        surfaces: mergedSurfaces,
+        file_contents: mergedFileContents
+      };
+      initReport();
+      return;
+    }
+    var t = TARGETS[idx];
+    var script = document.createElement('script');
+    script.setAttribute('data-report-src', t.data_path);
+    script.src = t.data_path + '?_t=' + Date.now() + '_' + idx;
+    script.onload = function() {
+      if (!window.REPORT_DATA) { loadNext(idx + 1); return; }
+      var surfaces = window.REPORT_DATA.surfaces || [];
+      var fc = window.REPORT_DATA.file_contents || {};
+      for (var i = 0; i < surfaces.length; i++) {
+        var s = JSON.parse(JSON.stringify(surfaces[i]));
+        s._target_id = t.id;
+        s._target_name = t.short_name;
+        s.stem = '[' + t.short_name + '] ' + s.stem;
+        if (s.relative_path) s.relative_path = t.id + ':' + s.relative_path;
+        if (s.analyzed_relative_path) s.analyzed_relative_path = t.id + ':' + s.analyzed_relative_path;
+        if (s.findings) {
+          for (var j = 0; j < s.findings.length; j++) {
+            var f = s.findings[j];
+            f._target_id = t.id;
+            f._target_name = t.short_name;
+            if (f.relative_path) f.relative_path = t.id + ':' + f.relative_path;
+            if (f.review_relative_path) f.review_relative_path = t.id + ':' + f.review_relative_path;
+          }
+        }
+        mergedSurfaces.push(s);
+      }
+      for (var key in fc) {
+        mergedFileContents[t.id + ':' + key] = fc[key];
+      }
+      loadedCount++;
+      loadNext(idx + 1);
+    };
+    script.onerror = function() {
+      loadedCount++;
+      loadNext(idx + 1);
+    };
+    document.head.appendChild(script);
+  }
+  loadNext(0);
 }
 
 function initReport() {
@@ -528,6 +617,10 @@ function initReport() {
 (function initPage() {
   var sel = document.getElementById('target-select');
   if (typeof TARGETS !== 'undefined' && TARGETS.length > 0) {
+    var allOpt = document.createElement('option');
+    allOpt.value = '__all__';
+    allOpt.textContent = '全部目标（合并）';
+    sel.appendChild(allOpt);
     for (var i = 0; i < TARGETS.length; i++) {
       var t = TARGETS[i];
       var opt = document.createElement('option');
@@ -535,7 +628,12 @@ function initReport() {
       opt.textContent = t.short_name + ' (' + t.full_path + ')';
       sel.appendChild(opt);
     }
-    switchTarget(TARGETS[0].data_path);
+    if (TARGETS.length >= 2) {
+      sel.value = '__all__';
+      switchTarget('__all__');
+    } else {
+      switchTarget(TARGETS[0].data_path);
+    }
   } else {
     document.getElementById('view-findings').innerHTML = '<div class="empty">尚无收集的目标。请先运行 collect.py。</div>';
   }
