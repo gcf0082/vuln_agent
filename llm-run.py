@@ -118,6 +118,7 @@ def _pipe(agent, cmd, prompt):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             shell=use_shell,
+            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform.startswith("win") else 0,
         )
         stdout, stderr = proc.communicate(input=prompt.encode('utf-8', errors='surrogateescape'), timeout=600)
         if sys.platform.startswith("win"):

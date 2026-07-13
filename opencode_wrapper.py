@@ -240,6 +240,7 @@ class OpenCodeClient:
                 text=False,
                 env=env,
                 start_new_session=True,
+                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform.startswith("win") else 0,
             )
 
             try:
@@ -297,6 +298,7 @@ class OpenCodeClient:
                 stderr=subprocess.PIPE,
                 text=False,
                 env=env,
+                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform.startswith("win") else 0,
             )
 
             # Read stdout chunk by chunk (only print when verbose)
