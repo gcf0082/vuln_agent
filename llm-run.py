@@ -112,14 +112,13 @@ def _pipe(agent, cmd, prompt):
     proc = None
     try:
         use_shell = sys.platform.startswith("win")
-        proc = subprocess.Popen(
-            cmd,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=use_shell,
-            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform.startswith("win") else 0,
-        )
+        popen_kwargs = dict(stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=use_shell)
+        if sys.platform.startswith("win"):
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            si.wShowWindow = 0
+            popen_kwargs.update(startupinfo=si, creationflags=subprocess.CREATE_NO_WINDOW)
+        proc = subprocess.Popen(cmd, **popen_kwargs)
         stdout, stderr = proc.communicate(input=prompt.encode('utf-8', errors='surrogateescape'), timeout=600)
         if sys.platform.startswith("win"):
             sys.stdout.buffer.write(stdout)

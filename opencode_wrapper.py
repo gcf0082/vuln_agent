@@ -225,8 +225,13 @@ class OpenCodeClient:
 
             if sys.platform.startswith("win"):
                 cmd = ["cmd", "/c", agent, "run", "--dir", str(work_dir)]
+                si = subprocess.STARTUPINFO()
+                si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                si.wShowWindow = 0  # SW_HIDE
+                popen_kwargs = dict(env=env, startupinfo=si, creationflags=subprocess.CREATE_NO_WINDOW)
             else:
                 cmd = [agent, "run", "--dir", str(work_dir)]
+                popen_kwargs = dict(env=env, start_new_session=True)
             if profile.model:
                 cmd.extend(["--model", profile.model])
             if os.environ.get("OPENCODE_THINKING") == "true" or env.get("OPENCODE_THINKING") == "true":
@@ -238,9 +243,7 @@ class OpenCodeClient:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=False,
-                env=env,
-                start_new_session=True,
-                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform.startswith("win") else 0,
+                **popen_kwargs,
             )
 
             try:
@@ -292,14 +295,21 @@ class OpenCodeClient:
             work_dir = Path(os.environ.get("OPENCODE_WORK_DIR", os.getcwd()))
             env = self._build_env(profile_dir, profile, work_dir)
 
-            proc = subprocess.Popen(
-                [self.opencode_bin, "--pure", "run", "--dir", str(work_dir), prompt],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=False,
-                env=env,
-                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform.startswith("win") else 0,
-            )
+            if sys.platform.startswith("win"):
+                si = subprocess.STARTUPINFO()
+                si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                si.wShowWindow = 0
+                proc = subprocess.Popen(
+                    [self.opencode_bin, "--pure", "run", "--dir", str(work_dir), prompt],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=False,
+                    env=env, startupinfo=si, creationflags=subprocess.CREATE_NO_WINDOW,
+                )
+            else:
+                proc = subprocess.Popen(
+                    [self.opencode_bin, "--pure", "run", "--dir", str(work_dir), prompt],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=False,
+                    env=env,
+                )
 
             # Read stdout chunk by chunk (only print when verbose)
             output_chunks: list[str] = []
