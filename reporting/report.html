@@ -208,6 +208,28 @@ function getFileLabel(path) {
   return '📄 文件';
 }
 
+function getThinkingStage(key) {
+  var name = key.replace('thinking/', '').replace('.md', '');
+  return name.split('-')[0];
+}
+function stageLabel(stage) {
+  var map = { 'discover': '🔍 暴露面识别', 'analyze': '🔬 业务流分析', 'plan': '📋 漏洞规划', 'vuln': '🛠 漏洞分析', 'review': '⚖️ 复核', 'postprocess': '📝 后置处理' };
+  return map[stage] || '🧠 ' + stage;
+}
+function stageShortLabel(stage) {
+  var map = { 'discover': '🔍', 'analyze': '🔬', 'plan': '📋', 'vuln': '🛠', 'review': '⚖️', 'postprocess': '📝' };
+  return map[stage] || '🧠';
+}
+function groupThinkingByStage(ids) {
+  var groups = {};
+  for (var i = 0; i < ids.length; i++) {
+    var stage = getThinkingStage(ids[i]);
+    if (!groups[stage]) groups[stage] = [];
+    groups[stage].push(ids[i]);
+  }
+  return groups;
+}
+
 function renderMarkdown(content) {
   if (typeof marked !== 'undefined' && marked.parse) {
     try {
@@ -379,7 +401,10 @@ function renderFindings(data) {
         links.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)" title="复核">⚖️</a>');
       }
       if (f.thinking_ids && f.thinking_ids.length) {
-        links.push('<a onclick="openDrawerThinking(\'' + f.thinking_ids.join(',') + '\', this)" title="思考过程">🧠</a>');
+        var groups = groupThinkingByStage(f.thinking_ids);
+        for (var st in groups) {
+          links.push('<a onclick="openDrawerThinking(\'' + groups[st].join(',') + '\', this)" title="' + stageLabel(st) + '">' + stageShortLabel(st) + '</a>');
+        }
       }
       html += '<tr>' +
         '<td><strong>' + escapeHtml(f.surface_stem) + '</strong></td>' +
@@ -413,7 +438,10 @@ function renderSurfaces(data) {
         surfLinks.push('<a class="surf-btn" onclick="openDrawer(\'' + s.analyzed_relative_path + '\', this)">🔍 业务流</a>');
       }
       if (s.thinking_ids && s.thinking_ids.length) {
-        surfLinks.push('<a class="surf-btn" onclick="openDrawerThinking(\'' + s.thinking_ids.join(',') + '\', this)">🧠 思考过程</a>');
+        var groups = groupThinkingByStage(s.thinking_ids);
+        for (var st in groups) {
+          surfLinks.push('<a class="surf-btn" onclick="openDrawerThinking(\'' + groups[st].join(',') + '\', this)" title="' + stageLabel(st) + '">' + stageLabel(st) + '</a>');
+        }
       }
       var desc = '';
       if (s.surface_type) desc += '类型: ' + escapeHtml(s.surface_type);
@@ -437,7 +465,10 @@ function renderSurfaces(data) {
             flinks.push('<a onclick="openDrawer(\'' + f.review_relative_path + '\', this)">⚖️</a>');
           }
           if (f.thinking_ids && f.thinking_ids.length) {
-            flinks.push('<a onclick="openDrawerThinking(\'' + f.thinking_ids.join(',') + '\', this)">🧠</a>');
+            var groups = groupThinkingByStage(f.thinking_ids);
+            for (var st in groups) {
+              flinks.push('<a onclick="openDrawerThinking(\'' + groups[st].join(',') + '\', this)" title="' + stageLabel(st) + '">' + stageShortLabel(st) + '</a>');
+            }
           }
           html += '<tr>' +
             '<td>' + escapeHtml(title.substring(0, 50)) + ' ' + flinks.join('') + '</td>' +
