@@ -2,6 +2,7 @@
 """Collect one or more target analysis outputs to the tool's collection directory."""
 
 import argparse
+import glob as glob_module
 import json
 import re
 import shutil
@@ -75,9 +76,16 @@ def main():
 
     COLLECTED_DIR.mkdir(parents=True, exist_ok=True)
 
+    paths = []
+    for arg in args.target_dirs:
+        expanded = glob_module.glob(arg, recursive=True)
+        if expanded:
+            paths.extend(Path(p).resolve() for p in expanded)
+        else:
+            paths.append(Path(arg).resolve())
+
     new_entries = []
-    for path_str in args.target_dirs:
-        d = Path(path_str).resolve()
+    for d in paths:
         if not d.is_dir():
             print(f"  skipping {d}: not a directory")
             continue
