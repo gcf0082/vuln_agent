@@ -2,7 +2,6 @@
 """Collect one or more target analysis outputs to the tool's collection directory."""
 
 import argparse
-import hashlib
 import json
 import re
 import shutil
@@ -15,8 +14,7 @@ TARGETS_JS = TOOL_DIR / "targets.js"
 
 
 def target_id(target_dir: Path) -> str:
-    normalized = str(target_dir.resolve()).replace("\\", "/")
-    return hashlib.md5(normalized.encode()).hexdigest()[:8]
+    return str(target_dir.resolve()).replace("\\", "/").replace("/", "_")
 
 
 def collect_target(target_dir: Path) -> dict:
