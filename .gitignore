@@ -8,3 +8,5 @@ _runtime/
 *.log
 node_modules/
 var/
+collected/
+targets.js
