@@ -286,7 +286,7 @@ class OpenCodeClient:
 
     def _run_direct(self, prompt: str, profile: ProfileConfig,
                     verbose: bool = False) -> OpenCodeResult:
-        """Direct opencode invocation (fallback when llm-run.sh is absent)."""
+        """Direct opencode invocation (fallback when llm-run.py is absent)."""
         profile_dir, needs_cleanup = self._prepare_profile_dir(profile)
 
         try:

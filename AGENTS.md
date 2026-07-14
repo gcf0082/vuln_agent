@@ -26,12 +26,11 @@ shell 调用 `opencode` 或 `nga` CLI（每次调用一个子进程）。`requir
 
 - 二进制程序由 `--agent nga|opencode` 选择（默认：自动检测 - 优先 `nga`，回退 `opencode`）。
 - 模型通过 `--model <id>`（如 `w3/MiniMax-M2.7`）或 `.env` 里的 `OPENCODE_DEFAULT_MODEL`。
-  `--model` 会设置 `LLM_MODEL` 环境变量，`llm-run.sh` 把它作为 CLI 的 `--model` 标志透传。
+  `--model` 会设置 `LLM_MODEL` 环境变量，`llm-run.py` 把它作为 CLI 的 `--model` 标志透传。
 - **`.env` 被 gitignore 且运行时必需**：定义 `OPENCODE_DEFAULT_MODEL` 加上所选 provider/model 的
   API key。像 `w3/`、`opencode-go/` 这类 provider 前缀意味着周边环境里需要自定义 opencode provider 配置。
 - 每次调用都在完全隔离的临时 opencode profile 里运行（`opencode_wrapper.py` 创建并清理临时目录；
-   系统 skills/plugins/`.claude` 全部禁用）。实际调用脚本：`llm-run.sh`（Linux）/ `llm-run.py`
-   （Windows）。`agent.sh` 用 `agent_env/` 开一个*交互式* LLM 会话。
+   系统 skills/plugins/`.claude` 全部禁用）。实际调用脚本：`llm-run.py`。
 
 ## 管道架构（`biz_recon/`）
 
