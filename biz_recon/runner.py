@@ -187,17 +187,21 @@ def main(work_dir: str | None = None,
                     runner_log(f"Report failed for {d.name}: {e}")
 
             try:
-                from collect import collect_target, update_targets_js
+                from collect import collect_target, update_targets_js, copy_template_files, OUTPUT_DIR
+                dest_base = OUTPUT_DIR / "report"
+                dest_collected = dest_base / "collected"
+                dest_collected.mkdir(parents=True, exist_ok=True)
+                copy_template_files(dest_base)
                 collected = []
                 for d in work_dirs:
                     try:
-                        entry = collect_target(d)
+                        entry = collect_target(d, dest_collected)
                         collected.append(entry)
                     except Exception as e:
                         runner_log(f"Collect skipped for {d.name}: {e}")
                 if collected:
-                    update_targets_js(collected)
-                    runner_log(f"Dashboard collected: {len(collected)} target(s)")
+                    update_targets_js(collected, dest_base)
+                    runner_log(f"Dashboard collected: {len(collected)} target(s) in output/reports/report/")
             except Exception as e:
                 runner_log(f"Auto-collect failed: {e}")
 

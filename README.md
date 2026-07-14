@@ -168,7 +168,7 @@ python3 -m http.server 8080 -d reporting
 ### 多目标收集（collect.py）
 
 ```bash
-# 收集一个或多个目标
+# 收集一个或多个目标（默认输出到 output/reports/report/）
 python3 collect.py /path/to/target1 /path/to/target2
 
 # 支持通配符：展开指定目录下的所有子目录
@@ -176,11 +176,14 @@ python3 collect.py /path/to/parent/*
 
 # 重复执行会自动覆盖旧收集（按完整路径去重）
 python3 collect.py /path/to/target  # 重新收集
+
+# 指定输出目录名
+python3 collect.py --name report1 /path/to/target
 ```
 
-`collect.py` 将每个目标的 `.vuln_agent_output/` 拷贝到 `reporting/collected/<full_path_hash>/`，并更新 `reporting/targets.js`。打开 `reporting/dashboard.html` 即可查看。
+`collect.py` 将每个目标的 `.vuln_agent_output/` 拷贝到 `output/reports/<name>/collected/<full_path_hash>/`，同时从 `reporting/` 复制 `dashboard.html`、`report.html` 和 `assets/` 到输出目录。打开 `output/reports/<name>/dashboard.html` 即可查看。
 
-管道运行完成后也会**自动执行收集**，无需手动调用 `collect.py`。
+管道运行完成后也会**自动执行收集**（输出到 `output/reports/report/`），无需手动调用 `collect.py`。
 
 ### 功能
 
