@@ -207,6 +207,10 @@ class OpenCodeClient:
         """
         if profile is None:
             profile = ProfileConfig()
+        if not profile.model:
+            m = os.environ.get("LLM_MODEL")
+            if m:
+                profile.model = m
 
         return self._run_via_script(prompt, profile, verbose, timeout)
 
