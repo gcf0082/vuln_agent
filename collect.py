@@ -25,13 +25,11 @@ def collect_target(target_dir: Path, dest_collected_dir: Path) -> dict:
     if not output_dir.exists():
         raise FileNotFoundError(f"{output_dir} not found. Run the pipeline first.")
 
-    data_js = output_dir / "report-data.js"
-    if not data_js.exists():
-        print(f"  generating report-data.js for {target_dir.name}...")
-        from report import generate_report
-        ok, msg = generate_report(target_dir)
-        if not ok:
-            raise RuntimeError(f"generate_report failed: {msg}")
+    print(f"  generating report-data.js for {target_dir.name}...")
+    from report import generate_report
+    ok, msg = generate_report(target_dir)
+    if not ok:
+        raise RuntimeError(f"generate_report failed: {msg}")
 
     tid = target_id(target_dir)
     dest = dest_collected_dir / tid
