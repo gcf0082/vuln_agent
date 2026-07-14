@@ -108,8 +108,7 @@ def _add_thinking_data(target_dir: Path, surfaces: list[SurfaceEntry],
     if not manifest_path.exists():
         return surfaces, file_contents
 
-    target_name = target_dir.name
-    thinking_dir = Path(__file__).resolve().parent / "var" / "thinking" / target_name
+    thinking_dir = target_dir / OUTPUT_PARENT / "thinking"
 
     entries = []
     with open(manifest_path, "r", encoding="utf-8") as f:

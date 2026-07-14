@@ -167,7 +167,7 @@ def get_target_id(work_dir: Path) -> str:
 
 
 def get_thinking_dir(work_dir: Path) -> Path:
-    return THINKING_DIR / get_target_id(work_dir)
+    return work_dir / OUTPUT_PARENT / "thinking"
 
 
 def save_thinking(work_dir: Path, thinking_id: str, prompt: str,
