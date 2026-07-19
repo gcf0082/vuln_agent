@@ -56,16 +56,25 @@ def main():
     thinking_flag = "--thinking" if os.environ.get("OPENCODE_THINKING") == "true" else ""
     model_flag = f"--model {os.environ['LLM_MODEL']}" if os.environ.get("LLM_MODEL") else ""
 
+    is_codeagent = "codeagent" in agent
+
     # ── OPENCODE_CONFIG mode (called from opencode_wrapper.py) ──
     if os.environ.get("OPENCODE_CONFIG"):
         work_dir = os.environ.get("OPENCODE_WORK_DIR", os.getcwd())
         os.environ["OPENCODE_PERMISSION"] = '{"read": "allow", "external_directory": {"/*":"allow"}}'
-        cmd = [agent, "run", "--dir", work_dir]
-        if model_flag:
-            cmd.extend(model_flag.split())
-        if thinking_flag:
-            cmd.append(thinking_flag)
-        _pipe(agent, cmd, prompt)
+        if is_codeagent:
+            model = os.environ.get("LLM_MODEL") or "GLM-5.1-Alpha-Auto"
+            cmd = [agent, "--allow-dangerously-skip-permissions", "-p", prompt, "--skip-safe-check", "--model", model]
+            if thinking_flag:
+                cmd.append(thinking_flag)
+            _pipe(agent, cmd, None)
+        else:
+            cmd = [agent, "run", "--dir", work_dir]
+            if model_flag:
+                cmd.extend(model_flag.split())
+            if thinking_flag:
+                cmd.append(thinking_flag)
+            _pipe(agent, cmd, prompt)
         return
 
     # ── Standalone mode ──
@@ -99,27 +108,41 @@ def main():
     os.environ["OPENCODE_CONFIG"] = str(config_path)
     os.environ["OPENCODE_PERMISSION"] = '{"read": "allow", "external_directory": {"/*":"allow"}}'
 
-    cmd = [agent, "run", "--dir", work_dir]
-    if thinking_flag:
-        cmd.append(thinking_flag)
-    if model_flag:
-        cmd.append(model_flag)
-    _pipe(agent, cmd, prompt)
+    if is_codeagent:
+        model = os.environ.get("LLM_MODEL") or "GLM-5.1-Alpha-Auto"
+        cmd = [agent, "--allow-dangerously-skip-permissions", "-p", prompt, "--skip-safe-check", "--model", model]
+        if thinking_flag:
+            cmd.append(thinking_flag)
+        _pipe(agent, cmd, None)
+    else:
+        cmd = [agent, "run", "--dir", work_dir]
+        if thinking_flag:
+            cmd.append(thinking_flag)
+        if model_flag:
+            cmd.append(model_flag)
+        _pipe(agent, cmd, prompt)
 
 
-def _pipe(agent, cmd, prompt):
-    """Pipe prompt to agent and exit with its return code."""
+def _pipe(agent, cmd, input_text):
+    """Pipe prompt to agent and exit with its return code.
+    
+    If input_text is None, no stdin is sent (used for codeagent where prompt is in -p flag).
+    """
     proc = None
     try:
+        stdin_flag = subprocess.DEVNULL if input_text is None else subprocess.PIPE
         use_shell = sys.platform.startswith("win")
-        popen_kwargs = dict(stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=use_shell)
+        popen_kwargs = dict(stdin=stdin_flag, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=use_shell)
         if sys.platform.startswith("win"):
             si = subprocess.STARTUPINFO()
             si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             si.wShowWindow = 0
             popen_kwargs.update(startupinfo=si, creationflags=subprocess.CREATE_NO_WINDOW)
         proc = subprocess.Popen(cmd, **popen_kwargs)
-        stdout, stderr = proc.communicate(input=prompt.encode('utf-8', errors='surrogateescape'), timeout=600)
+        kwargs = dict(timeout=600)
+        if input_text is not None:
+            kwargs['input'] = input_text.encode('utf-8', errors='surrogateescape')
+        stdout, stderr = proc.communicate(**kwargs)
         if sys.platform.startswith("win"):
             sys.stdout.buffer.write(stdout)
             sys.stderr.buffer.write(stderr)

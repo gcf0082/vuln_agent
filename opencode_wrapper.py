@@ -219,6 +219,7 @@ class OpenCodeClient:
                         timeout: int | None = None) -> OpenCodeResult:
         """Run LLM agent directly (no intermediate script)."""
         agent = self._resolve_agent()
+        is_codeagent = "codeagent" in agent
         profile_dir, needs_cleanup = self._prepare_profile_dir(profile)
 
         try:
@@ -227,33 +228,62 @@ class OpenCodeClient:
             work_dir = Path(os.environ.get("OPENCODE_WORK_DIR", os.getcwd()))
             env = self._build_env(profile_dir, profile, work_dir)
 
-            if sys.platform.startswith("win"):
-                cmd = ["cmd", "/c", agent, "run", "--dir", str(work_dir)]
-                si = subprocess.STARTUPINFO()
-                si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                si.wShowWindow = 0  # SW_HIDE
-                popen_kwargs = dict(env=env, startupinfo=si, creationflags=subprocess.CREATE_NO_WINDOW)
-            else:
-                cmd = [agent, "run", "--dir", str(work_dir)]
-                popen_kwargs = dict(env=env, start_new_session=True)
-            if profile.model:
-                cmd.extend(["--model", profile.model])
-            if os.environ.get("OPENCODE_THINKING") == "true" or env.get("OPENCODE_THINKING") == "true":
-                cmd.append("--thinking")
+            if is_codeagent:
+                if not profile.model:
+                    profile.model = "GLM-5.1-Alpha-Auto"
+                if sys.platform.startswith("win"):
+                    cmd = ["cmd", "/c", agent, "--allow-dangerously-skip-permissions", "-p", prompt, "--skip-safe-check"]
+                    si = subprocess.STARTUPINFO()
+                    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    si.wShowWindow = 0
+                    popen_kwargs = dict(env=env, startupinfo=si, creationflags=subprocess.CREATE_NO_WINDOW)
+                else:
+                    cmd = [agent, "--allow-dangerously-skip-permissions", "-p", prompt, "--skip-safe-check"]
+                    popen_kwargs = dict(env=env, start_new_session=True)
+                if profile.model:
+                    cmd.extend(["--model", profile.model])
+                if os.environ.get("OPENCODE_THINKING") == "true" or env.get("OPENCODE_THINKING") == "true":
+                    cmd.append("--thinking")
 
-            proc = subprocess.Popen(
-                cmd,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=False,
-                **popen_kwargs,
-            )
+                proc = subprocess.Popen(
+                    cmd,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=False,
+                    **popen_kwargs,
+                )
+            else:
+                if sys.platform.startswith("win"):
+                    cmd = ["cmd", "/c", agent, "run", "--dir", str(work_dir)]
+                    si = subprocess.STARTUPINFO()
+                    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    si.wShowWindow = 0
+                    popen_kwargs = dict(env=env, startupinfo=si, creationflags=subprocess.CREATE_NO_WINDOW)
+                else:
+                    cmd = [agent, "run", "--dir", str(work_dir)]
+                    popen_kwargs = dict(env=env, start_new_session=True)
+                if profile.model:
+                    cmd.extend(["--model", profile.model])
+                if os.environ.get("OPENCODE_THINKING") == "true" or env.get("OPENCODE_THINKING") == "true":
+                    cmd.append("--thinking")
+
+                proc = subprocess.Popen(
+                    cmd,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=False,
+                    **popen_kwargs,
+                )
 
             try:
-                stdout_bytes, stderr_bytes = proc.communicate(
-                    input=prompt.encode("utf-8"), timeout=timeout
-                )
+                if is_codeagent:
+                    stdout_bytes, stderr_bytes = proc.communicate(timeout=timeout)
+                else:
+                    stdout_bytes, stderr_bytes = proc.communicate(
+                        input=prompt.encode("utf-8"), timeout=timeout
+                    )
             except subprocess.TimeoutExpired:
                 _kill_proc(proc)
                 stdout_bytes, stderr_bytes = proc.communicate()
