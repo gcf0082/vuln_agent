@@ -248,8 +248,7 @@ class OpenCodeClient:
                     popen_kwargs = dict(env=env, start_new_session=True)
                 if profile.model:
                     cmd.extend(["--model", profile.model])
-                if os.environ.get("OPENCODE_THINKING") == "true" or env.get("OPENCODE_THINKING") == "true":
-                    cmd.append("--thinking")
+                # --thinking is an internal flag only, not passed to codeagent CLI
 
                 stdin_pipe = subprocess.PIPE if sys.platform.startswith("win") else subprocess.DEVNULL
                 proc = subprocess.Popen(
