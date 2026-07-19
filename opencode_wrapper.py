@@ -232,22 +232,29 @@ class OpenCodeClient:
                 if not profile.model:
                     profile.model = "GLM-5.1-Alpha-Auto"
                 if sys.platform.startswith("win"):
-                    cmd = ["cmd", "/c", agent, "--allow-dangerously-skip-permissions", "-p", prompt, "--skip-safe-check"]
+                    # Use codeagentcli.exe directly + stdin pipe to avoid
+                    # Windows cmd.exe ~8191 char command-line length limit.
+                    agent_exe = self._resolve_codeagent_exe(agent)
+                    cmd = [agent_exe, "--allow-dangerously-skip-permissions",
+                           "-p", "--skip-safe-check"]
                     si = subprocess.STARTUPINFO()
                     si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
                     si.wShowWindow = 0
-                    popen_kwargs = dict(env=env, startupinfo=si, creationflags=subprocess.CREATE_NO_WINDOW)
+                    popen_kwargs = dict(env=env, startupinfo=si,
+                                        creationflags=subprocess.CREATE_NO_WINDOW)
                 else:
-                    cmd = [agent, "--allow-dangerously-skip-permissions", "-p", prompt, "--skip-safe-check"]
+                    cmd = [agent, "--allow-dangerously-skip-permissions",
+                           "-p", prompt, "--skip-safe-check"]
                     popen_kwargs = dict(env=env, start_new_session=True)
                 if profile.model:
                     cmd.extend(["--model", profile.model])
                 if os.environ.get("OPENCODE_THINKING") == "true" or env.get("OPENCODE_THINKING") == "true":
                     cmd.append("--thinking")
 
+                stdin_pipe = subprocess.PIPE if sys.platform.startswith("win") else subprocess.DEVNULL
                 proc = subprocess.Popen(
                     cmd,
-                    stdin=subprocess.DEVNULL,
+                    stdin=stdin_pipe,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=False,
@@ -278,7 +285,12 @@ class OpenCodeClient:
                 )
 
             try:
-                if is_codeagent:
+                if is_codeagent and sys.platform.startswith("win"):
+                    # Windows: prompt piped via stdin (avoids cmd.exe length limit)
+                    stdout_bytes, stderr_bytes = proc.communicate(
+                        input=prompt.encode("utf-8"), timeout=timeout
+                    )
+                elif is_codeagent:
                     stdout_bytes, stderr_bytes = proc.communicate(timeout=timeout)
                 else:
                     stdout_bytes, stderr_bytes = proc.communicate(
@@ -317,6 +329,30 @@ class OpenCodeClient:
         if shutil.which("nga"):
             return "nga"
         return self.opencode_bin
+
+    def _resolve_codeagent_exe(self, agent: str) -> str:
+        """On Windows, resolve codeagent to codeagentcli.exe for direct invocation.
+
+        The shell wrapper (codeagent / codeagent.bat) requires ``cmd /c`` which
+        imposes a ~8191 character command-line limit.  Calling the .exe directly
+        lets us pipe the prompt via stdin, bypassing the limit entirely.
+        """
+        if sys.platform.startswith("win"):
+            # Locate the shell wrapper on PATH, then look for bin/codeagentcli.exe
+            # next to it (standard CodeAgentCLI layout: <dir>/codeagent[.bat]
+            # and <dir>/bin/codeagentcli.exe).
+            agent_which = shutil.which(agent)
+            if agent_which:
+                agent_dir = Path(agent_which).resolve().parent
+                exe = agent_dir / "bin" / "codeagentcli.exe"
+                if exe.exists():
+                    return str(exe)
+            # Also try the exe directly on PATH
+            exe_which = shutil.which("codeagentcli.exe")
+            if exe_which:
+                return exe_which
+        # Non-Windows or exe not found: fall back to agent as-is
+        return agent
 
     def _run_direct(self, prompt: str, profile: ProfileConfig,
                     verbose: bool = False) -> OpenCodeResult:
