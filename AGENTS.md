@@ -62,8 +62,9 @@ shell 调用 `opencode` 或 `nga` CLI（每次调用一个子进程）。`requir
   `biz_recon/references/`（允许嵌套 include，按文件名去重）。
 - 标准模板变量：`{tool_dir}`、`{target_work_dir}`、`{surface_file}`、`{surface_stem}`、
   `{extra_prompt}`、`{analysis_plan}`。
-- `references/` 存放原则、`FALSE-rules.md`、`surface-format.md` 和 `vuln_rules/*.md`（按漏洞类型的
-  规则）- 即注入 prompt 的知识库。
+- `references/` 存放原则、`judgment-methodology.md`（漏洞分析与复核共用的判定方法论）、
+  `FALSE-rules.md`、`surface-format.md` 和 `vuln_rules/*.md`（按漏洞类型的规则）-
+  即注入 prompt 的知识库。
 
 ## `prompts-ext/`（策略注入）
 
