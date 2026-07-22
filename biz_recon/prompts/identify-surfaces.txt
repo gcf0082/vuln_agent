@@ -97,6 +97,7 @@
 - 接口类：Controller、Handler、Route、Servlet、Listener、Consumer、WebSocket、gRPC、RPC/RMI
 - 非接口类：main 入口、CLI 命令、独立脚本、任务处理
 - **SDK 类（当阶段 0 识别为 SDK/库时）**：`__init__.py` 导出的函数、`package.json` exports 对应模块的导出函数、首字母大写的 Go 导出函数、Java public API 类的 public 方法、C/C++ 头文件中的导出函数声明
+- **部署配置类**：`Dockerfile`、`docker-compose*.yml`、K8s 清单、Nginx/网关配置
 
 记录推测结果，准备验证。
 
@@ -116,7 +117,9 @@
 收集所有攻击面（接口 + 非接口）：
 
 - **接口**：web（REST / JAX-RS / Servlet / GraphQL）、外部 MQ 消费者、gRPC、WebSocket / SSE、RPC/RMI、Webhook 回调、自定义协议服务端（TCP/UDP）
-- **非接口**：独立可执行脚本、独立工具（含 main 入口的可执行程序）、接收外部输入的任务/消息处理、CLI 命令入口、SDK/库导出的公共 API 函数
+- **非接口**：独立可执行脚本、独立工具（含 main 入口的可执行程序）、接收外部输入的任务/消息处理、CLI 命令入口、SDK/库导出的公共 API 函数、部署/基础设施配置（Dockerfile、docker-compose、K8s 清单、Nginx/网关配置等，分类记为 DEPLOY）
+
+> **部署配置说明**：Dockerfile 这类文件决定服务的暴露方式（对外端口、特权模式、挂载、环境变量、入口命令），属于部署形态暴露面，必须识别出来供后续阶段分析。来源指向文件本身，一个文件一个条目。
 
 每条目必须提取精确的**来源信息**（完整文件路径:行号、函数名），路径必须是完整的绝对或相对项目根路径，供后续分析步骤直接使用。**REST 接口必须找到实际的 Controller 入口代码位置（文件路径:行号:函数名），而非路由配置或接口文档来源。****"独立工具"**指有 main 函数作为入口的可独立执行的程序，不是编译产物分析也不是工具类/工具函数。
 
@@ -144,7 +147,7 @@ REST 接口可能定义在 Swagger/OpenAPI 的 YAML 文件中。这类文件通�
 **识别排除项**：
 - Spring Boot `@SpringBootApplication` main 入口类不计为攻击面（仅框架启动入口，无业务逻辑）
 - 纯工具类/工具函数不计为攻击面（无独立入口）
-- 配置文件（YAML/JSON/properties/XML 等）不计为攻击面（不是入口函数，不含接收外部输入的处理逻辑）
+- 配置文件（YAML/JSON/properties/XML 等）不计为攻击面（不是入口函数，不含接收外部输入的处理逻辑）——**但部署/基础设施配置除外**（Dockerfile、docker-compose、K8s 清单、Nginx/网关配置等按 DEPLOY 识别）
 - 内部定时任务不计为攻击面（不接收外部输入，无用户可控数据入口）
 - 内部 Filter/Interceptor 不计为攻击面（被 Controller 调用，非独立入口）
 - 内部 Event Bus / 领域事件监听器不计为攻击面（仅系统内部发布，无外部数据入口）
@@ -192,6 +195,7 @@ REST 接口可能定义在 Swagger/OpenAPI 的 YAML 文件中。这类文件通�
 | CRON | `**表达式**`：`*/5 * * * *`、`**命令**`：/opt/app/healthcheck.sh、`**文件**`：/etc/cron.d/healthcheck |
 | CLI | `**命令名**`：agent、`**入口**`：/opt/app/cli/main.go:8 main() |
 | SDK | `**包名**`：`@acme/sdk`、`**导出**`：`createUser(data: UserInput)`、`**入口**`：`src/index.ts:12 createUser()` |
+| DEPLOY | `**文件**`：`Dockerfile`、`**类别**`：容器/编排/网关、`**暴露**`：对外端口、入口命令 |
 
 补充字段如实填写，没有的信息不写，不要编造。
 
