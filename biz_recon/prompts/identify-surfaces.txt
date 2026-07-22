@@ -62,17 +62,10 @@
 
 从根目录开始，用 `ls` 逐层查看目录内容。根据目录名决定是否深入：
 
-**跳过（不深入）的目录**：
-- `node_modules/`、`.git/`、`__pycache__/`、`venv/`、`.venv/`
-- `target/`、`build/`、`dist/`、`out/`、`obj/`
-- `test/`、`tests/`、`__test__/`、`spec/`、`__tests__/`
-- `vendor/`、`third_party/`（仅第三方库时跳过）
-- `lib/`：仅当是外部依赖缓存（如 jar 包、node_modules 外的第三方包）时跳过；**项目自身代码的 `lib/` 必须深入**（SDK/库项目的代码常在此目录）
-- `docs/`、`doc/`、`static/`、`public/`、`assets/`、`images/`、`css/`、`js/`（前端静态资源）
-- `config/`、`conf/`、`migration/`、`migrations/`、`sql/`、`db/`（仅配置/数据库时跳过）
-- `docker/`、`.docker/`、`helm/`、`k8s/`、`deploy/`、`ci/`、`.github/`
+**跳过（不深入）的目录**（仅限以下明确无入口的，未列出的目录一律深入浏览）：
+- `node_modules/`、`.git/`、`__pycache__/`、`venv/`、`.venv/`、`.idea/`、`.vscode/`
 
-**优先深入（高价值）的目录**：
+**优先深入（高价值）的目录**（仅表优先级，不代表其他目录可跳过）：
 - `controller/`、`controllers/`、`api/`、`apis/`、`routes/`、`router/`、`endpoint/`
 - `handler/`、`handlers/`、`listener/`、`listeners/`、`consumer/`、`consumers/`
 - `cmd/`、`cli/`、`command/`、`commands/`、`console/`
