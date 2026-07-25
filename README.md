@@ -4,7 +4,7 @@
 
 ## 前置条件
 
-依赖 `nga` 或 `opencode` CLI。
+依赖 `nga`、`opencode` CLI 或 `codeagent` 3.0。
 
 ## 快速开始
 
@@ -59,7 +59,7 @@ python3 run.py [work_dir] [选项]
 | `--vuln-prompt TEXT` | 漏洞分析阶段及后续复核阶段追加提示词 |
 | `--thinking` | 显示 LLM 思考过程 |
 | `--model MODEL` | 指定模型名称 |
-| `--agent AGENT` | LLM 代理程序名称（`nga` 或 `opencode`），默认自动检测 |
+| `--agent AGENT` | LLM 代理程序名称（`nga`、`opencode` 或 `codeagent`），默认自动检测；`codeagent` 对应 3.0 版本 |
 | `--force-surface FILE` | 强制重新分析指定攻击面（逗号分隔，支持 `*` 通配），会清除已有产物 |
 | `--stage {recon,flow,vuln,postprocess}` | 只运行单个阶段 |
 | `--overwrite` | 与 `--stage` 搭配，删除该阶段已有产物后重新执行 |
