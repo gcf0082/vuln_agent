@@ -37,6 +37,7 @@ shell 调用 `opencode` 或 `nga` CLI（每次调用一个子进程）。`requir
 | 阶段 | 模块 | Prompt 模板 | 产物目录 |
 |------|------|-------------|----------|
 | 1 surface_discover | `surface_discover.py` | `prompts/identify-surfaces.txt` | `discovered_surfaces/` |
+| 1.5 surface_split | `surface_split.py` | `prompts/split-surface.txt` | `discovered_surfaces/`（原地拆分，对 CLI 不可见） |
 | 2 surface_analyze | `surface_analyze.py` | `prompts/analyze-surface.txt` | `analyzed_surfaces/` |
 | 2.5 vuln_planner | `vuln_planner.py` | `prompts/vuln-planner.txt` | `vuln_plans/<stem>/` |
 | 3 vuln_analyze | `vuln_analyze.py` | `prompts/analyze-vulnerability.txt` | `vuln_findings/` |
@@ -45,6 +46,11 @@ shell 调用 `opencode` 或 `nga` CLI（每次调用一个子进程）。`requir
 
 `pipeline.run()` 编排 4 个 phase：发现 -> 每个攻击面的分析+规划 -> 高危漏洞分析+复核（vuln 池）
 -> medium/low 漏洞分析+复核（由 `--min-level` 和 `.phase3_done` 守护）。
+
+Phase 1.5（`surface_split`）在发现后、业务流分析前自动跑：校验每个 `discovered_surfaces/`
+文件是否只含一个攻击面，含多个则原地拆成多个单文件（LLM 驱动，必要时读源码判断，如"独立工具"
+实际提供 web 服务时拆出 `iface-*`）。对 CLI 不可见、无独立标记文件--幂等沿用 skip-if-output-exists：
+已有 `analyzed_surfaces/<同名>.md` 的攻击面视为已流过拆解，跳过。
 
 ## 产物文件名就是数据契约
 

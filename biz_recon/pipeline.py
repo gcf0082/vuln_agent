@@ -14,7 +14,7 @@ import shutil
 import signal
 from pathlib import Path
 
-from . import surface_discover, surface_analyze, vuln_planner, vuln_analyze, review_vuln, vuln_postprocess
+from . import surface_discover, surface_analyze, surface_split, vuln_planner, vuln_analyze, review_vuln, vuln_postprocess
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, read_surface_list, find_surface_files, find_vuln_files, record_failure, get_all_failures, reset_failures
 
 _LEVEL_MAP = {"high": 0, "medium": 1, "low": 2}
@@ -161,6 +161,21 @@ def run(work_dirs: list[Path],
             return
 
         log(f"Phase 1 complete: {len(all_surfaces)} surfaces across {len(work_dirs)} directory(s)")
+
+        # ── Phase 1.5: Surface split verification ──
+        # 每个 discovered_surfaces 文件应只含一个攻击面；含多个则拆成多个单文件。
+        # 对 CLI 不可见、无独立标记：已有 analyzed_surfaces/<同名> 的视为已流过拆解，跳过。
+        if not force_surface and not _INTERRUPTED:
+            log("Phase 1.5: Surface split verification")
+            for d in work_dirs:
+                try:
+                    surface_split.run(d, max_workers=max_workers, thinking=thinking, prefix=f"[{d.name}]")
+                except Exception as e:
+                    log(f"[{d.name}] Surface split failed: {e}")
+                    record_failure(f"Phase 1.5 Split [{d.name}]: {e}")
+            # 拆解可能增删 discovered_surfaces 文件，刷新 all_surfaces
+            all_surfaces = [(d, it.filename) for d in work_dirs for it in read_surface_list(d)]
+            log(f"Phase 1.5 complete: {len(all_surfaces)} surfaces after split")
 
         # ── Phase 2: Analyze → Plan → High-risk vuln+review ──
         log("Phase 2: Analysis → Planning → High-risk vuln+review")
