@@ -73,11 +73,20 @@ def run(work_dir: Path, max_workers: int = 3, thinking: bool = False,
 
     def split_one(item):
         so_log = setup_stage_log("surface_split", item.filename, prefix=prefix)
-        # 幂等（无独立标记）：已有 analyzed_surfaces/<同名> 视为已流过拆解，跳过
+        surfaces_dir = work_dir / OUTPUT_PARENT / "discovered_surfaces"
+        # 幂等（无独立标记）：已有 analyzed_surfaces/<同名> 视为已处理，跳过
         analyzed_path = work_dir / OUTPUT_PARENT / "analyzed_surfaces" / item.filename
         if analyzed_path.exists():
             so_log(f"{prefix} ⏭ 已分析，跳过拆解 {item.filename}")
             return True
+
+        # 小文件快速跳过：<20 行不可能内含多个攻击面，无需 LLM 校验
+        surface_path = surfaces_dir / item.filename
+        if surface_path.exists():
+            n_lines = len(surface_path.read_text(encoding="utf-8").splitlines())
+            if n_lines < 20:
+                so_log(f"{prefix} · 仅 {n_lines} 行，跳过拆解 {item.filename}")
+                return True
 
         local_vars = {**vars,
             "surface_file": item.filename,
@@ -98,7 +107,6 @@ def run(work_dir: Path, max_workers: int = 3, thinking: bool = False,
             return False
 
         action, new_files = _parse_manifest(result.text)
-        surfaces_dir = work_dir / OUTPUT_PARENT / "discovered_surfaces"
         kept: list[str] = []
         if action == "split":
             for fname in new_files:
