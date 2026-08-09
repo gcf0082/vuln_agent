@@ -58,11 +58,13 @@ def setup_stage_log(stage: str, target: str = "", prefix: str = ""):
     stage_logger.handlers.clear()
     stage_logger.propagate = False
 
-    def stage_log(msg: str = ""):
+    def stage_log(msg: str = "", quiet: bool = False):
         if msg:
             full = f"{prefix} {msg}" if prefix else msg
             stage_logger.info(full)
-            if _logger:
+            if quiet:
+                log_file_only(full)
+            elif _logger:
                 _logger.info(full)
         else:
             print()
@@ -77,6 +79,19 @@ def log(msg: str = ""):
         _logger.info(msg)
     else:
         print()
+
+
+def log_file_only(msg: str):
+    """写入 pipeline.log + pipeline_thinking.log 文件 handler，但不刷终端。
+
+    用于跳过类消息（跳过拆解/跳过排序）：记入日志文件供审计，不在终端刷屏。
+    """
+    if not _logger:
+        return
+    record = _logger.makeRecord(_logger.name, logging.INFO, "", 0, msg, None, None)
+    for h in _logger.handlers:
+        if isinstance(h, logging.FileHandler):
+            h.handle(record)
 
 
 def ensure_dirs(work_dir: Path):

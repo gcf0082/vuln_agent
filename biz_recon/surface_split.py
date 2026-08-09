@@ -65,7 +65,7 @@ def run(work_dir: Path, max_workers: int = 3, thinking: bool = False,
 
     items = read_surface_list(work_dir)
     if not items:
-        ss_log(f"{prefix} No surface items found.")
+        ss_log(f"{prefix} No surface items found.", quiet=True)
         return
 
     vars = build_vars(work_dir)
@@ -77,7 +77,7 @@ def run(work_dir: Path, max_workers: int = 3, thinking: bool = False,
         # 幂等（无独立标记）：已有 analyzed_surfaces/<同名> 视为已处理，跳过
         analyzed_path = work_dir / OUTPUT_PARENT / "analyzed_surfaces" / item.filename
         if analyzed_path.exists():
-            so_log(f"{prefix} ⏭ 已分析，跳过拆解 {item.filename}")
+            so_log(f"{prefix} ⏭ 已分析，跳过拆解 {item.filename}", quiet=True)
             return True
 
         # 小文件快速跳过：<20 行不可能内含多个攻击面，无需 LLM 校验
@@ -85,7 +85,7 @@ def run(work_dir: Path, max_workers: int = 3, thinking: bool = False,
         if surface_path.exists():
             n_lines = len(surface_path.read_text(encoding="utf-8").splitlines())
             if n_lines < 20:
-                so_log(f"{prefix} · 仅 {n_lines} 行，跳过拆解 {item.filename}")
+                so_log(f"{prefix} · 仅 {n_lines} 行，跳过拆解 {item.filename}", quiet=True)
                 return True
 
         local_vars = {**vars,
@@ -103,7 +103,7 @@ def run(work_dir: Path, max_workers: int = 3, thinking: bool = False,
 
         if result.exit_code != 0:
             suffix = "（超时）" if result.timed_out else ""
-            so_log(f"{prefix} ✗ 拆解失败 {item.filename}{suffix}")
+            so_log(f"{prefix} ✗ 拆解失败 {item.filename}{suffix}", quiet=True)
             return False
 
         action, new_files = _parse_manifest(result.text)
@@ -119,11 +119,11 @@ def run(work_dir: Path, max_workers: int = 3, thinking: bool = False,
                 (surfaces_dir / item.filename).unlink(missing_ok=True)
                 so_log(f"{prefix} ✓ 拆分 {item.filename} -> {', '.join(kept)}")
             else:
-                so_log(f"{prefix} ⚠ manifest 报告 split 但无落盘文件，保留原文件 {item.filename}")
+                so_log(f"{prefix} ⚠ manifest 报告 split 但无落盘文件，保留原文件 {item.filename}", quiet=True)
                 record_failure(f"攻击面拆解 [{prefix}] {item.filename}: 无落盘文件")
                 return False
         else:
-            so_log(f"{prefix} · 单一攻击面 {item.filename}")
+            so_log(f"{prefix} · 单一攻击面 {item.filename}", quiet=True)
 
         append_thinking_manifest(work_dir, {
             "thinking_id": thinking_id,
@@ -140,9 +140,8 @@ def run(work_dir: Path, max_workers: int = 3, thinking: bool = False,
 
     if failures:
         msg = f"{prefix} FAILURES ({len(failures)}): {', '.join(failures)}"
-        ss_log(msg)
-        print(msg, flush=True)
+        ss_log(msg, quiet=True)
         for fname in failures:
             record_failure(f"攻击面拆解 [{prefix}] {fname}")
 
-    ss_log(f"{prefix} ✓ 攻击面拆解完成")
+    ss_log(f"{prefix} ✓ 攻击面拆解完成", quiet=True)
