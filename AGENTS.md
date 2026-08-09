@@ -38,6 +38,7 @@ shell 调用 `opencode` 或 `nga` CLI（每次调用一个子进程）。`requir
 |------|------|-------------|----------|
 | 1 surface_discover | `surface_discover.py` | `prompts/identify-surfaces.txt` | `discovered_surfaces/` |
 | 1.5 surface_split | `surface_split.py` | `prompts/split-surface.txt` | `discovered_surfaces/`（原地拆分，对 CLI 不可见） |
+| 1.6 surface_rank | `surface_rank.py` | `prompts/rank-surfaces.txt` | `meta/surface-priority.jsonl`（对 CLI 不可见） |
 | 2 surface_analyze | `surface_analyze.py` | `prompts/analyze-surface.txt` | `analyzed_surfaces/` |
 | 2.5 vuln_planner | `vuln_planner.py` | `prompts/vuln-planner.txt` | `vuln_plans/<stem>/` |
 | 3 vuln_analyze | `vuln_analyze.py` | `prompts/analyze-vulnerability.txt` | `vuln_findings/` |
@@ -48,9 +49,16 @@ shell 调用 `opencode` 或 `nga` CLI（每次调用一个子进程）。`requir
 -> medium/low 漏洞分析+复核（由 `--min-level` 和 `.phase3_done` 守护）。
 
 Phase 1.5（`surface_split`）在发现后、业务流分析前自动跑：校验每个 `discovered_surfaces/`
-文件是否只含一个攻击面，含多个则原地拆成多个单文件（LLM 驱动，必要时读源码判断，如"独立工具"
+文件是否只含一个攻击面，含多个则原地拆成多个单文件（LLM 驱动，必要时读源码判断，如“独立工具”
 实际提供 web 服务时拆出 `iface-*`）。对 CLI 不可见、无独立标记文件--幂等沿用 skip-if-output-exists：
 已有 `analyzed_surfaces/<同名>.md` 的攻击面视为已流过拆解，跳过。
+
+Phase 1.6（`surface_rank`）在拆分后、业务流分析前自动跑：对 `discovered_surfaces/` 做全局优先级排序。
+**仅当某 work_dir 攻击面超过 30 个时才排序**，否则跳过（直接按文件名序分发、不产出 JSONL，省一次 LLM
+调用）。排序产出 `meta/surface-priority.jsonl`（每行一个攻击面，行序=分发顺序）。下游
+`surface_rank.load_ranking` 据此分发业务流分析：JSONL 行序优先，不在 JSONL 的攻击面按文件名序**末尾**
+分发（不丢弃）。对 CLI 不可见、无独立标记：JSONL 已存在即复用（不重排），删除即重排；不读源码、不改
+攻击面文件。与 `vuln_planner` 的 post-analyze 风险分类互补--本阶段定分析顺序，planner 定漏洞分析顺序。
 
 ## 产物文件名就是数据契约
 

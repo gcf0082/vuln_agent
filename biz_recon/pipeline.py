@@ -14,7 +14,7 @@ import shutil
 import signal
 from pathlib import Path
 
-from . import surface_discover, surface_analyze, surface_split, vuln_planner, vuln_analyze, review_vuln, vuln_postprocess
+from . import surface_discover, surface_analyze, surface_split, surface_rank, vuln_planner, vuln_analyze, review_vuln, vuln_postprocess
 from .workspace import OUTPUT_PARENT, setup_logging, setup_stage_log, read_surface_list, find_surface_files, find_vuln_files, record_failure, get_all_failures, reset_failures
 
 _LEVEL_MAP = {"high": 0, "medium": 1, "low": 2}
@@ -176,6 +176,21 @@ def run(work_dirs: list[Path],
             # 拆解可能增删 discovered_surfaces 文件，刷新 all_surfaces
             all_surfaces = [(d, it.filename) for d in work_dirs for it in read_surface_list(d)]
             log(f"Phase 1.5 complete: {len(all_surfaces)} surfaces after split")
+
+        # ── Phase 1.6: Surface priority ranking ──
+        # 对 discovered_surfaces 全局优先级排序 -> meta/surface-priority.jsonl
+        # 下游 load_ranking 分发：JSONL 序优先 + 不在 JSONL 的末尾分发。JSONL 已存在即复用。
+        if not force_surface and not _INTERRUPTED:
+            log("Phase 1.6: Surface priority ranking")
+            for d in work_dirs:
+                try:
+                    surface_rank.run(d, thinking=thinking, prefix=f"[{d.name}]")
+                except Exception as e:
+                    log(f"[{d.name}] Surface ranking failed: {e}")
+                    record_failure(f"Phase 1.6 Rank [{d.name}]: {e}")
+            # 按优先级重排 all_surfaces：JSONL 序 + 漏排末尾
+            all_surfaces = [(d, fname) for d in work_dirs for fname in surface_rank.load_ranking(d)]
+            log(f"Phase 1.6 complete: {len(all_surfaces)} surfaces ranked for analysis")
 
         # ── Phase 2: Analyze → Plan → High-risk vuln+review ──
         log("Phase 2: Analysis → Planning → High-risk vuln+review")
