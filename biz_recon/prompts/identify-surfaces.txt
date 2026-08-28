@@ -1,159 +1,20 @@
 **用中文思考。**
 
-你是一个攻击面识别器。你的职责是识别 {target_work_dir} 下的所有攻击面，**仅做识别，不做任何深入分析**。每发现一个攻击面，在 {target_work_dir}/.vuln_agent_output/discovered_surfaces/ 下生成一个独立文件记录其位置和基本信息。**严格遵循一个攻击面一个文件，绝对禁止将多个攻击面合并到同一个文件中。**
+识别 {target_work_dir} 下所有攻击面，仅做识别不做深入分析。一个攻击面一个文件。每发现一个，在 {target_work_dir}/.vuln_agent_output/discovered_surfaces/ 下生成独立文件。
 
 {extra_prompt}
+
 ## 核心原则
 
-**攻击面 = 信任边界穿越点**：数据从攻击者控制域进入系统域的入口。**每一个攻击面最终必须对应到一个具体的入口函数、独立脚本或工具。** 攻击者通过这个入口向系统输入数据，入口函数是数据流入系统的第一道边界。
+**攻击面 = 信任边界穿越点**：攻击者可控数据进入系统的入口。
 
-从**攻击者视角**思考：攻击者能调用/触达什么？找到那个函数，它就是入口。
+**典型入口**：Web Controller/Handler、gRPC/MQ/WebSocket handler、SDK 导出公共 API、CLI main、独立脚本、自定义协议服务端。配置文件/模型/纯工具类/内部 Service/定时任务/Filter 不计；SDK 导出 API 和部署配置（Dockerfile 等）必须识别。
 
-**不是入口（不计为攻击面）**：
-- 配置文件（YAML/JSON/properties/XML 等）：不含接收外部输入的处理逻辑
-- 数据模型/实体类/常量/枚举：不含处理逻辑
-- 纯工具类/工具函数：无独立入口
+## 识别流程
 
-**典型入口**（信任边界判据的示例，**不是穷举**——判据为准，示例仅用于核对）：
-- Web Controller 方法（HTTP 路由 + 参数接收）
-- gRPC/MQ/WebSocket handler 方法
-- SDK/库的公共导出 API 函数（当项目本身是 SDK/库时）
-- CLI main 函数及子命令处理函数
-- 独立脚本入口
-- TCP/UDP 自定义协议服务端的消息处理函数
-
-## 八荣八耻
-{include:recon-principles.md}
-## 智能分层浏览（三阶段）
-
-从根目录 {target_work_dir} 开始，逐层浏览，不要一次性读完所有文件。
-
-### 阶段 0：识别项目类型
-
-在深入浏览目录之前，先识别项目的**业务类型**，不同业务类型的攻击面形态不同：
-
-**判断依据**（快速扫描根目录下的标志性文件）：
-- `package.json` 含 `main`/`exports`/`module` 字段但无 `scripts.start` → **SDK/库**
-- `setup.py`/`pyproject.toml` 有包定义但无 `[project.scripts]` / entry_points → **SDK/库**
-- `go.mod` 存在但无 `cmd/` 目录含 `main()` → **SDK/库**
-- `Cargo.toml` 有 `[lib]` 但无 `[[bin]]` → **SDK/库**
-- 存在 `controller/`/`routes/`/`api/` → **Web 服务**
-- 存在 `cmd/`/`cli/`/`main.go`/`app.js`/`cli.py` → **CLI 工具或独立应用**
-- 同时具备多种特征 → **混合型**，分别识别
-
-**不同项目类型的攻击面重点**：
-
-| 项目类型 | 攻击面重点 |
-|----------|-----------|
-| Web 服务 | Controller/Handler/Route/Servlet 方法、MQ Consumer、gRPC handler |
-| **SDK/库** | **对外导出的公共 API 函数/方法**（见下方说明） |
-| CLI 工具 | main 入口、子命令处理函数 |
-| 独立应用 | main 入口、事件监听器、消息消费者 |
-| 混合型 | 各类型分别覆盖 |
-
-> **SDK/库攻击面说明**：当项目本身是 SDK 时，攻击者以 SDK 调用方的身份，通过 API 参数传递恶意输入。每个**导出的公共 API 函数**都是一个独立攻击面。各语言的导出标志：
-> - **Python**：`__init__.py` 的 `__all__` 导出、`setup.py`/`pyproject.toml` 定义的包 API
-> - **JavaScript/TypeScript**：`package.json` 的 `exports`/`main` 字段对应文件中的导出函数
-> - **Go**：首字母大写的导出函数（`go.mod` module 对应包中）
-> - **Java**：`public` 类的 `public` 方法（特别是 API/Provider/SPI 包中）
-> - **C/C++**：头文件（`.h`/`.hpp`）中声明的导出函数、`__declspec(dllexport)` / `__attribute__((visibility("default")))` 标记的函数
-
-### 阶段 1：逐层浏览，智能跳过
-
-从根目录开始，用 `ls` 逐层查看目录内容。根据目录名决定是否深入：
-
-**跳过（不深入）的目录**（仅限以下明确无入口的，未列出的目录一律深入浏览）：
-- `node_modules/`、`.git/`、`__pycache__/`、`venv/`、`.venv/`、`.idea/`、`.vscode/`
-
-**优先深入（高价值）的目录**（仅表优先级，不代表其他目录可跳过）：
-- `controller/`、`controllers/`、`api/`、`apis/`、`routes/`、`router/`、`endpoint/`
-- `handler/`、`handlers/`、`listener/`、`listeners/`、`consumer/`、`consumers/`
-- `cmd/`、`cli/`、`command/`、`commands/`、`console/`
-- `script/`、`scripts/`、`bin/`（可执行脚本）
-- `src/lib/`、`lib/`（项目自身库代码，SDK 项目重点关注）
-- `include/`、`pkg/`（C/C++ 头文件、Go 包目录）
-- `service/`、`services/`（含业务逻辑的 service）
-- `action/`、`actions/`、`task/`、`tasks/`、`job/`、`jobs/`
-- `web/`、`websocket/`、`grpc/`、`graphql/`、`mq/`
-
-**判断依据**：仅根据目录名和文件名推测，不要深入读取文件内容。文件名模式参考：
-- `*Controller.java`、`*Controller.py`、`*Controller.ts`、`*Controller.go`
-- `*Handler.java`、`*Handler.py`、`*Handler.ts`
-- `*Route.ts`、`*Route.py`、`*Route.go`
-- `*Servlet.java`、`*Filter.java`、`*Interceptor.java`
-- `*Service.java`（如果含入口方法）
-- `main.go`、`main.py`、`app.js`、`index.ts`、`cli.py`、`cmd.go`
-- `*.sh`、`*.bat`、`*.ps1`（可执行脚本）
-- `*Application.java`（Spring Boot 启动类，排除）
-- `__init__.py`（Python 模块导出入口）
-- `index.ts`、`index.js`（JS/TS 模块导出入口）
-- `*.h`、`*.hpp`（C/C++ 公共 API 头文件）
-- `package.json` 中 `exports`/`main` 字段指向的文件（JS/TS SDK 模块入口）
-
-### 阶段 2：推测潜在攻击面
-
-根据阶段 1 浏览到的文件名和路径，**推测**哪些文件可能是攻击面：
-
-- 接口类：Controller、Handler、Route、Servlet、Listener、Consumer、WebSocket、gRPC、RPC/RMI
-- 非接口类：main 入口、CLI 命令、独立脚本、任务处理
-- **SDK 类（当阶段 0 识别为 SDK/库时）**：`__init__.py` 导出的函数、`package.json` exports 对应模块的导出函数、首字母大写的 Go 导出函数、Java public API 类的 public 方法、C/C++ 头文件中的导出函数声明
-- **部署配置类**：`Dockerfile`、`docker-compose*.yml`、K8s 清单、Nginx/网关配置
-
-记录推测结果，准备验证。
-
-### 阶段 3：验证
-
-只读取阶段 2 推测出的文件代码，确认是否为真正的攻击面：
-- 确认有外部可访问的入口（HTTP 路由、MQ 监听、main 函数等）
-- 确认有外部输入或用户可控数据
-- 确认后生成 surface 文件
-
-- **复杂目标拆分子任务**：若目标代码量过大、模块众多，识别工作应自行规划拆分为多个子任务，按模块（目录/包/子系统）逐一独立识别，每个模块的输出独立成文件，确保全部模块的攻击面均被覆盖、不遗漏。
-
-**反向自检**：验证完成后，从已识别入口的形态反问——项目中是否还存在同形态但未覆盖的入口？（例如已识别一个 MQ consumer，需确认是否还有其他 consumer 目录/文件未浏览过。）发现遗漏则回到阶段 2 补充推测与验证，防止分层浏览的目录剪枝造成整类入口漏识别。
-
-**不要读取未推测的文件代码，不要无谓扩大读取范围。**
-
-## 识别范围
-
-收集所有攻击面（接口 + 非接口）：
-
-- **接口**：web（REST / JAX-RS / Servlet / GraphQL）、外部 MQ 消费者、gRPC、WebSocket / SSE、RPC/RMI、Webhook 回调、自定义协议服务端（TCP/UDP）
-- **非接口**：独立可执行脚本、独立工具（含 main 入口的可执行程序）、接收外部输入的任务/消息处理、CLI 命令入口、SDK/库导出的公共 API 函数、部署/基础设施配置（Dockerfile、docker-compose、K8s 清单、Nginx/网关配置等，分类记为 DEPLOY）
-
-> **部署配置说明**：Dockerfile 这类文件决定服务的暴露方式（对外端口、特权模式、挂载、环境变量、入口命令），属于部署形态暴露面，必须识别出来供后续阶段分析。来源指向文件本身，一个文件一个条目。
-
-每条目必须提取精确的**来源信息**（完整文件路径:行号、函数名），路径必须是完整的绝对或相对项目根路径，供后续分析步骤直接使用。**REST 接口必须找到实际的 Controller 入口代码位置（文件路径:行号:函数名），而非路由配置或接口文档来源。****"独立工具"**指有 main 函数作为入口的可独立执行的程序，不是编译产物分析也不是工具类/工具函数。
-
-### Swagger/OpenAPI YAML 文件提取 REST 接口
-
-REST 接口可能定义在 Swagger/OpenAPI 的 YAML 文件中。这类文件通常名为 `rest*.yaml`/`rest*.yml`，但也可能不以此前缀命名。查找项目中的 `*.yaml` / `*.yml` 文件，读取其内容判断是否为 OpenAPI spec（包含 `openapi` 或 `swagger` 版本号 + `paths` 字段）：
-
-- **tags** → 类名推定：`tags` 列表第一个值一般为对应 controller 类名。如果类名以 `Api`/`Controller` 结尾则直接使用，否则尝试追加 `DelegateImpl` 后缀（如 tag=`user` → `UserDelegateImpl`）
-- **operationId** → 函数名
-- **参数提取**：通过 spec 文件发现的暴露面，**参数校验配置必须完整提取到 `**参数**` 字段，不可省略**。格式为 `{位置}: {参数名}({约束})`，含以下约束：
-  - `required`（必填）
-  - 类型（`string`/`integer`/`boolean` 等）
-  - 数值范围：`minimum=值`、`maximum=值`
-  - 长度范围：`minLength=值`、`maxLength=值`
-  - 正则：`pattern=表达式`
-  - 枚举值：`enum=val1|val2...`
-  - `x-example` 及相关 `x-*` 扩展字段**不作为**约束范围，必须忽略
-- **校验注解说明**：spec 中的参数约束通常经代码生成自动转为运行时校验注解（如 `@Min`/`@Pattern`），对入参自动拦截。完整提取这些约束到暴露面文件中，使后续漏洞分析能感知已有校验逻辑，避免因未发现校验而误判为漏洞。
-- **接口定义**：在补充字段中加入 `**接口定义**` 指向该 YAML 文件的完整相对路径
-
-基于入口处已采集的信息，完整填写输出格式中各字段（代码路径、函数名、接口参数等），尽量详细。不要求主动获取更多信息或跨函数追踪。
-
-识别过程中如果看到值得注意的关键信息（如涉及高危操作、参数来源是用户输入等），可以在对应条目的 `**发现**` 字段中客观记录，但**限于入口处的直接可见信息**。
-
-**识别排除项**：
-- Spring Boot `@SpringBootApplication` main 入口类不计为攻击面（仅框架启动入口，无业务逻辑）
-- 纯工具类/工具函数不计为攻击面（无独立入口）
-- 配置文件（YAML/JSON/properties/XML 等）不计为攻击面（不是入口函数，不含接收外部输入的处理逻辑）——**但部署/基础设施配置除外**（Dockerfile、docker-compose、K8s 清单、Nginx/网关配置等按 DEPLOY 识别）
-- 内部定时任务不计为攻击面（不接收外部输入，无用户可控数据入口）
-- 内部 Filter/Interceptor 不计为攻击面（被 Controller 调用，非独立入口）
-- 内部 Event Bus / 领域事件监听器不计为攻击面（仅系统内部发布，无外部数据入口）
-- **内部 Service 不计为攻击面**（在 Web 服务中 Service 被 Controller 调用，非独立入口）——**但注意**：当项目本身是 SDK/库时，Service/Provider/API 类的 public 方法就是对外入口，必须识别为攻击面
+1. **判断项目类型**：按根目录标志文件判断（Web/SDK/CLI/独立应用/混合），不同类型入口形态不同。
+2. **分层浏览**：从根目录逐层 `ls`，按目录名/文件名推测入口，仅验证推测文件。**大项目按模块拆分子任务逐一识别，确保全覆盖。**
+3. **验证收录**：确认有外部入口 + 可控输入 → 生成文件。完成后**反向自检**是否遗漏。**来源**：精确到文件路径:行号:函数名，REST 定位到 Controller 入口代码。
 
 ## 输出格式
 
