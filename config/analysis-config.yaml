@@ -34,3 +34,6 @@ timeout_surface_discover: 120
 
 # Timeout for other analysis stages (minutes)
 timeout_default: 60
+
+# Skip review for NOVULN findings (saves LLM calls)
+skip_novuln_review: true

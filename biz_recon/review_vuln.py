@@ -32,7 +32,8 @@ def run(work_dir: Path, max_workers: int = 3,
         force_list: list[str] | None = None,
         only_stems: list[str] | None = None,
         thinking: bool = False,
-        prefix: str = ""):
+        prefix: str = "",
+        skip_novuln: bool = False):
     from .workspace import setup_stage_log
     rv_log = setup_stage_log("review_vuln", prefix=prefix)
     review_dir = work_dir / OUTPUT_PARENT / "vuln_reviews"
@@ -41,6 +42,11 @@ def run(work_dir: Path, max_workers: int = 3,
     vuln_files = sorted((work_dir / OUTPUT_PARENT / "vuln_findings").glob("*.md"))
     if not vuln_files:
         return []
+
+    if skip_novuln:
+        vuln_files = [f for f in vuln_files if not f.name.startswith("NOVULN-")]
+        if not vuln_files:
+            return sorted(review_dir.glob("*"))
 
     if only_stems:
         vuln_files = [f for f in vuln_files if _extract_surface_stem(f.stem) in only_stems]

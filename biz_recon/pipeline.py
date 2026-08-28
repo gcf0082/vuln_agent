@@ -103,7 +103,8 @@ def run(work_dirs: list[Path],
         agent: str = "",
         min_level: str = "low",
         overwrite: bool = False,
-        force_surface: str = ""):
+        force_surface: str = "",
+        skip_novuln_review: bool = False):
     setup_logging()
     log = setup_stage_log("pipeline")
     reset_failures()
@@ -221,6 +222,7 @@ def run(work_dirs: list[Path],
             if plan_dir.exists() and list(plan_dir.glob("high-risk-*.md")):
                 vf = vpool.submit(_phase2_vuln_review, d, sname,
                                   vuln_prompt, verify_prompt, thinking,
+                                  skip_novuln_review,
                                   prefix=f"[{d.name}/{sname}]")
                 vuln_futures[vf] = (d, sname)
 
@@ -253,6 +255,7 @@ def run(work_dirs: list[Path],
                         break
                     f = vpool.submit(_phase3_one, d, sname, phase3_levels,
                                      vuln_prompt, verify_prompt, thinking,
+                                     skip_novuln_review,
                                      prefix=f"[{d.name}/{sname}]")
                     phase3_futures[f] = (d, sname)
 
@@ -334,7 +337,9 @@ def _phase2_analyze_plan(work_dir: Path, surface_file: str,
 
 def _phase2_vuln_review(work_dir: Path, surface_file: str,
                         vuln_prompt: str, verify_prompt: str,
-                        thinking: bool, prefix: str):
+                        thinking: bool,
+                        skip_novuln_review: bool = False,
+                        prefix: str = ""):
     """High-risk vuln+review for one surface (runs in vuln pool)."""
     stem = surface_file.replace(".md", "")
     vuln_analyze.run(work_dir, max_workers=1,
@@ -346,13 +351,16 @@ def _phase2_vuln_review(work_dir: Path, surface_file: str,
     review_vuln.run(work_dir, max_workers=1,
                     extra_prompt=verify_prompt,
                     only_stems=[stem],
-                    thinking=thinking, prefix=prefix)
+                    thinking=thinking, prefix=prefix,
+                    skip_novuln=skip_novuln_review)
 
 
 def _phase3_one(work_dir: Path, surface_file: str,
                 levels: list[str],
                 vuln_prompt: str, verify_prompt: str,
-                thinking: bool, prefix: str):
+                thinking: bool,
+                skip_novuln_review: bool = False,
+                prefix: str = ""):
     """Medium → low vuln+review for one surface."""
     stem = surface_file.replace(".md", "")
     for level in levels:
@@ -365,4 +373,5 @@ def _phase3_one(work_dir: Path, surface_file: str,
         review_vuln.run(work_dir, max_workers=1,
                         extra_prompt=verify_prompt,
                         only_stems=[stem],
-                        thinking=thinking, prefix=prefix)
+                        thinking=thinking, prefix=prefix,
+                        skip_novuln=skip_novuln_review)

@@ -157,8 +157,11 @@ def main(work_dir: str | None = None,
                 from . import review_vuln
                 review_vuln.run(d, max_workers=max_workers,
                                 extra_prompt=vuln_prompt, thinking=thinking,
-                                only_stems=matched_stems)
+                                only_stems=matched_stems,
+                                skip_novuln=config.get("skip_novuln_review", True))
     else:
+        skip_novuln_review = config.get("skip_novuln_review", True)
+
         pipeline.run(
             work_dirs=work_dirs,
             max_workers=max_workers,
@@ -172,6 +175,7 @@ def main(work_dir: str | None = None,
             min_level=min_level,
             overwrite=overwrite,
             force_surface=force_surface,
+            skip_novuln_review=skip_novuln_review,
         )
 
         if not was_interrupted():
