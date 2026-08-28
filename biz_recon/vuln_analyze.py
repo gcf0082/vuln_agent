@@ -37,22 +37,6 @@ def _surface_priority(surface_stem: str, plans_dir: Path) -> int:
     return 2
 
 
-_LEVEL_MAP = {"high": 0, "medium": 1, "low": 2}
-
-
-def _plan_file_level(pf: Path) -> int:
-    stem = pf.stem
-    if stem.startswith("high-risk"):
-        return 0
-    if stem.startswith("medium-risk"):
-        return 1
-    if stem.startswith("low-risk"):
-        return 2
-    if stem.startswith("none-risk"):
-        return 99
-    return 2
-
-
 def run(work_dir: Path, max_workers: int = 3,
         extra_prompt: str = "",
         force_list: list[str] | None = None,
@@ -139,32 +123,18 @@ def run(work_dir: Path, max_workers: int = 3,
 
     surface_files.sort(key=lambda f: _surface_priority(f.stem, plans_dir))
 
-    min_level_num = _LEVEL_MAP.get(min_level, 3)
-
-    def _level_match(pf: Path) -> bool:
-        lvl = _plan_file_level(pf)
-        if risk_first:
-            return lvl == min_level_num
-        return lvl <= min_level_num
-
     def analyze_one(sf_path):
         plan_dir = plans_dir / sf_path.stem
         if not plan_dir.exists():
             return _run_one(sf_path, "analyze-vulnerability.txt", {
+                "analysis_plan_dir": "",
                 "analysis_plan": "",
             }, thinking_id=f"vuln-{sf_path.stem}-no-plan")
 
-        for pf in sorted(plan_dir.glob("*.md")):
-            if not _level_match(pf):
-                continue
-            plan_content = pf.read_text(encoding="utf-8")
-            thinking_id = f"vuln-{sf_path.stem}-{pf.stem}"
-            ok = _run_one(sf_path, "analyze-vulnerability.txt", {
-                "analysis_plan": plan_content,
-            }, log_suffix=f" [{pf.name}]", thinking_id=thinking_id)
-            if not ok:
-                return False
-        return True
+        return _run_one(sf_path, "analyze-vulnerability.txt", {
+            "analysis_plan_dir": str(plan_dir),
+            "analysis_plan": "",
+        }, thinking_id=f"vuln-{sf_path.stem}-all")
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
         for sf_path, ok in zip(surface_files, pool.map(analyze_one, surface_files)):
