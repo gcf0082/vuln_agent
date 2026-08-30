@@ -68,6 +68,7 @@ def _delete_surface_outputs(work_dir: Path, filename: str,
         plan_dir = base / "vuln_plans" / stem
         if plan_dir.exists():
             shutil.rmtree(plan_dir)
+        (base / ".surface_split_done").unlink(missing_ok=True)
 
     for dir_name in ["vuln_findings", "vuln_reviews"]:
         d = base / dir_name

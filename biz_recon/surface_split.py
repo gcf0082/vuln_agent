@@ -21,6 +21,7 @@ from .workspace import (OUTPUT_PARENT, build_vars, read_surface_list, get_timeou
 _RESULT_RE = re.compile(r"##\s*SPLIT_RESULT(.*?)(?:\n##|\Z)", re.S)
 _ACTION_RE = re.compile(r"-\s*\*?\*?action\*?\*?\s*[:：]\s*(\w+)", re.I)
 _FILES_RE = re.compile(r"-\s*\*?\*?new_files\*?\*?\s*[:：]\s*(.+)", re.I)
+DONE_MARKER = ".surface_split_done"
 
 
 def _parse_manifest(text: str) -> tuple[str, list[str]]:
@@ -59,9 +60,14 @@ def _safe_rename(child: Path) -> Path:
 
 
 def run(work_dir: Path, max_workers: int = 3, thinking: bool = False,
-        prefix: str = "", extra_prompt: str = ""):
+        prefix: str = "", extra_prompt: str = "", force: bool = False):
     from .workspace import setup_stage_log
     ss_log = setup_stage_log("surface_split", prefix=prefix)
+
+    marker = work_dir / OUTPUT_PARENT / DONE_MARKER
+    if not force and marker.exists():
+        ss_log(f"{prefix} ⏭ 拆解跳过（已完成）", quiet=True)
+        return
 
     items = read_surface_list(work_dir)
     if not items:
@@ -144,4 +150,6 @@ def run(work_dir: Path, max_workers: int = 3, thinking: bool = False,
         for fname in failures:
             record_failure(f"攻击面拆解 [{prefix}] {fname}")
 
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.touch()
     ss_log(f"{prefix} ✓ 攻击面拆解完成", quiet=True)
