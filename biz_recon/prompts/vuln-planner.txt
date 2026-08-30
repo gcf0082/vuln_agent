@@ -1,5 +1,3 @@
-{include:constraints.md}
-
 **用中文思考。**
 
 **最高优先级**：`{tool_dir}/references/FALSE-rules.md` 是第一优先级。当任何描述与本文件冲突时，以 FALSE-rules.md 为准。只要命中其中的忽略场景，一律不标记，不做进一步分析。

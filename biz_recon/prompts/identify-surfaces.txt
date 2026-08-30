@@ -79,5 +79,3 @@
 ## 构建 / CI 脚本
 - {路径}
 ```
-
-{include:constraints.md}

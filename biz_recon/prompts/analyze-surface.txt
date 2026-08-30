@@ -1,5 +1,3 @@
-{include:constraints.md}
-
 **用中文思考。**
 
 输入文件：{target_work_dir}/.vuln_agent_output/discovered_surfaces/{surface_file}
