@@ -10,7 +10,7 @@ from .workspace import OUTPUT_PARENT, build_vars, read_surface_list, log, get_ti
 
 def run(work_dir: Path, max_workers: int = 3,
         only_surfaces: list[str] | None = None,
-        任务特殊要求: str = "",
+        extra_prompt: str = "",
         thinking: bool = False,
         prefix: str = ""):
     from .workspace import setup_stage_log
@@ -41,7 +41,7 @@ def run(work_dir: Path, max_workers: int = 3,
         ao_log(f"{prefix} → 业务流分析 {item.filename}")
         local_vars = {**vars,
             "surface_file": item.filename,
-            "任务特殊要求": f"\n**任务特殊要求：**{任务特殊要求}" if 任务特殊要求 else "",
+            "extra_prompt": f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else "",
         }
         prompt = read_prompt("analyze-surface.txt", local_vars)
 

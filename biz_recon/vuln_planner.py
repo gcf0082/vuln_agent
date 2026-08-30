@@ -9,7 +9,7 @@ from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout, record_failu
 
 
 def run(work_dir: Path, max_workers: int = 3,
-        任务特殊要求: str = "",
+        extra_prompt: str = "",
         thinking: bool = False,
         only_stems: list[str] | None = None,
         prefix: str = ""):
@@ -35,7 +35,7 @@ def run(work_dir: Path, max_workers: int = 3,
     plans_dir.mkdir(parents=True, exist_ok=True)
 
     vars = build_vars(work_dir)
-    extras = f"\n**任务特殊要求：**{任务特殊要求}" if 任务特殊要求 else ""
+    extras = f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else ""
     failures: list[str] = []
 
     def plan_one(sf_path):
@@ -49,7 +49,7 @@ def run(work_dir: Path, max_workers: int = 3,
         local_vars = {**vars,
             "surface_file": sf_path.name,
             "surface_stem": sf_path.stem,
-            "任务特殊要求": extras,
+            "extra_prompt": extras,
         }
         prompt = read_prompt("vuln-planner.txt", local_vars)
 

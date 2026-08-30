@@ -115,7 +115,7 @@ def main(work_dir: str | None = None,
             if stage == "recon":
                 if force_surface:
                     runner_log("  --force-surface ignored for recon stage (discovery is global)")
-                surface_discover.run(d, 任务特殊要求=recon_prompt, force=overwrite, thinking=thinking)
+                surface_discover.run(d, extra_prompt=recon_prompt, force=overwrite, thinking=thinking)
             elif stage == "flow":
                 matched_files = pipeline._parse_force_surface(force_surface, d) if force_surface else None
                 if matched_files == []:
@@ -126,11 +126,11 @@ def main(work_dir: str | None = None,
                         pipeline._delete_surface_outputs(d, sname, from_stage="flow")
                 surface_analyze.run(d, max_workers=max_workers,
                                     only_surfaces=matched_files,
-                                    任务特殊要求=flow_prompt, thinking=thinking)
+                                    extra_prompt=flow_prompt, thinking=thinking)
                 from . import vuln_planner
                 matched_stems = [f.replace(".md", "") for f in matched_files] if matched_files else None
                 vuln_planner.run(d, max_workers=max_workers,
-                                 任务特殊要求=vuln_prompt, thinking=thinking,
+                                 extra_prompt=vuln_prompt, thinking=thinking,
                                  only_stems=matched_stems)
             elif stage == "postprocess":
                 from . import vuln_postprocess
@@ -148,15 +148,15 @@ def main(work_dir: str | None = None,
                         pipeline._delete_surface_outputs(d, sname, from_stage="vuln")
                 from . import vuln_planner
                 vuln_planner.run(d, max_workers=max_workers,
-                                 任务特殊要求=vuln_prompt, thinking=thinking,
+                                 extra_prompt=vuln_prompt, thinking=thinking,
                                  only_stems=matched_stems)
                 vuln_analyze.run(d, max_workers=max_workers,
-                                 任务特殊要求=vuln_prompt, thinking=thinking,
+                                 extra_prompt=vuln_prompt, thinking=thinking,
                                  min_level=min_level,
                                  only_stems=matched_stems)
                 from . import review_vuln
                 review_vuln.run(d, max_workers=max_workers,
-                                任务特殊要求=vuln_prompt, thinking=thinking,
+                                extra_prompt=vuln_prompt, thinking=thinking,
                                 only_stems=matched_stems,
                                 skip_novuln=config.get("skip_novuln_review", True))
     else:

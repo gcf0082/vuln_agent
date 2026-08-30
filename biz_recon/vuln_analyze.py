@@ -38,7 +38,7 @@ def _surface_priority(surface_stem: str, plans_dir: Path) -> int:
 
 
 def run(work_dir: Path, max_workers: int = 3,
-        任务特殊要求: str = "",
+        extra_prompt: str = "",
         force_list: list[str] | None = None,
         only_stems: list[str] | None = None,
         thinking: bool = False,
@@ -82,7 +82,7 @@ def run(work_dir: Path, max_workers: int = 3,
         surface_files = need_analysis
 
     vars = build_vars(work_dir)
-    extras = f"\n**任务特殊要求：**{任务特殊要求}" if 任务特殊要求 else ""
+    extras = f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else ""
     failures: list[str] = []
 
     def _run_one(sf_path, prompt_name, extra_vars, log_suffix="", thinking_id=""):
@@ -95,7 +95,7 @@ def run(work_dir: Path, max_workers: int = 3,
         local_vars = {**vars,
             "surface_file": sf_path.name,
             "surface_stem": sf_path.stem,
-            "任务特殊要求": extras,
+            "extra_prompt": extras,
             **extra_vars,
         }
         prompt = read_prompt(prompt_name, local_vars)

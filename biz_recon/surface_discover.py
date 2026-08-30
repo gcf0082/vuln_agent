@@ -10,7 +10,7 @@ from .workspace import OUTPUT_PARENT, ensure_dirs, build_vars, log, get_timeout,
 DONE_MARKER = ".surface_discover_done"
 
 
-def run(work_dir: Path, 任务特殊要求: str = "", force: bool = False,
+def run(work_dir: Path, extra_prompt: str = "", force: bool = False,
         thinking: bool = False, prefix: str = ""):
     from .workspace import setup_stage_log
     sd_log = setup_stage_log("surface_discover", prefix=prefix)
@@ -25,14 +25,14 @@ def run(work_dir: Path, 任务特殊要求: str = "", force: bool = False,
     vars = build_vars(work_dir)
 
     extras = ""
-    if 任务特殊要求:
-        extras += f"\n**任务特殊要求：**{任务特殊要求}"
+    if extra_prompt:
+        extras += f"\n**用户特殊要求：**{extra_prompt}"
     ext_file = Path(__file__).parent.parent / "prompts-ext" / "surface_discover.md"
     if ext_file.exists():
         content = ext_file.read_text(encoding="utf-8").strip()
         if content:
             extras += f"\n\n{content}"
-    vars["任务特殊要求"] = extras
+    vars["extra_prompt"] = extras
     prompt = read_prompt("identify-surfaces.txt", vars)
 
     client = OpenCodeClient()
