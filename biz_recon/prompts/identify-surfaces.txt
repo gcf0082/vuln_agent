@@ -2,7 +2,7 @@
 
 识别 {target_work_dir} 下所有攻击面，仅做识别不做深入分析。一个攻击面一个文件。每发现一个，在 {target_work_dir}/.vuln_agent_output/discovered_surfaces/ 下生成独立文件。
 
-{extra_prompt}
+{任务特殊要求}
 
 ## 核心原则
 

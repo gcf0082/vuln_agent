@@ -12,7 +12,7 @@ from .prompt import read_prompt
 from .workspace import OUTPUT_PARENT, build_vars, log, get_timeout, record_failure, save_thinking, append_thinking_manifest
 
 
-def run(work_dir: Path, extra_prompt: str = "",
+def run(work_dir: Path, 任务特殊要求: str = "",
         thinking: bool = False, prefix: str = ""):
     from .workspace import setup_stage_log
     pp_log = setup_stage_log("vuln_postprocess", prefix=prefix)

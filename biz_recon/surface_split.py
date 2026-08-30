@@ -59,7 +59,7 @@ def _safe_rename(child: Path) -> Path:
 
 
 def run(work_dir: Path, max_workers: int = 3, thinking: bool = False,
-        prefix: str = "", extra_prompt: str = ""):
+        prefix: str = "", 任务特殊要求: str = ""):
     from .workspace import setup_stage_log
     ss_log = setup_stage_log("surface_split", prefix=prefix)
 
@@ -91,7 +91,7 @@ def run(work_dir: Path, max_workers: int = 3, thinking: bool = False,
         local_vars = {**vars,
             "surface_file": item.filename,
             "surface_stem": item.filename.replace(".md", ""),
-            "extra_prompt": f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else "",
+            "任务特殊要求": f"\n**任务特殊要求：**{任务特殊要求}" if 任务特殊要求 else "",
         }
         prompt = read_prompt("split-surface.txt", local_vars)
 

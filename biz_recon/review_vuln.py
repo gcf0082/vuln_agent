@@ -28,7 +28,7 @@ def _extract_surface_stem(vuln_stem: str) -> str:
 
 
 def run(work_dir: Path, max_workers: int = 3,
-        extra_prompt: str = "",
+        任务特殊要求: str = "",
         force_list: list[str] | None = None,
         only_stems: list[str] | None = None,
         thinking: bool = False,
@@ -77,7 +77,7 @@ def run(work_dir: Path, max_workers: int = 3,
             "vuln_file": vf_path.name,
             "vuln_file_stem": vf_path.stem,
             "analysis_file": analysis_name,
-            "extra_prompt": f"\n**用户特殊要求：**{extra_prompt}" if extra_prompt else "",
+            "任务特殊要求": f"\n**任务特殊要求：**{任务特殊要求}" if 任务特殊要求 else "",
         }
         prompt = read_prompt("review-vulnerability.txt", local_vars)
 

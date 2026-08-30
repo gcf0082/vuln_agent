@@ -3,7 +3,7 @@
 输入文件：{target_work_dir}/.vuln_agent_output/discovered_surfaces/{surface_file}
 输出文件：{target_work_dir}/.vuln_agent_output/analyzed_surfaces/{surface_file}
 
-{extra_prompt}
+{任务特殊要求}
 ## 八荣八耻
 {include:flow-principles.md}
 ## 分析方法

@@ -312,7 +312,7 @@ def run(work_dirs: list[Path],
 def _discover_one(work_dir: Path, recon_prompt: str, overwrite: bool,
                   thinking: bool, prefix: str) -> list[str]:
     """Run discovery for one directory, return list of surface filenames."""
-    surface_discover.run(work_dir, extra_prompt=recon_prompt,
+    surface_discover.run(work_dir, 任务特殊要求=recon_prompt,
                          force=overwrite, thinking=thinking, prefix=prefix)
     items = read_surface_list(work_dir)
     return [item.filename for item in items]
@@ -325,11 +325,11 @@ def _phase2_analyze_plan(work_dir: Path, surface_file: str,
     stem = surface_file.replace(".md", "")
     surface_analyze.run(work_dir, max_workers=1,
                         only_surfaces=[surface_file],
-                        extra_prompt=flow_prompt,
+                        任务特殊要求=flow_prompt,
                         thinking=thinking, prefix=prefix)
 
     vuln_planner.run(work_dir, max_workers=1,
-                     extra_prompt=vuln_prompt,
+                     任务特殊要求=vuln_prompt,
                      thinking=thinking,
                      only_stems=[stem],
                      prefix=prefix)
@@ -343,13 +343,13 @@ def _phase2_vuln_review(work_dir: Path, surface_file: str,
     """High-risk vuln+review for one surface (runs in vuln pool)."""
     stem = surface_file.replace(".md", "")
     vuln_analyze.run(work_dir, max_workers=1,
-                     extra_prompt=vuln_prompt,
+                     任务特殊要求=vuln_prompt,
                      only_stems=[stem],
                      thinking=thinking,
                      min_level="high", risk_first=True,
                      prefix=prefix, force=False)
     review_vuln.run(work_dir, max_workers=1,
-                    extra_prompt=verify_prompt,
+                    任务特殊要求=verify_prompt,
                     only_stems=[stem],
                     thinking=thinking, prefix=prefix,
                     skip_novuln=skip_novuln_review)
@@ -365,13 +365,13 @@ def _phase3_one(work_dir: Path, surface_file: str,
     stem = surface_file.replace(".md", "")
     for level in levels:
         vuln_analyze.run(work_dir, max_workers=1,
-                         extra_prompt=vuln_prompt,
+                         任务特殊要求=vuln_prompt,
                          only_stems=[stem],
                          thinking=thinking,
                          min_level=level, risk_first=True,
                          prefix=prefix, force=True)
         review_vuln.run(work_dir, max_workers=1,
-                        extra_prompt=verify_prompt,
+                        任务特殊要求=verify_prompt,
                         only_stems=[stem],
                         thinking=thinking, prefix=prefix,
                         skip_novuln=skip_novuln_review)
