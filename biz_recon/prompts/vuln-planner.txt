@@ -50,5 +50,6 @@
 - 存在 high-risk 分析点才写 `high-risk-{n}.md`，存在 medium-risk 才写 `medium-risk-{n}.md`，依此类推
 - 无任何疑似安全风险点时写 `none-risk-1.md`
 - 参考 `{tool_dir}/references/vuln_rules_index.md`，匹配对应模式的 → 高优先级
+- **禁止规划** `{tool_dir}/references/FALSE-rules.md` 中的任何场景，命中即跳过，不得生成分析计划
 - 不要编造不存在的风险
 - 仅分析当前攻击面文件描述的内容，不要扩大范围
